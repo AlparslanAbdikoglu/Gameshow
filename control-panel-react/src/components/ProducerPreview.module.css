@@ -1,0 +1,79 @@
+/* Producer Preview - Live Audience View */
+.previewContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 960px;
+  height: 600px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(0, 43, 92, 0.8);
+  border-bottom: 1px solid var(--gold);
+}
+
+.previewHeader h3 {
+  color: var(--gold);
+  margin: 0;
+  font-size: 18px;
+  font-weight: var(--font-bold);
+}
+
+.closeBtn {
+  background: transparent;
+  border: 2px solid #ff4444;
+  color: #ff4444;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: #ff4444;
+  color: white;
+}
+
+.previewFrame {
+  width: 100%;
+  height: calc(100% - 80px);
+  overflow: hidden;
+  background: #000;
+}
+
+.previewStatus {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  font-size: 14px;
+  font-weight: var(--font-semibold);
+}
+
+.liveIndicator {
+  color: #ff4444;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

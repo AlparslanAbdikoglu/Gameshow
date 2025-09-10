@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Lifeline Display Test</title>
+</head>
+<body>
+    <h1>Lifeline Voting Display Test</h1>
+    <p>Open the browser source at: <a href="http://localhost:8081/gameshow" target="_blank">http://localhost:8081/gameshow</a></p>
+    
+    <h2>Expected Display (Middle Panel):</h2>
+    <ul>
+        <li><strong>Total Votes: 5</strong> (should appear at top of lifeline voting panel)</li>
+        <li>50:50 - 2 votes (40%)</li>
+        <li>Take Another Vote - 2 votes (40%)</li>
+        <li>Ask a Mod - 1 vote (20%)</li>
+    </ul>
+    
+    <h2>Expected Display (Info Panel - Right Side):</h2>
+    <ul>
+        <li>50:50 - 2 (40%)</li>
+        <li>Take Another Vote - 2 (40%)</li>
+        <li>Ask a Mod - 1 (20%)</li>
+    </ul>
+    
+    <h2>Current Server State:</h2>
+    <pre id="state">Loading...</pre>
+    
+    <script>
+        fetch('http://localhost:8081/api/state')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('state').textContent = 
+                    'Lifeline voting active: ' + data.lifeline_voting_active + '\n' +
+                    'Vote counts: ' + JSON.stringify(data.lifeline_vote_counts, null, 2) + '\n' +
+                    'Total votes: ' + Object.values(data.lifeline_vote_counts).reduce((a,b) => a+b, 0);
+            });
+    </script>
+</body>
+</html>

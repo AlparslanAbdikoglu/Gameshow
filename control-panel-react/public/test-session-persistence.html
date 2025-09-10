@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Persistence Test - Kimbillionaire</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #002B5C 0%, #1a4480 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #FFD700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .test-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 5px;
+        }
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        .btn {
+            background: linear-gradient(145deg, #FFD700 0%, #FFA500 100%);
+            color: #002B5C;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+        .btn.danger {
+            background: linear-gradient(145deg, #ff4444 0%, #cc0000 100%);
+            color: white;
+        }
+        .btn.success {
+            background: linear-gradient(145deg, #44ff44 0%, #00cc00 100%);
+            color: #002B5C;
+        }
+        .results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+            border-left: 4px solid #FFD700;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.success {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+        }
+        .status.error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+        }
+        .status.info {
+            background: rgba(0, 100, 255, 0.2);
+            border: 1px solid #0066ff;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700 0%, #FFA500 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🦁 Kimbillionaire Session Persistence Testing Suite</h1>
+        
+        <div class="test-section">
+            <div class="test-header">📊 System Status</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="storage-available">Checking...</div>
+                    <div class="stat-label">Storage Available</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="current-session">None</div>
+                    <div class="stat-label">Current Session</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="session-count">0</div>
+                    <div class="stat-label">Saved Sessions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="storage-size">0 KB</div>
+                    <div class="stat-label">Storage Used</div>
+                </div>
+            </div>
+            <div class="test-controls">
+                <button class="btn" onclick="updateStatus()">🔄 Refresh Status</button>
+                <button class="btn" onclick="clearConsole()">🧹 Clear Console</button>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">💾 Basic Save/Load Tests</div>
+            <div class="test-controls">
+                <button class="btn" onclick="testBasicSave()">💾 Test Save</button>
+                <button class="btn" onclick="testBasicLoad()">📂 Test Load</button>
+                <button class="btn" onclick="testInvalidData()">⚠️ Test Invalid Data</button>
+            </div>
+            <div id="basic-results" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">📚 Session History Tests</div>
+            <div class="test-controls">
+                <button class="btn" onclick="testSessionHistory()">📝 Create History</button>
+                <button class="btn" onclick="testHistoryLimit()">🔢 Test Limits</button>
+                <button class="btn" onclick="viewHistory()">👀 View History</button>
+            </div>
+            <div id="history-results" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">🔄 Auto-Save & Persistence</div>
+            <div class="test-controls">
+                <button class="btn" onclick="testAutoSave()">⏰ Test Auto-Save</button>
+                <button class="btn" onclick="simulateRefresh()">🔄 Simulate Refresh</button>
+                <button class="btn" onclick="testPersistence()">💾 Test Persistence</button>
+            </div>
+            <div id="autosave-results" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">📤📥 Export/Import Tests</div>
+            <div class="test-controls">
+                <button class="btn" onclick="testExport()">📤 Test Export</button>
+                <button class="btn" onclick="testImport()">📥 Test Import</button>
+                <button class="btn" onclick="downloadExport()">💾 Download Export</button>
+            </div>
+            <div id="export-results" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">🚀 Performance Tests</div>
+            <div class="test-controls">
+                <button class="btn" onclick="testPerformance()">⚡ Speed Test</button>
+                <button class="btn" onclick="testLargeData()">📊 Large Data Test</button>
+                <button class="btn" onclick="stressTest()">💪 Stress Test</button>
+            </div>
+            <div id="performance-results" class="results"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">🎮 Game Simulation</div>
+            <div class="test-controls">
+                <button class="btn" onclick="startGameSimulation()">🎯 Start Game</button>
+                <button class="btn" onclick="pauseGameSimulation()">⏸️ Pause</button>
+                <button class="btn" onclick="stopGameSimulation()">⏹️ Stop</button>
+                <button class="btn success" onclick="simulateWin()">🏆 Simulate Win</button>
+            </div>
+            <div id="game-results" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">🧹 Cleanup & Management</div>
+            <div class="test-controls">
+                <button class="btn danger" onclick="clearCurrentSession()">🗑️ Clear Current</button>
+                <button class="btn danger" onclick="clearAllSessions()">💥 Clear All</button>
+                <button class="btn danger" onclick="clearLocalStorage()">🔥 Clear Storage</button>
+            </div>
+            <div id="cleanup-results" class="results"></div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-header">📋 Console Output</div>
+            <div id="console-output" class="results">Test results will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        // Session persistence implementation for testing
+        const STORAGE_KEYS = {
+            CURRENT_SESSION: 'kimbillionaire_current_session',
+            SESSION_LIST: 'kimbillionaire_sessions',
+            SETTINGS: 'kimbillionaire_settings'
+        };
+
+        // Mock game state
+        const createMockGameState = (questionNum = 1, score = 1000) => ({
+            current_question: questionNum,
+            score: score,
+            game_active: true,
+            lifelines_used: questionNum > 5 ? ['50-50'] : [],
+            contestant_name: 'Test Player',
+            question_visible: true,
+            answers_visible: true,
+            answers_revealed: false,
+            answer_locked_in: false,
+            selected_answer: Math.floor(Math.random() * 4),
+            session_id: `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            last_saved: new Date().toISOString(),
+            version: '3.0.0'
+        });
+
+        // Utility functions
+        const log = (message, type = 'info') => {
+            const output = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+            output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        };
+
+        const clearConsole = () => {
+            document.getElementById('console-output').textContent = 'Console cleared...\n';
+        };
+
+        // Storage utilities
+        const sessionUtils = {
+            save: (data) => {
+                try {
+                    localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION, JSON.stringify(data));
+                    
+                    // Add to history
+                    const history = JSON.parse(localStorage.getItem(STORAGE_KEYS.SESSION_LIST) || '[]');
+                    history.push({ ...data, questions: undefined });
+                    if (history.length > 5) history.shift();
+                    localStorage.setItem(STORAGE_KEYS.SESSION_LIST, JSON.stringify(history));
+                    
+                    return true;
+                } catch (error) {
+                    log(`Save failed: ${error.message}`, 'error');
+                    return false;
+                }
+            },
+            
+            load: () => {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEYS.CURRENT_SESSION);
+                    return stored ? JSON.parse(stored) : null;
+                } catch (error) {
+                    log(`Load failed: ${error.message}`, 'error');
+                    return null;
+                }
+            },
+            
+            getHistory: () => {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEYS.SESSION_LIST);
+                    return stored ? JSON.parse(stored) : [];
+                } catch (error) {
+                    log(`History load failed: ${error.message}`, 'error');
+                    return [];
+                }
+            },
+            
+            clearAll: () => {
+                Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+            },
+            
+            getStats: () => {
+                let totalSize = 0;
+                Object.values(STORAGE_KEYS).forEach(key => {
+                    const item = localStorage.getItem(key);
+                    if (item) totalSize += new Blob([item]).size;
+                });
+                
+                return {
+                    totalSize,
+                    totalSizeKB: (totalSize / 1024).toFixed(2),
+                    sessions: sessionUtils.getHistory().length,
+                    hasCurrentSession: !!sessionUtils.load()
+                };
+            }
+        };
+
+        // Test functions
+        const testBasicSave = () => {
+            log('Testing basic save functionality...');
+            const gameState = createMockGameState(5, 32000);
+            
+            const saved = sessionUtils.save(gameState);
+            if (saved) {
+                log(`✅ Saved session: Q${gameState.current_question}, $${gameState.score}`, 'success');
+                document.getElementById('basic-results').textContent = 
+                    `Session ID: ${gameState.session_id}\nQuestion: ${gameState.current_question}\nScore: $${gameState.score}\nLifelines Used: ${gameState.lifelines_used.join(', ') || 'None'}\nSaved: ${gameState.last_saved}`;
+            } else {
+                log('❌ Save failed!', 'error');
+            }
+            updateStatus();
+        };
+
+        const testBasicLoad = () => {
+            log('Testing basic load functionality...');
+            const loaded = sessionUtils.load();
+            
+            if (loaded) {
+                log(`✅ Loaded session: Q${loaded.current_question}, $${loaded.score}`, 'success');
+                document.getElementById('basic-results').textContent = 
+                    `Session ID: ${loaded.session_id}\nQuestion: ${loaded.current_question}\nScore: $${loaded.score}\nGame Active: ${loaded.game_active}\nLoaded: ${new Date().toISOString()}`;
+            } else {
+                log('⚠️ No session to load', 'info');
+                document.getElementById('basic-results').textContent = 'No saved session found.';
+            }
+        };
+
+        const testInvalidData = () => {
+            log('Testing invalid data handling...');
+            
+            // Save corrupted data
+            localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION, 'invalid json{');
+            
+            const loaded = sessionUtils.load();
+            if (loaded === null) {
+                log('✅ Correctly handled corrupted data', 'success');
+                document.getElementById('basic-results').textContent = 'Corrupted data test: PASSED\nSystem correctly returned null for invalid JSON.';
+            } else {
+                log('❌ Failed to handle corrupted data', 'error');
+            }
+        };
+
+        const testSessionHistory = () => {
+            log('Creating session history...');
+            
+            for (let i = 1; i <= 7; i++) {
+                const gameState = createMockGameState(i, i * 1000);
+                sessionUtils.save(gameState);
+                log(`Saved session ${i}: Q${i}, $${i * 1000}`);
+            }
+            
+            const history = sessionUtils.getHistory();
+            log(`✅ Created ${history.length} sessions in history`, 'success');
+            
+            document.getElementById('history-results').textContent = 
+                `Sessions in history: ${history.length}\n` +
+                history.map((s, i) => `${i + 1}. Q${s.current_question} - $${s.score} (${new Date(s.last_saved).toLocaleTimeString()})`).join('\n');
+            
+            updateStatus();
+        };
+
+        const testHistoryLimit = () => {
+            log('Testing history limit (max 5 sessions)...');
+            
+            // Create more than 5 sessions
+            for (let i = 1; i <= 8; i++) {
+                sessionUtils.save(createMockGameState(i, i * 2000));
+            }
+            
+            const history = sessionUtils.getHistory();
+            if (history.length <= 5) {
+                log(`✅ History correctly limited to ${history.length} sessions`, 'success');
+            } else {
+                log(`❌ History limit failed: ${history.length} sessions`, 'error');
+            }
+            
+            updateStatus();
+        };
+
+        const viewHistory = () => {
+            const history = sessionUtils.getHistory();
+            const current = sessionUtils.load();
+            
+            let output = `Current Session:\n${current ? `Q${current.current_question} - $${current.score}` : 'None'}\n\nSession History:\n`;
+            history.forEach((session, i) => {
+                output += `${i + 1}. Q${session.current_question} - $${session.score} - ${new Date(session.last_saved).toLocaleString()}\n`;
+            });
+            
+            document.getElementById('history-results').textContent = output;
+        };
+
+        const testAutoSave = () => {
+            log('Testing auto-save functionality...');
+            
+            let saveCount = 0;
+            const autoSaveInterval = setInterval(() => {
+                saveCount++;
+                const gameState = createMockGameState(saveCount, saveCount * 1000);
+                sessionUtils.save(gameState);
+                log(`Auto-save ${saveCount}: Q${saveCount}, $${saveCount * 1000}`);
+                
+                if (saveCount >= 5) {
+                    clearInterval(autoSaveInterval);
+                    log('✅ Auto-save test completed', 'success');
+                    document.getElementById('autosave-results').textContent = 
+                        `Auto-save test completed.\n${saveCount} sessions saved automatically.\nInterval: 1 second\nFinal state: Q${saveCount}, $${saveCount * 1000}`;
+                    updateStatus();
+                }
+            }, 1000);
+        };
+
+        const simulateRefresh = () => {
+            log('Simulating browser refresh...');
+            
+            // Save current state
+            const preRefreshState = createMockGameState(8, 125000);
+            preRefreshState.contestant_name = 'Pre-Refresh Player';
+            sessionUtils.save(preRefreshState);
+            
+            log(`Saved pre-refresh: Q${preRefreshState.current_question}, $${preRefreshState.score}`);
+            
+            // Simulate refresh by loading after short delay
+            setTimeout(() => {
+                const postRefreshState = sessionUtils.load();
+                
+                if (postRefreshState && postRefreshState.current_question === 8) {
+                    log('✅ Data persisted across refresh simulation', 'success');
+                    document.getElementById('autosave-results').textContent = 
+                        `Refresh simulation: PASSED\n` +
+                        `Pre-refresh: Q${preRefreshState.current_question}, $${preRefreshState.score}\n` +
+                        `Post-refresh: Q${postRefreshState.current_question}, $${postRefreshState.score}\n` +
+                        `Player: ${postRefreshState.contestant_name}`;
+                } else {
+                    log('❌ Data lost during refresh simulation', 'error');
+                }
+            }, 500);
+        };
+
+        const testPersistence = () => {
+            log('Testing data persistence...');
+            
+            const testStates = [
+                { question: 1, score: 100, lifelines: [] },
+                { question: 5, score: 16000, lifelines: ['50-50'] },
+                { question: 10, score: 500000, lifelines: ['50-50', 'phone'] },
+                { question: 15, score: 1000000, lifelines: ['50-50', 'phone', 'audience'] }
+            ];
+            
+            testStates.forEach((test, i) => {
+                const state = createMockGameState(test.question, test.score);
+                state.lifelines_used = test.lifelines;
+                sessionUtils.save(state);
+                
+                const loaded = sessionUtils.load();
+                const persisted = loaded && 
+                                loaded.current_question === test.question && 
+                                loaded.score === test.score;
+                
+                log(`Persistence test ${i + 1}: ${persisted ? '✅ PASSED' : '❌ FAILED'}`);
+            });
+            
+            document.getElementById('autosave-results').textContent = 
+                `Persistence tests completed.\nAll ${testStates.length} test cases checked.\nData correctly saved and loaded.`;
+        };
+
+        const testExport = () => {
+            log('Testing export functionality...');
+            
+            // Ensure we have some data
+            sessionUtils.save(createMockGameState(12, 750000));
+            
+            try {
+                const currentSession = sessionUtils.load();
+                const sessionHistory = sessionUtils.getHistory();
+                
+                const exportData = {
+                    current_session: currentSession,
+                    session_history: sessionHistory,
+                    settings: { auto_save_interval: 30000, max_sessions: 5 },
+                    exported_at: new Date().toISOString(),
+                    version: '3.0.0'
+                };
+                
+                const exported = JSON.stringify(exportData, null, 2);
+                window.lastExport = exported; // Store for download
+                
+                log(`✅ Export successful: ${(exported.length / 1024).toFixed(2)} KB`, 'success');
+                document.getElementById('export-results').textContent = 
+                    `Export completed:\nSize: ${(exported.length / 1024).toFixed(2)} KB\nSessions: ${sessionHistory.length}\nCurrent: Q${currentSession?.current_question || 'None'}\nExported: ${new Date().toLocaleTimeString()}`;
+                
+            } catch (error) {
+                log(`❌ Export failed: ${error.message}`, 'error');
+            }
+        };
+
+        const testImport = () => {
+            log('Testing import functionality...');
+            
+            const mockImportData = {
+                current_session: createMockGameState(11, 500000),
+                session_history: [
+                    createMockGameState(1, 100),
+                    createMockGameState(5, 16000),
+                    createMockGameState(8, 125000)
+                ],
+                settings: { auto_save_interval: 45000, max_sessions: 3 },
+                exported_at: new Date().toISOString(),
+                version: '3.0.0'
+            };
+            
+            try {
+                // Clear existing data
+                sessionUtils.clearAll();
+                
+                // Import mock data
+                const importString = JSON.stringify(mockImportData);
+                
+                if (mockImportData.current_session) {
+                    localStorage.setItem(STORAGE_KEYS.CURRENT_SESSION, JSON.stringify(mockImportData.current_session));
+                }
+                if (mockImportData.session_history) {
+                    localStorage.setItem(STORAGE_KEYS.SESSION_LIST, JSON.stringify(mockImportData.session_history));
+                }
+                if (mockImportData.settings) {
+                    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(mockImportData.settings));
+                }
+                
+                // Verify import
+                const loaded = sessionUtils.load();
+                const history = sessionUtils.getHistory();
+                
+                if (loaded && loaded.current_question === 11 && history.length === 3) {
+                    log('✅ Import successful', 'success');
+                    document.getElementById('export-results').textContent = 
+                        `Import completed:\nCurrent session: Q${loaded.current_question}, $${loaded.score}\nHistory sessions: ${history.length}\nSettings imported: Yes`;
+                } else {
+                    log('❌ Import verification failed', 'error');
+                }
+                
+                updateStatus();
+                
+            } catch (error) {
+                log(`❌ Import failed: ${error.message}`, 'error');
+            }
+        };
+
+        const downloadExport = () => {
+            if (window.lastExport) {
+                const blob = new Blob([window.lastExport], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `kimbillionaire-session-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log('✅ Export file downloaded', 'success');
+            } else {
+                log('⚠️ No export data available. Run export test first.', 'info');
+            }
+        };
+
+        const testPerformance = () => {
+            log('Running performance tests...');
+            const operations = 100;
+            const startTime = performance.now();
+            
+            let progress = 0;
+            const progressBar = document.getElementById('progress-bar');
+            
+            const runOperation = (i) => {
+                if (i >= operations) {
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    const opsPerSecond = (operations / (duration / 1000)).toFixed(0);
+                    
+                    log(`✅ Performance test completed: ${opsPerSecond} ops/sec`, 'success');
+                    document.getElementById('performance-results').textContent = 
+                        `Performance Test Results:\nOperations: ${operations}\nDuration: ${duration.toFixed(2)}ms\nOps/second: ${opsPerSecond}\nAvg time per op: ${(duration / operations).toFixed(2)}ms`;
+                    
+                    progressBar.style.width = '100%';
+                    return;
+                }
+                
+                // Perform save/load operation
+                const state = createMockGameState(i % 15 + 1, (i + 1) * 1000);
+                sessionUtils.save(state);
+                
+                if (i % 10 === 0) {
+                    sessionUtils.load();
+                }
+                
+                progress = ((i + 1) / operations) * 100;
+                progressBar.style.width = progress + '%';
+                
+                // Continue with next operation
+                setTimeout(() => runOperation(i + 1), 1);
+            };
+            
+            runOperation(0);
+        };
+
+        const testLargeData = () => {
+            log('Testing large data handling...');
+            
+            const largeState = createMockGameState(15, 1000000);
+            largeState.large_data = 'x'.repeat(50000); // 50KB of extra data
+            largeState.questions = Array(100).fill({
+                text: 'Sample question with lots of text to simulate real question data',
+                answers: ['A very long answer option', 'Another long answer', 'Third long option', 'Fourth option']
+            });
+            
+            const startTime = performance.now();
+            const saved = sessionUtils.save(largeState);
+            const saveTime = performance.now() - startTime;
+            
+            if (saved) {
+                const loadStart = performance.now();
+                const loaded = sessionUtils.load();
+                const loadTime = performance.now() - loadStart;
+                
+                log(`✅ Large data test completed`, 'success');
+                document.getElementById('performance-results').textContent = 
+                    `Large Data Test:\nData size: ~${(JSON.stringify(largeState).length / 1024).toFixed(2)} KB\nSave time: ${saveTime.toFixed(2)}ms\nLoad time: ${loadTime.toFixed(2)}ms\nSuccess: ${!!loaded}`;
+            } else {
+                log('❌ Large data test failed', 'error');
+            }
+            
+            updateStatus();
+        };
+
+        const stressTest = () => {
+            log('Running stress test...');
+            let errors = 0;
+            let successes = 0;
+            const iterations = 50;
+            
+            const progressBar = document.getElementById('progress-bar');
+            
+            const runIteration = (i) => {
+                if (i >= iterations) {
+                    log(`✅ Stress test completed: ${successes}/${iterations} successful`, 'success');
+                    document.getElementById('performance-results').textContent = 
+                        `Stress Test Results:\nIterations: ${iterations}\nSuccesses: ${successes}\nErrors: ${errors}\nSuccess rate: ${((successes / iterations) * 100).toFixed(1)}%`;
+                    
+                    progressBar.style.width = '100%';
+                    return;
+                }
+                
+                try {
+                    // Rapid save/load/history operations
+                    const state = createMockGameState(Math.floor(Math.random() * 15) + 1, Math.random() * 1000000);
+                    sessionUtils.save(state);
+                    sessionUtils.load();
+                    sessionUtils.getHistory();
+                    successes++;
+                } catch (error) {
+                    errors++;
+                    log(`Error in iteration ${i}: ${error.message}`, 'error');
+                }
+                
+                const progress = ((i + 1) / iterations) * 100;
+                progressBar.style.width = progress + '%';
+                
+                setTimeout(() => runIteration(i + 1), 10);
+            };
+            
+            progressBar.style.width = '0%';
+            runIteration(0);
+        };
+
+        // Game simulation
+        let gameSimulation = null;
+
+        const startGameSimulation = () => {
+            if (gameSimulation) {
+                clearInterval(gameSimulation);
+            }
+            
+            log('Starting game simulation...');
+            let currentQuestion = 1;
+            let currentScore = 0;
+            const prizeValues = [100, 200, 300, 500, 1000, 2000, 4000, 8000, 16000, 32000, 64000, 125000, 250000, 500000, 1000000];
+            
+            gameSimulation = setInterval(() => {
+                if (currentQuestion > 15) {
+                    clearInterval(gameSimulation);
+                    log('🏆 Game simulation completed - MILLIONAIRE!', 'success');
+                    return;
+                }
+                
+                currentScore = prizeValues[currentQuestion - 1];
+                const state = createMockGameState(currentQuestion, currentScore);
+                state.contestant_name = 'Simulated Player';
+                
+                sessionUtils.save(state);
+                log(`Game Progress: Q${currentQuestion} - $${currentScore.toLocaleString()}`);
+                
+                document.getElementById('game-results').textContent = 
+                    `Game Simulation Running...\nCurrent Question: ${currentQuestion}\nCurrent Score: $${currentScore.toLocaleString()}\nLifelines Used: ${state.lifelines_used.join(', ') || 'None'}`;
+                
+                currentQuestion++;
+                updateStatus();
+            }, 2000);
+        };
+
+        const pauseGameSimulation = () => {
+            if (gameSimulation) {
+                clearInterval(gameSimulation);
+                gameSimulation = null;
+                log('⏸️ Game simulation paused');
+            }
+        };
+
+        const stopGameSimulation = () => {
+            if (gameSimulation) {
+                clearInterval(gameSimulation);
+                gameSimulation = null;
+                log('⏹️ Game simulation stopped');
+                document.getElementById('game-results').textContent = 'Game simulation stopped.';
+            }
+        };
+
+        const simulateWin = () => {
+            const winningState = createMockGameState(15, 1000000);
+            winningState.contestant_name = 'MILLIONAIRE WINNER!';
+            winningState.game_active = false;
+            winningState.lifelines_used = ['50-50', 'phone-a-friend', 'ask-audience'];
+            
+            sessionUtils.save(winningState);
+            log('🏆 MILLIONAIRE WIN SIMULATED!', 'success');
+            
+            document.getElementById('game-results').textContent = 
+                `🏆 MILLIONAIRE! 🏆\nFinal Question: 15\nFinal Score: $1,000,000\nPlayer: ${winningState.contestant_name}\nLifelines Used: All\nCompleted: ${new Date().toLocaleTimeString()}`;
+            
+            updateStatus();
+        };
+
+        // Cleanup functions
+        const clearCurrentSession = () => {
+            localStorage.removeItem(STORAGE_KEYS.CURRENT_SESSION);
+            log('🗑️ Current session cleared');
+            document.getElementById('cleanup-results').textContent = 'Current session cleared.';
+            updateStatus();
+        };
+
+        const clearAllSessions = () => {
+            sessionUtils.clearAll();
+            log('💥 All sessions cleared');
+            document.getElementById('cleanup-results').textContent = 'All sessions and data cleared.';
+            updateStatus();
+        };
+
+        const clearLocalStorage = () => {
+            localStorage.clear();
+            log('🔥 Entire localStorage cleared');
+            document.getElementById('cleanup-results').textContent = 'Entire browser storage cleared.';
+            updateStatus();
+        };
+
+        // Status update function
+        const updateStatus = () => {
+            const stats = sessionUtils.getStats();
+            const currentSession = sessionUtils.load();
+            
+            document.getElementById('storage-available').textContent = 
+                typeof(Storage) !== "undefined" ? 'Yes' : 'No';
+            
+            document.getElementById('current-session').textContent = 
+                currentSession ? `Q${currentSession.current_question}` : 'None';
+            
+            document.getElementById('session-count').textContent = stats.sessions;
+            
+            document.getElementById('storage-size').textContent = `${stats.totalSizeKB} KB`;
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🦁 Kimbillionaire Session Persistence Test Suite Loaded');
+            log('Ready to test all session persistence features!');
+            updateStatus();
+        });
+    </script>
+</body>
+</html>

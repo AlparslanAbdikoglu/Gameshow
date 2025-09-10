@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Twitch Emote Test</title>
+    <style>
+        body { background: #1a1a2e; color: white; font-family: Arial; padding: 20px; }
+        .test-container { margin: 20px 0; padding: 20px; border: 1px solid #444; }
+        .mod-response-message { font-size: 20px; font-weight: bold; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>Twitch Emote Test for Ask a Mod</h1>
+    <div class="test-container">
+        <h2>Test Messages:</h2>
+        <div id="test-messages"></div>
+    </div>
+
+    <script>
+        // Twitch Emote Definitions
+        const TWITCH_EMOTES = {
+            'k1m6aLettuce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_33109ae4e55d45838bf0895d226a8a8c/default/dark/2.0',
+            'k1m6aLove': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_767294f4fbf14deaa65487efb5e11b55/default/dark/2.0',
+            'k1m6aPizza': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ab88a0dbf28c486d8e079e23e973e83f/default/dark/2.0'
+        };
+
+        function replaceTwitchEmotes(text) {
+            let processedText = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+            
+            const sortedEmotes = Object.keys(TWITCH_EMOTES).sort((a, b) => b.length - a.length);
+            
+            sortedEmotes.forEach(emote => {
+                const regex = new RegExp(`\\b${emote}\\b`, 'g');
+                const imgTag = `<img src="${TWITCH_EMOTES[emote]}" alt="${emote}" style="display: inline-block; width: 24px; height: 24px; vertical-align: middle; margin: 0 2px;">`;
+                processedText = processedText.replace(regex, imgTag);
+            });
+            
+            return processedText;
+        }
+
+        // Test messages
+        const testMessages = [
+            'I think answer B is correct k1m6aLettuce',
+            'k1m6aLove this question! k1m6aPizza',
+            'Just k1m6aLettuce',
+            'Go with A k1m6aLettuce k1m6aLove',
+            'No emotes in this message'
+        ];
+
+        const container = document.getElementById('test-messages');
+        
+        testMessages.forEach((msg, index) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.style.marginBottom = '20px';
+            
+            const original = document.createElement('div');
+            original.innerHTML = `<strong>Original:</strong> ${msg}`;
+            
+            const processed = document.createElement('div');
+            processed.className = 'mod-response-message';
+            processed.innerHTML = replaceTwitchEmotes(msg);
+            
+            msgDiv.appendChild(original);
+            msgDiv.appendChild(processed);
+            container.appendChild(msgDiv);
+        });
+    </script>
+</body>
+</html>

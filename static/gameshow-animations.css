@@ -1,0 +1,84 @@
+/* Kimbillionaire Gameshow Animations CSS */
+/* Animation styles for enhanced visual effects */
+
+/* Typewriter cursor animation */
+@keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* Answer reveal animations */
+@keyframes answerSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Prize ladder animations */
+@keyframes prizeFlash {
+    0%, 100% { 
+        box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* Voting panel animations */
+@keyframes votingPulse {
+    0%, 100% { 
+        transform: scale(1);
+        opacity: 0.9;
+    }
+    50% { 
+        transform: scale(1.02);
+        opacity: 1;
+    }
+}
+
+/* Lifeline animations */
+@keyframes lifeglow {
+    0%, 100% { 
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+}
+
+/* Background effect animations */
+@keyframes backgroundShimmer {
+    0% { background-position: -100% 0; }
+    100% { background-position: 100% 0; }
+}
+
+/* Curtain animations */
+@keyframes curtainOpen {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+}
+
+/* Answer highlighting animations */
+.answer-reveal {
+    animation: answerSlideIn 0.6s ease-out forwards;
+}
+
+/* Prize ladder flash effect */
+.prize-flash {
+    animation: prizeFlash 2s ease-in-out;
+}
+
+/* Voting activity pulse */
+.voting-pulse {
+    animation: votingPulse 2s ease-in-out infinite;
+}
+
+/* Lifeline glow effect */
+.lifeline-glow {
+    animation: lifeglow 3s ease-in-out infinite;
+}

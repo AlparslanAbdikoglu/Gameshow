@@ -1,0 +1,1028 @@
+/* Kimbillionaire Control Panel - Studio Grade Glass Morphism */
+
+/* Import brand colors and design system */
+@import '../styles/theme.css';
+
+/* Main Container - Full Screen Studio Layout */
+.controlPanelContainer {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #001530 0%, #002B5C 50%, #001530 100%);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-display);
+}
+
+/* Clean background - no animations */
+.controlPanelContainer::before {
+  display: none;
+}
+
+/* Removed float animation */
+
+/* Header Panel - Clean Apple-like */
+.controlPanelHeader {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.controlPanelHeader::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity: 0.6;
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.panelTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: #FFD700;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+/* Status Section */
+.statusSection {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-standard);
+}
+
+.statusDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+}
+
+.statusConnected {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.statusConnected .statusDot {
+  background: #10b981;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
+}
+
+.statusConnecting {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.statusConnecting .statusDot {
+  background: #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.8);
+}
+
+.statusDisconnected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.statusDisconnected .statusDot {
+  background: #ef4444;
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+}
+
+/* Main Layout Grid */
+.container {
+  max-width: 1920px;
+  margin: 0 auto;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 20px;
+  padding: 0;
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 20px;
+  height: fit-content;
+  overflow: visible;
+}
+
+
+/* Control Sections - Glass Panels - Clean Apple-like */
+.controlSection {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  position: relative;
+  overflow: hidden;
+  transition: none;
+}
+
+/* Removed hover effect - panels should not move on hover */
+
+.controlSection h2 {
+  color: var(--gold);
+  margin-bottom: 20px;
+  font-size: 24px;
+  font-weight: var(--font-bold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.controlSection h2::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(180deg, var(--gold), transparent);
+  border-radius: 2px;
+}
+
+/* Button Grid Layout */
+.buttonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* Clean Professional Button Styles */
+.primaryBtn {
+  background: linear-gradient(135deg, var(--gold), #FFA500);
+  color: var(--primary-blue);
+  border: none;
+  border-radius: 8px;
+  padding: 16px 24px;
+  font-weight: 600;
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Enhanced Flow Control Button States */
+.glowingBtn {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+/* Next step button - prominent gold glow */
+.nextStep {
+  background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+  color: #002B5C !important;
+  border: 2px solid #FFD700 !important;
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.6),
+    0 4px 20px rgba(255, 215, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-1px);
+  font-weight: 700 !important;
+}
+
+.completedStep {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.4)) !important;
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+  box-shadow: none !important;
+  animation: none !important;
+}
+
+.disabledBtn {
+  background: rgba(100, 100, 100, 0.3) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  opacity: 0.5;
+}
+
+.disabledBtn:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Locked Section Styling - Clean */
+.lockedSection {
+  opacity: 0.6;
+  position: relative;
+  overflow: visible;
+}
+
+.lockedSection h2 {
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.lockedSection::before {
+  content: 'Start Game to Unlock';
+  position: absolute;
+  top: -10px;
+  right: 20px;
+  background: rgba(255, 107, 53, 0.2);
+  color: #FF6B35;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  z-index: 10;
+}
+
+/* Pulsing Button Style - Prominent gold glow animation */
+.pulsingBtn {
+  animation: goldPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes goldPulse {
+  0%, 100% {
+    transform: scale(1) translateY(-1px);
+    box-shadow: 
+      0 0 30px rgba(255, 215, 0, 0.6),
+      0 4px 20px rgba(255, 215, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    transform: scale(1.05) translateY(-2px);
+    box-shadow: 
+      0 0 40px rgba(255, 215, 0, 0.8),
+      0 6px 30px rgba(255, 215, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+}
+
+.readyToStart {
+  /* Clean state - no animation */
+}
+
+.primaryBtn:not(:disabled):not(.completedStep):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Special hover for next step buttons */
+.nextStep:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: 
+    0 0 50px rgba(255, 215, 0, 0.9),
+    0 8px 40px rgba(255, 215, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+}
+
+.primaryBtn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.primaryBtn:disabled {
+  background: rgba(100, 100, 100, 0.5);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+.secondaryBtn {
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  padding: 14px 22px;
+  font-weight: 500;
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.secondaryBtn:not(:disabled):not(.completedStep):hover {
+  background: rgba(255, 215, 0, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.secondaryBtn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.helpBtn {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.1));
+  color: var(--primary-gold);
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 18px 28px;
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  cursor: pointer;
+  transition: all var(--transition-standard);
+  position: relative;
+  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.helpBtn:not(:disabled):hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.15));
+  border-color: var(--primary-gold);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.helpBtn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dangerBtn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 18px 28px;
+  font-weight: var(--font-bold);
+  font-size: var(--text-base);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--transition-standard);
+  position: relative;
+  overflow: hidden;
+}
+
+.dangerBtn:not(:disabled):hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.dangerBtn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Lifeline Buttons - Premium Square Design */
+.lifelineBtn {
+  padding: 24px;
+  font-size: 18px;
+  font-weight: var(--font-bold);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-standard);
+  background: var(--glass-bg);
+  color: var(--gold);
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.lifelineBtn::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, var(--gold), transparent, var(--gold));
+  border-radius: var(--radius-lg);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity var(--transition-standard);
+}
+
+.lifelineBtn:not(:disabled):not(.usedLifeline):hover {
+  transform: translateY(-1px);
+  background: rgba(255, 215, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lifelineBtn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Removed rotating glow effect on hover */
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.lifelineBtn:disabled,
+.usedLifeline {
+  background: rgba(100, 100, 100, 0.3);
+  color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.usedLifeline::after {
+  content: 'USED';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  font-size: 24px;
+  font-weight: var(--font-black);
+  color: rgba(239, 68, 68, 0.8);
+  text-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+}
+
+/* Money Tree - Optimized for 100% zoom */
+.moneyTree {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  overflow: visible;
+  height: fit-content;
+}
+
+
+.moneyLevel {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  /* backdrop-filter removed for performance */
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  transition: opacity 0.2s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  box-sizing: border-box;
+  min-height: 28px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Removed ::before pseudo element for cleaner layout */
+
+.currentLevel {
+  background: linear-gradient(135deg, var(--gold), #FFA500);
+  color: var(--primary-blue);
+  font-weight: 600;
+  border: 1px solid var(--gold);
+  transform-origin: center;
+  z-index: 2;
+  margin: 0;
+  box-shadow: 0 2px 4px rgba(255, 215, 0, 0.2);
+  animation: none;
+}
+
+/* Removed shimmer effect for cleaner appearance */
+
+/* Removed money glow animation */
+
+.achievedLevel {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+  opacity: 0.7;
+}
+
+/* Question Preview - Broadcast Style */
+.questionPreview {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px); /* Reduced blur */
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--glass-shadow);
+}
+
+.questionNumber {
+  color: var(--gold);
+  font-weight: var(--font-black);
+  font-size: 18px;
+  margin-bottom: 16px;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.questionText {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: var(--font-medium);
+  line-height: 1.6;
+  transition: all var(--transition-standard);
+}
+
+.questionText.visible {
+  color: white;
+  border-color: var(--gold);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.questionText.hidden {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+/* Answer Options Grid */
+.answersGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.answerOption {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  transition: all var(--transition-standard);
+  cursor: pointer;
+}
+
+.answerOption:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.5);
+}
+
+.answerOption.visible {
+  background: rgba(0, 43, 92, 0.8);
+  border-color: rgba(255, 215, 0, 0.4);
+  color: white;
+}
+
+.answerOption.hidden {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  cursor: default;
+}
+
+.answerOption.correctAnswer {
+  /* Very subtle indicator - just a small checkmark in corner */
+  position: relative;
+}
+
+.answerOption.correctAnswer::after {
+  content: '✓';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, #10b981, #16a085);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.3);
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  opacity: 0.8;
+}
+
+@keyframes correctPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.answerOption.selectedAnswer {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 165, 0, 0.2));
+  border: 2px solid var(--gold);
+  color: var(--gold);
+  font-weight: var(--font-bold);
+  box-shadow: 0 0 30px rgba(255, 215, 0, 0.4);
+  transform: scale(1.05);
+}
+
+/* Correct Answer Indicator is now handled by .correctAnswer::after pseudo-element */
+
+/* Timer-related CSS classes removed - functionality consolidated in TimerConfigSection component */
+
+/* Host hint for correct answer (subtle green tint - no glow) */
+.answerOption.hostHint {
+  border-left: 4px solid rgba(76, 175, 80, 0.6);
+  background: linear-gradient(135deg, 
+    rgba(76, 175, 80, 0.05), 
+    rgba(139, 195, 74, 0.03));
+  /* Removed glow effect - only keeping subtle inset shadow */
+  box-shadow: inset 2px 0 10px rgba(76, 175, 80, 0.1);
+}
+
+.answerOption.hostHint::before {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: rgba(76, 175, 80, 0.7);
+  font-size: 14px;
+  font-weight: bold;
+  opacity: 0.6;
+}
+
+/* Highlight answers when they need selection */
+.answerOption.needsSelection {
+  border: 2px solid rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.03), rgba(255, 165, 0, 0.03));
+  animation: gentlePulse 3s ease-in-out infinite;
+}
+
+.answerOption.needsSelection:hover {
+  border-color: rgba(255, 215, 0, 0.5);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.06), rgba(255, 165, 0, 0.06));
+}
+
+@keyframes gentlePulse {
+  0%, 100% {
+    border-color: rgba(255, 215, 0, 0.25);
+  }
+  50% {
+    border-color: rgba(255, 215, 0, 0.4);
+  }
+}
+
+.answerLetter {
+  color: var(--gold);
+  font-weight: var(--font-black);
+  min-width: 24px;
+  font-size: 18px;
+}
+
+/* Lock-in Functionality - Glass Morphism Style */
+.lockInBtn {
+  background: var(--glass-bg);
+  color: var(--gold);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-md);
+  padding: 20px 32px;
+  font-weight: var(--font-bold);
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all var(--transition-standard);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--glass-shadow);
+}
+
+.lockInBtn:not(.lockedInBtn):not(.waitingForSelection):hover {
+  background: rgba(255, 215, 0, 0.05);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.lockInBtn:active {
+  transform: translateY(1px) scale(0.98);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.lockInBtn.lockedInBtn {
+  background: linear-gradient(135deg, 
+    rgba(255, 107, 53, 0.15), 
+    rgba(230, 81, 0, 0.2));
+  border: 1px solid #FF6B35;
+  color: #FF6B35;
+  animation: none;
+  box-shadow: 0 1px 3px rgba(255, 107, 53, 0.2);
+}
+
+/* Style for lock button when waiting for answer selection */
+.waitingForSelection {
+  border: 2px dashed rgba(255, 215, 0, 0.5) !important;
+  background: rgba(255, 215, 0, 0.05) !important;
+  color: rgba(255, 215, 0, 0.7) !important;
+  cursor: not-allowed !important;
+  opacity: 0.8;
+}
+
+/* Removed lock pulse animation */
+
+/* Responsive Design - Mobile First */
+@media (max-width: 1200px) {
+  .container {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidebar {
+    position: relative;
+    height: auto;
+    top: 0;
+  }
+  
+  .moneyTree {
+    padding: 16px;
+    gap: 6px;
+  }
+  
+  .moneyLevel {
+    font-size: 16px;
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .controlPanelContainer {
+    padding: 16px;
+  }
+  
+  .panelTitle {
+    font-size: 28px;
+  }
+  
+  .headerContent {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .buttonGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .answersGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .moneyTree {
+    padding: 12px;
+    gap: 4px;
+  }
+  
+  .moneyLevel {
+    font-size: 14px;
+    padding: 8px 12px;
+    margin: 1px;
+  }
+  
+  .currentLevel {
+    margin: 0px;
+  }
+}
+
+/* Loading Animation */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 215, 0, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--gold);
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Notification Toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 16px 24px;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: white;
+  font-weight: var(--font-semibold);
+  box-shadow: var(--glass-shadow);
+  animation: slideInRight 0.3s ease-out;
+  z-index: var(--z-toast);
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 43, 92, 0.2);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--gold), #FFA500);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #FFA500, var(--gold));
+  background-clip: padding-box;
+}
+
+/* Clean animations removed */
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Removed dramatic pulse animation */
+
+/* Flow Progress Indicator Animation */
+@keyframes flowProgress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+/* Pulsing Animations */
+/* Removed unnecessary animations */
+
+/* Removed unused pulse animations */
+
+/* Single optimized mode - minimal animations only */
+
+/* Modal Overlay for Animation Control Panel */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: transparent;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .controlPanelContainer::before {
+    animation: none !important;
+  }
+}
+
+/* Host Message Input Styles */
+.hostMessageInput {
+  margin-top: 10px;
+  padding: 0;
+}
+
+.hostInput {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 4px;
+  color: #fff;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.hostInput:focus {
+  border-color: rgba(255, 215, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.7);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.1);
+}
+
+.hostInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sendBtn {
+  padding: 8px 16px;
+  font-size: 12px;
+  background-color: rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  border-radius: 4px;
+  color: #FFD700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background-color: rgba(255, 215, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.sendBtn:disabled {
+  background-color: rgba(100, 100, 100, 0.5);
+  border-color: rgba(100, 100, 100, 0.5);
+  color: #666;
+  cursor: not-allowed;
+}

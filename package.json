@@ -1,0 +1,40 @@
+{
+  "name": "kimbillionaire-gameshow",
+  "version": "3.0.0",
+  "description": "Who Wants to be a Kimbillionaire - Next-Generation Broadcast Game Show Platform",
+  "main": "bridge-server.js",
+  "scripts": {
+    "start": "node bridge-server.js",
+    "dev": "node bridge-server.js & cd control-panel-react && npm start",
+    "build": "cd control-panel-react && npm run build",
+    "test": "cd control-panel-react && npm test",
+    "lint": "cd control-panel-react && npx eslint src/",
+    "type-check": "cd control-panel-react && npx tsc --noEmit",
+    "stop": "pkill -f 'bridge-server|react-scripts'",
+    "poll-system": "node audience-polling-system.js",
+    "poll-overlay": "node poll-overlay-server.js",
+    "poll-dev": "concurrently \"npm run start\" \"npm run poll-overlay\" \"npm run poll-system\"",
+    "test-poll": "curl -X POST -H 'Content-Type: application/json' -d '{\"pollId\":\"test\",\"duration\":30000}' http://localhost:8081/api/poll/start"
+  },
+  "dependencies": {
+    "@google-cloud/text-to-speech": "^6.2.0",
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^16.6.1",
+    "gpt4all": "^4.0.0",
+    "node-fetch": "^3.3.2",
+    "ws": "^8.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "gameshow",
+    "broadcast",
+    "websocket",
+    "react",
+    "obs",
+    "kimbillionaire"
+  ],
+  "author": "Kimbillionaire Team",
+  "license": "MIT"
+}

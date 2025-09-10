@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kimbillionaire v2.0 - Browser Source</title>
+    <link rel="stylesheet" href="/static/gameshow.css?v=4">
+    <link rel="stylesheet" href="/static/gameshow-animations.css?v=4">
+</head>
+<body>
+    <!-- Background effects -->
+    <div class="background-effects"></div>
+    
+    <!-- Game Container -->
+    <div class="game-container">
+        <!-- Header -->
+        <div class="header-area glass-panel" id="header">
+            <span id="header-text">KIMBILLIONAIRE</span>
+        </div>
+        
+        <!-- Question Area -->
+        <div class="question-area glass-panel" id="question-container">
+            <div id="question-text" class="question-text"></div>
+            <div id="question-subtext" class="question-subtext hidden">Get ready for the next question...</div>
+        </div>
+        
+        <!-- Answers Area -->
+        <div class="answers-area" id="answers-container">
+            <div class="answer-option hidden" id="answer-A">
+                <span class="answer-letter">A</span>
+                <span class="answer-text">Answer A</span>
+            </div>
+            <div class="answer-option hidden" id="answer-B">
+                <span class="answer-letter">B</span>
+                <span class="answer-text">Answer B</span>
+            </div>
+            <div class="answer-option hidden" id="answer-C">
+                <span class="answer-letter">C</span>
+                <span class="answer-text">Answer C</span>
+            </div>
+            <div class="answer-option hidden" id="answer-D">
+                <span class="answer-letter">D</span>
+                <span class="answer-text">Answer D</span>
+            </div>
+        </div>
+        
+        <!-- Money Ladder -->
+        <div class="money-area glass-panel" id="money-ladder">
+            <div class="money-header">
+                <div class="money-title">MONEY LADDER</div>
+                <div class="current-prize-display" id="current-prize-badge">
+                    Question <span id="current-question-number">1</span>
+                </div>
+            </div>
+            <div class="money-levels-container" id="money-levels"></div>
+        </div>
+        
+        <!-- Game Info Area -->
+        <div class="info-area glass-panel" id="info-area">
+            <div class="info-header">
+                <h3 id="info-title">GAME STATUS</h3>
+                <div class="info-icon" id="info-icon">
+                    <span>🎮</span>
+                </div>
+            </div>
+            <div class="info-content" id="info-content">
+                <div class="info-message" id="info-message">Welcome to Kimbillionaire!</div>
+                <div class="info-details" id="info-details">Get ready to play...</div>
+                
+                <!-- Integrated Voting Content (appears when voting is active) -->
+                <div class="integrated-voting" id="integrated-voting" style="display: none;">
+                    <div class="voting-header-integrated">
+                        <h4 id="voting-title-integrated">AUDIENCE VOTE</h4>
+                        <div class="voting-countdown-integrated" id="voting-countdown-integrated">
+                            <span id="countdown-timer-integrated">1:00</span>
+                        </div>
+                    </div>
+                    <div class="voting-options-integrated" id="voting-content-integrated">
+                        <!-- Vote options will be populated by JavaScript -->
+                    </div>
+                    <div class="voting-activity-integrated" id="voting-activity-integrated">
+                        <!-- Recent voters will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lifelines Area -->
+        <div class="lifelines-area glass-panel" id="lifelines">
+            <div class="lifeline" id="lifeline-fifty-fifty">
+                <div class="lifeline-symbol">⚡</div>
+                <div class="lifeline-label">FIFTY FIFTY</div>
+            </div>
+            <div class="lifeline" id="lifeline-take-another-vote">
+                <div class="lifeline-symbol">📊</div>
+                <div class="lifeline-label">TAKE ANOTHER VOTE</div>
+            </div>
+            <div class="lifeline" id="lifeline-ask-a-mod">
+                <div class="lifeline-symbol">🛡️</div>
+                <div class="lifeline-label">ASK THE MODS</div>
+            </div>
+        </div>
+        
+        <!-- Audience/Contestant Info -->
+        <div class="contestant-area glass-panel" id="contestant-info">
+            <div class="contestant-content">
+                <div class="contestant-name" id="contestant-name">Contestant</div>
+                <div class="contestant-score" id="contestant-score">$0</div>
+                <!-- Hot Seat Display -->
+                <div class="hot-seat-display hidden" id="hot-seat-display">
+                    <div class="hot-seat-badge">🔥 HOT SEAT</div>
+                    <div class="hot-seat-user" id="hot-seat-user"></div>
+                    <div class="hot-seat-timer" id="hot-seat-timer">60s</div>
+                    <div class="hot-seat-status" id="hot-seat-status">Type A, B, C, or D to answer!</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hot Seat HUD Overlay -->
+        <div class="hot-seat-hud hidden" id="hot-seat-hud">
+            <div class="hot-seat-hud-content">
+                <div class="hot-seat-hud-title">🔥 HOT SEAT ACTIVATED 🔥</div>
+                <div class="hot-seat-hud-user" id="hot-seat-hud-user"></div>
+                <div class="hot-seat-hud-message">You have been selected to answer this question!</div>
+                <div class="hot-seat-hud-instructions">Type A, B, C, or D in chat to submit your answer</div>
+                <div class="hot-seat-hud-timer" id="hot-seat-hud-timer">60 seconds remaining</div>
+            </div>
+        </div>
+        
+        
+        <!-- Lifeline Voting Panel -->
+        <div class="lifeline-voting-panel glass-panel hidden" id="lifeline-voting-panel">
+            <div class="lifeline-voting-header">
+                <h3>VOTE FOR LIFELINE</h3>
+                <div class="lifeline-voting-timer" id="lifeline-voting-timer">0:30</div>
+            </div>
+            <div class="lifeline-voting-options" id="lifeline-voting-options">
+                <!-- Options populated dynamically -->
+            </div>
+        </div>
+        
+        <!-- Ask a Mod/VIP Response Panel -->
+        <div class="mod-response-panel glass-panel hidden" id="mod-response-panel">
+            <div class="mod-response-header">
+                <h3 id="mod-response-title">ASK A MOD</h3>
+                <div class="mod-response-timer" id="mod-response-timer">0:30</div>
+            </div>
+            <div class="mod-response-container" id="mod-response-container">
+                <!-- Mod/VIP responses populated dynamically -->
+            </div>
+            <div class="mod-response-footer">
+                <div class="mod-response-status" id="mod-response-status">Waiting for responses...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overlays -->
+    <div class="overlay hidden" id="winner-overlay">
+        <div class="winner-content">
+            <div class="winner-text">WINNER!</div>
+            <div class="winner-amount" id="winner-amount">$1,000,000</div>
+        </div>
+    </div>
+    
+    <div class="overlay hidden" id="game-over-overlay">
+        <div class="game-over-content">
+            <div class="game-over-text">GAME OVER</div>
+            <div class="final-amount" id="final-amount">$0</div>
+        </div>
+    </div>
+    
+    <!-- Credits Overlay -->
+    <div class="overlay hidden" id="credits-overlay">
+        <div class="credits-content">
+            <div class="credits-header">
+                <h1 class="credits-title">KIMBILLIONAIRE</h1>
+                <div class="credits-subtitle">Thank You For Playing!</div>
+            </div>
+            
+            <div class="credits-section">
+                <h2 class="credits-section-title">Today's Participants</h2>
+                <div class="credits-participants" id="credits-participants">
+                    <!-- Participant names will be populated here -->
+                </div>
+            </div>
+            
+            <div class="credits-footer">
+                <div class="credits-message">See you next time!</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Audio Elements -->
+    <audio id="ttsAudio" preload="auto"></audio>
+    <audio id="questionAudio" preload="auto"></audio>
+    <audio id="sfxAudio" preload="auto"></audio>
+    <audio id="applauseAudio" preload="auto"></audio>
+    <audio id="tickAudio" preload="auto"></audio>
+    <audio id="correctAudio" preload="auto"></audio>
+    <audio id="wrongAudio" preload="auto"></audio>
+    <audio id="lockAudio" preload="auto"></audio>
+    
+    <!-- Audience Choice Display -->
+    <div class="audience-choice-overlay hidden" id="audience-choice-overlay">
+        <div class="audience-choice-content">
+            <div class="audience-choice-label">AUDIENCE CHOICE</div>
+            <div class="audience-choice-answer" id="audience-choice-answer">A</div>
+            <div class="audience-choice-stats" id="audience-choice-stats">
+                <span id="audience-choice-votes">0 votes</span>
+                <span id="audience-choice-percentage">0%</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- How to Play Panel -->
+    <div class="how-to-play-panel hidden" id="how-to-play-panel">
+        <div class="how-to-play-header">
+            <h1 class="how-to-play-title">HOW TO PLAY</h1>
+            <p class="how-to-play-subtitle">Welcome to Kimbillionaire - The Ultimate Trivia Challenge!</p>
+        </div>
+        
+        <div class="how-to-play-content">
+            <!-- Left Column - Game Basics -->
+            <div class="how-to-play-section">
+                <h3>🎮 Game Basics</h3>
+                <div class="how-to-play-step">
+                    <span class="step-number">1</span>
+                    <span class="step-text">Answer 15 questions correctly to win the grand prize</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">2</span>
+                    <span class="step-text">Each question increases in difficulty and prize value</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">3</span>
+                    <span class="step-text">Use lifelines when you need help with tough questions</span>
+                </div>
+                
+                <h3>🗳️ Audience Voting</h3>
+                <div class="how-to-play-step">
+                    <span class="step-number">A</span>
+                    <span class="step-text">Type A, B, C, or D in chat to vote for your answer</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">60s</span>
+                    <span class="step-text">You have 60 seconds to cast your vote</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">📊</span>
+                    <span class="step-text">Watch the live voting results in the info panel</span>
+                </div>
+                
+                <h3>🎯 Points System</h3>
+                <div class="how-to-play-step">
+                    <span class="step-number">💬</span>
+                    <span class="step-text">Earn 1 point for chatting (once per minute)</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">✅</span>
+                    <span class="step-text">Get 5 points for voting correctly</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">⚡</span>
+                    <span class="step-text">Speed bonuses: 1st (10pts), 2nd (5pts), 3rd (3pts)</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">🔥</span>
+                    <span class="step-text">Hot Seat: 5pts selected, 20pts correct, 10pts quick</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-number">🏆</span>
+                    <span class="step-text">Top players on leaderboard win prizes!</span>
+                </div>
+            </div>
+            
+            <!-- Right Column - Lifelines & Tips -->
+            <div class="how-to-play-section">
+                <h3>🛡️ Lifelines Available</h3>
+                <div class="how-to-play-lifelines">
+                    <div class="lifeline-item">
+                        <strong>⚡ 50:50</strong> - Eliminates two wrong answers
+                    </div>
+                    <div class="lifeline-item">
+                        <strong>📊 Take Another Vote</strong> - Get a second audience poll
+                    </div>
+                    <div class="lifeline-item">
+                        <strong>🛡️ Ask a Mod</strong> - Get help from chat moderators
+                    </div>
+                </div>
+                
+                <h3>🏆 Prize Collection</h3>
+                <div class="how-to-play-step">
+                    <span class="step-icon">✅</span>
+                    <span class="step-text">Collect a prize with every correct answer!</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-icon">🎁</span>
+                    <span class="step-text">Each question has its own unique prize</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-icon">📈</span>
+                    <span class="step-text">Prizes increase in value as you progress</span>
+                </div>
+                <div class="how-to-play-step">
+                    <span class="step-icon">🏅</span>
+                    <span class="step-text">Keep all prizes you've won, even if you get one wrong!</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Close Button -->
+        <button class="how-to-play-close" id="how-to-play-close" onclick="hideHowToPlay()">
+            ✕ Close
+        </button>
+    </div>
+    
+    <!-- Leaderboard Display Panel -->
+    <div class="leaderboard-overlay hidden" id="leaderboard-overlay">
+        <div class="leaderboard-overlay-content">
+            <div class="leaderboard-overlay-header">
+                <h2>🏆 LEADERBOARD</h2>
+                <div class="leaderboard-period-badge" id="leaderboard-period">Current Game</div>
+            </div>
+            <div class="leaderboard-overlay-list" id="leaderboard-list">
+                <!-- Leaderboard entries will be populated here -->
+            </div>
+            <div class="leaderboard-overlay-footer">
+                <div class="leaderboard-total-players" id="leaderboard-total">0 Players</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Include JavaScript -->
+    <script src="/static/gameshow.js"></script>
+</body>
+</html>

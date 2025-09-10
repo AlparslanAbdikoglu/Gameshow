@@ -1,0 +1,12 @@
+{
+  "twitch": {
+    "channel": "your_channel_name",
+    "username": "justinfan12345"
+  },
+  "youtube": {
+    "apiKey": "",
+    "liveChatId": "",
+    "pollingInterval": 5000
+  },
+  "isActive": true
+}

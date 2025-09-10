@@ -1,0 +1,8 @@
+NOTE: Large video files were excluded from this package to reduce size.
+
+The following files were removed:
+- Logo.mov (747MB)
+- Spotlights.mov (1.3GB)
+
+These are optional visual effect videos. The gameshow will work without them.
+If you need these files, please request them separately.

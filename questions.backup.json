@@ -1,0 +1,167 @@
+[
+  {
+    "text": "What is the capital of France?",
+    "answers": [
+      "London",
+      "Berlin",
+      "Paris",
+      "Madrid"
+    ],
+    "correct": 2,
+    "number": 1
+  },
+  {
+    "text": "Which planet is known as the Red Planet?",
+    "answers": [
+      "Venus",
+      "Mars",
+      "Jupiter",
+      "Saturn"
+    ],
+    "correct": 1,
+    "number": 2
+  },
+  {
+    "text": "Who painted the Mona Lisa?",
+    "answers": [
+      "Van Gogh",
+      "Picasso",
+      "Da Vinci",
+      "Monet"
+    ],
+    "correct": 2,
+    "number": 3
+  },
+  {
+    "text": "What is the largest mammal in the world?",
+    "answers": [
+      "African Elephant",
+      "Blue Whale",
+      "Giraffe",
+      "Polar Bear"
+    ],
+    "correct": 1,
+    "number": 4
+  },
+  {
+    "text": "In which year did World War II end?",
+    "answers": [
+      "1944",
+      "1945",
+      "1946",
+      "1947"
+    ],
+    "correct": 1,
+    "number": 5
+  },
+  {
+    "text": "What is the chemical symbol for gold?",
+    "answers": [
+      "Go",
+      "Gd",
+      "Au",
+      "Ag"
+    ],
+    "correct": 2,
+    "number": 6
+  },
+  {
+    "text": "Which Shakespeare play features the characters Romeo and Juliet?",
+    "answers": [
+      "Hamlet",
+      "Macbeth",
+      "Romeo and Juliet",
+      "Othello"
+    ],
+    "correct": 2,
+    "number": 7
+  },
+  {
+    "text": "What is the smallest country in the world?",
+    "answers": [
+      "Monaco",
+      "San Marino",
+      "Vatican City",
+      "Liechtenstein"
+    ],
+    "correct": 2,
+    "number": 8
+  },
+  {
+    "text": "Who developed the theory of relativity?",
+    "answers": [
+      "Isaac Newton",
+      "Albert Einstein",
+      "Galileo Galilei",
+      "Stephen Hawking"
+    ],
+    "correct": 1,
+    "number": 9
+  },
+  {
+    "text": "What is the hardest natural substance on Earth?",
+    "answers": [
+      "Gold",
+      "Iron",
+      "Diamond",
+      "Platinum"
+    ],
+    "correct": 2,
+    "number": 10
+  },
+  {
+    "text": "Which ocean is the largest?",
+    "answers": [
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Arctic Ocean",
+      "Pacific Ocean"
+    ],
+    "correct": 3,
+    "number": 11
+  },
+  {
+    "text": "Who wrote the novel '1984'?",
+    "answers": [
+      "George Orwell",
+      "Aldous Huxley",
+      "Ray Bradbury",
+      "H.G. Wells"
+    ],
+    "correct": 0,
+    "number": 12
+  },
+  {
+    "text": "What is the speed of light in a vacuum?",
+    "answers": [
+      "299,792,458 m/s",
+      "300,000,000 m/s",
+      "299,000,000 m/s",
+      "301,000,000 m/s"
+    ],
+    "correct": 0,
+    "number": 13
+  },
+  {
+    "text": "Which element has the atomic number 1?",
+    "answers": [
+      "Helium",
+      "Hydrogen",
+      "Lithium",
+      "Carbon"
+    ],
+    "correct": 1,
+    "number": 14
+  },
+  {
+    "text": "Who was the first person to walk on the moon?",
+    "answers": [
+      "Buzz Aldrin",
+      "Neil Armstrong",
+      "John Glenn",
+      "Alan Shepard"
+    ],
+    "correct": 1,
+    "number": 15
+  }
+]

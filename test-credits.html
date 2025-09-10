@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits Test</title>
+    <script>
+        async function testCredits() {
+            const status = document.getElementById('status');
+            const result = document.getElementById('result');
+            
+            try {
+                // Add demo participants
+                status.textContent = 'Adding demo participants...';
+                let response = await fetch('http://localhost:8081/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add_demo_participants' })
+                });
+                
+                if (!response.ok) throw new Error('Failed to add demo participants');
+                
+                // Trigger credits
+                status.textContent = 'Triggering credits display...';
+                response = await fetch('http://localhost:8081/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'end_game_credits' })
+                });
+                
+                if (!response.ok) throw new Error('Failed to trigger credits');
+                
+                const data = await response.json();
+                
+                // Check state
+                status.textContent = 'Credits triggered successfully!';
+                result.innerHTML = `
+                    <h3>Credits State:</h3>
+                    <p>Credits Rolling: ${data.state.credits_rolling ? '✅ YES' : '❌ NO'}</p>
+                    <p>Credits Scrolling: ${data.state.credits_scrolling ? '✅ YES' : '❌ NO'}</p>
+                    <p>Participants: ${data.state.gameshow_participants.length}</p>
+                    <ul>${data.state.gameshow_participants.map(p => `<li>${p}</li>`).join('')}</ul>
+                    <p style="color: green;">✅ Credits system is working! Open the gameshow at http://localhost:8081/gameshow to see the credits display.</p>
+                `;
+                
+                // Note about duration
+                setTimeout(() => {
+                    result.innerHTML += '<p style="color: orange;">ℹ️ Credits will automatically end after 20 seconds</p>';
+                }, 2000);
+                
+            } catch (error) {
+                status.textContent = 'Error: ' + error.message;
+                result.innerHTML = '<p style="color: red;">❌ Failed to test credits</p>';
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Kimbillionaire Credits Test</h1>
+    <button onclick="testCredits()" style="padding: 10px 20px; font-size: 16px;">Test Credits Display</button>
+    <p id="status">Click the button to test credits</p>
+    <div id="result"></div>
+</body>
+</html>

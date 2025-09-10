@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits Display Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        #status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #333;
+            border-radius: 5px;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        iframe {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎬 Kimbillionaire Credits Display Test</h1>
+    
+    <div>
+        <button onclick="addParticipants()">1. Add Demo Participants</button>
+        <button onclick="triggerCredits()">2. Trigger Credits</button>
+        <button onclick="checkStatus()">Check Credits Status</button>
+    </div>
+    
+    <div id="status">Ready to test credits display...</div>
+    
+    <h2>Gameshow View:</h2>
+    <iframe src="http://localhost:8081/gameshow" id="gameshow-frame"></iframe>
+    
+    <script>
+        async function addParticipants() {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch('http://localhost:8081/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'add_demo_participants' })
+                });
+                
+                if (response.ok) {
+                    status.innerHTML = '<span class="success">✅ Demo participants added!</span>';
+                } else {
+                    throw new Error('Failed to add participants');
+                }
+            } catch (error) {
+                status.innerHTML = '<span class="error">❌ Error: ' + error.message + '</span>';
+            }
+        }
+        
+        async function triggerCredits() {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch('http://localhost:8081/api/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'end_game_credits' })
+                });
+                
+                if (response.ok) {
+                    status.innerHTML = '<span class="success">✅ Credits triggered! Watch the gameshow view below...</span>';
+                    
+                    // Start monitoring
+                    let checkCount = 0;
+                    const interval = setInterval(async () => {
+                        checkCount++;
+                        const state = await checkStatus(false);
+                        if (state && !state.credits_rolling) {
+                            clearInterval(interval);
+                            status.innerHTML += '<br><span class="success">🎉 Credits completed naturally after ~' + checkCount + ' seconds!</span>';
+                        }
+                        if (checkCount > 20) {
+                            clearInterval(interval);
+                        }
+                    }, 1000);
+                } else {
+                    throw new Error('Failed to trigger credits');
+                }
+            } catch (error) {
+                status.innerHTML = '<span class="error">❌ Error: ' + error.message + '</span>';
+            }
+        }
+        
+        async function checkStatus(updateUI = true) {
+            const status = document.getElementById('status');
+            try {
+                const response = await fetch('http://localhost:8081/api/state');
+                const state = await response.json();
+                
+                if (updateUI) {
+                    status.innerHTML = `
+                        <strong>Credits Status:</strong><br>
+                        Rolling: ${state.credits_rolling ? '✅ YES' : '❌ NO'}<br>
+                        Participants: ${state.gameshow_participants ? state.gameshow_participants.length : 0}<br>
+                        ${state.gameshow_participants ? 'Names: ' + state.gameshow_participants.join(', ') : ''}
+                    `;
+                }
+                
+                return state;
+            } catch (error) {
+                if (updateUI) {
+                    status.innerHTML = '<span class="error">❌ Error checking status</span>';
+                }
+                return null;
+            }
+        }
+    </script>
+</body>
+</html>

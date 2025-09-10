@@ -1,0 +1,34 @@
+{
+  "colors": {
+    "primary": "#000428",
+    "primaryLight": "#004e92",
+    "secondary": "#FFD700",
+    "accent": "#FFA500",
+    "success": "#4CAF50",
+    "danger": "#F44336",
+    "neutral": "#9E9E9E",
+    "text": "#FFFFFF",
+    "textDark": "#000000"
+  },
+  "animations": {
+    "quickTransition": "0.3s ease-out",
+    "standardTransition": "0.5s ease-in-out",
+    "dramaticReveal": "1s cubic-bezier(0.68, -0.55, 0.265, 1.55)",
+    "particleDuration": "2s",
+    "confettiDuration": "3s"
+  },
+  "timings": {
+    "questionRevealDelay": 500,
+    "answerLockDelay": 1000,
+    "dramaticPauseDuration": 3000,
+    "correctAnswerCelebration": 3000,
+    "wrongAnswerDuration": 2000,
+    "lifelineThinkingTime": 30000
+  },
+  "sounds": {
+    "masterVolume": 0.8,
+    "sfxVolume": 1.0,
+    "musicVolume": 0.6,
+    "enableAmbientSounds": true
+  }
+}
