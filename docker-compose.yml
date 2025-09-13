@@ -1,0 +1,31 @@
+version: "3.9"
+name: gameshow
+
+services:
+  panel:
+    build:
+      context: ./apps/control
+      dockerfile: Dockerfile
+    container_name: gameshow-panel
+    ports:
+      - "8081:80"
+    restart: always
+    depends_on:
+      - game
+    networks:
+      - gameshow
+
+  game:
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    container_name: kimbillionaire-game
+    ports:
+      - "3000:3000"
+    restart: always
+    networks:
+      - gameshow
+
+networks:
+  gameshow:
+    driver: bridge
