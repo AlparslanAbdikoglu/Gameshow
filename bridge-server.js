@@ -11014,16 +11014,24 @@ function startAudiencePoll() {
 
 // Duplicate function removed - using the proper vote validation logic at line 8858
 
-const PORT = 8081;
-const HOST = '0.0.0.0';  // Listen on all network interfaces
+const PORT = 3000;          // match docker-compose
+const HOST = '0.0.0.0';
+const path = require('path');
+const express = require('express');
+const app = express();
 
-server.listen(PORT, HOST, () => {
-  console.log('🎮 Kimbillionaire Bridge Server running!');
+// Serve game assets
+app.use('/gameshow', express.static(path.join(__dirname, 'public')));
+
+// Optional: simple API endpoint
+app.get('/api/state', (req, res) => {
+  res.json({ status: 'ok', game: 'Kimbillionaire' });
+});
+
+app.listen(PORT, HOST, () => {
+  console.log(`🎮 Kimbillionaire Bridge Server running on ${HOST}:${PORT}`);
   console.log(`📺 Browser Source: http://${HOST}:${PORT}/gameshow`);
-  console.log(`🎛️  Control Panel API: http://${HOST}:${PORT}/api/*`);
-  console.log(`💡 Usage: Add browser source in OBS with URL: http://${HOST}:${PORT}/gameshow`);
-
-
+  console.log(`🎛️ Control Panel API: http://${HOST}:${PORT}/api/*`);
   
   // CRITICAL FIX: Force reset revote duration to 60 seconds to override any API changes
   gameState.revote_duration = 60000;
