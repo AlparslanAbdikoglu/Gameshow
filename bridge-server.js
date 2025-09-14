@@ -11015,11 +11015,15 @@ function startAudiencePoll() {
 // Duplicate function removed - using the proper vote validation logic at line 8858
 
 const PORT = 8081;
-server.listen(PORT, () => {
+const HOST = '0.0.0.0';  // Listen on all network interfaces
+
+server.listen(PORT, HOST, () => {
   console.log('🎮 Kimbillionaire Bridge Server running!');
-  console.log(`📺 Browser Source: http://localhost:${PORT}/gameshow`);
-  console.log(`🎛️  Control Panel: Connect your React app to http://localhost:${PORT}/api/*`);
-  console.log(`💡 Usage: Add browser source in OBS with URL: http://localhost:${PORT}/gameshow`);
+  console.log(`📺 Browser Source: http://${HOST}:${PORT}/gameshow`);
+  console.log(`🎛️  Control Panel API: http://${HOST}:${PORT}/api/*`);
+  console.log(`💡 Usage: Add browser source in OBS with URL: http://${HOST}:${PORT}/gameshow`);
+
+
   
   // CRITICAL FIX: Force reset revote duration to 60 seconds to override any API changes
   gameState.revote_duration = 60000;
