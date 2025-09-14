@@ -1,5 +1,4 @@
-version: "3.9"
-name: gameshow
+version: "3.3"
 
 services:
   game:
