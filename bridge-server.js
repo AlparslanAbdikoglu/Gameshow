@@ -962,9 +962,13 @@ const server = http.createServer(async (req, res) => {
   }
   
   // Serve browser source from static files with architectural fixes
-  if (pathname === '/gameshow' || pathname === '/browser-source') {
-    const fs = require('fs');
-    const path = require('path');
+if (pathname === '/gameshow' || pathname === '/browser-source') {
+  // just use fs and path directly, don’t redeclare them
+
+  res.writeHead(200, { 'Content-Type': 'text/html' });
+  res.end(fs.readFileSync(filePath, 'utf8'));
+
+
     
     const filePath = path.join(__dirname, 'static', 'gameshow.html');
     fs.readFile(filePath, (err, data) => {
@@ -11014,27 +11018,17 @@ function startAudiencePoll() {
 
 // Duplicate function removed - using the proper vote validation logic at line 8858
 
-const PORT = 3000;          // match docker-compose
-const HOST = '0.0.0.0';
-const fs = require('fs');
-const express = require('express');
+const PORT = 3000;
+const HOST = '0.0.0.0';  // Listen on all interfaces
+const PUBLIC_IP = '75.119.154.213'; // <-- replace with your VPS IP
 
-const app = express();
+server.listen(PORT, HOST, () => {
+  console.log('🎮 Kimbillionaire Bridge Server running!');
+  console.log(`📺 Browser Source: http://${PUBLIC_IP}:${PORT}/gameshow`);
+  console.log(`🎛️ Control Panel: Connect your React app to http://${PUBLIC_IP}:${PORT}/api/*`);
+  console.log(`💡 Usage: Add browser source in OBS with URL: http://${PUBLIC_IP}:${PORT}/gameshow`);
 
 
-
-// Serve game assets
-app.use('/gameshow', express.static(path.join(__dirname, 'public')));
-
-// Optional: simple API endpoint
-app.get('/api/state', (req, res) => {
-  res.json({ status: 'ok', game: 'Kimbillionaire' });
-});
-
-app.listen(PORT, HOST, () => {
-  console.log(`🎮 Kimbillionaire Bridge Server running on ${HOST}:${PORT}`);
-  console.log(`📺 Browser Source: http://${HOST}:${PORT}/gameshow`);
-  console.log(`🎛️ Control Panel API: http://${HOST}:${PORT}/api/*`);
   
   // CRITICAL FIX: Force reset revote duration to 60 seconds to override any API changes
   gameState.revote_duration = 60000;

@@ -37,3 +37,4 @@ Thumbs.db
 .parcel-cache/
 .next/
 out/
+leaderboard-data.json
