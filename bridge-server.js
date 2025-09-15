@@ -11016,9 +11016,12 @@ function startAudiencePoll() {
 
 const PORT = 3000;          // match docker-compose
 const HOST = '0.0.0.0';
-const path = require('path');
+const fs = require('fs');
 const express = require('express');
+
 const app = express();
+
+
 
 // Serve game assets
 app.use('/gameshow', express.static(path.join(__dirname, 'public')));
