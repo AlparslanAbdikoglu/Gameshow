@@ -11018,7 +11018,7 @@ function startAudiencePoll() {
 
 // Duplicate function removed - using the proper vote validation logic at line 8858
 
-const PORT = 3000;
+const PORT = 8081;
 const HOST = '0.0.0.0';  // Listen on all interfaces
 const PUBLIC_IP = '75.119.154.213'; // <-- replace with your VPS IP
 

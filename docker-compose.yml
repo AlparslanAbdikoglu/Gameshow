@@ -18,7 +18,7 @@ services:
       dockerfile: Dockerfile.panel
     container_name: gameshow-panel
     ports:
-      - "8081:80"
+      - "8081:8081"
     restart: always
     depends_on:
       - game
