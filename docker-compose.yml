@@ -1,13 +1,13 @@
 version: "3.3"
 
 services:
-  game:
+  bridge:
     build:
       context: .
       dockerfile: Dockerfile.bridge
-    container_name: gameshow-game
+    container_name: gameshow-bridge
     ports:
-      - "3000:3000"
+      - "8081:8081"   # bridge server for OBS & control panel API
     restart: always
     networks:
       - gameshow
@@ -18,10 +18,10 @@ services:
       dockerfile: Dockerfile.panel
     container_name: gameshow-panel
     ports:
-      - "8081:8081"
+      - "3000:3000"   # React control panel UI
     restart: always
     depends_on:
-      - game
+      - bridge
     networks:
       - gameshow
 
