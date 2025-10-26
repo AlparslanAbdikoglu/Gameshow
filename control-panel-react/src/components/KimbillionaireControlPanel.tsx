@@ -28,100 +28,53 @@ import styles from './KimbillionaireControlPanel.module.css';
 // NO DEFAULT QUESTIONS - Control panel ONLY uses questions from the server
 
 // Removed defaultQuestions array - now using server as single source of truth
-/*
-const defaultQuestions: Question[] = [
-  {
-    text: "What does 'IPO' stand for in finance?",
-    answers: ["Initial Public Offering", "International Private Organization", "Investment Portfolio Option", "Independent Price Objective"],
-    correct: 0,
-    number: 1
-  },
-  {
-    text: "What is a 'bull market'?",
-    answers: ["A market where prices are falling", "A market where prices are rising", "A market with high volatility", "A market with low trading volume"],
-    correct: 1,
-    number: 2
-  },
-  {
-    text: "What does 'P/E ratio' measure?",
-    answers: ["Price to Earnings ratio", "Profit to Expense ratio", "Portfolio to Equity ratio", "Performance to Efficiency ratio"],
-    correct: 0,
-    number: 3
-  },
-  {
-    text: "What is compound interest?",
-    answers: ["Interest paid only on principal", "Interest paid on interest plus principal", "Interest that changes monthly", "Interest paid by companies"],
-    correct: 1,
-    number: 4
-  },
-  {
-    text: "What does 'diversification' mean in investing?",
-    answers: ["Buying only one type of stock", "Spreading investments across different assets", "Selling all investments quickly", "Investing only in bonds"],
-    correct: 1,
-    number: 5
-  },
-  {
-    text: "What is a dividend?",
-    answers: ["A loan from a bank", "A payment to shareholders from company profits", "A fee charged by brokers", "A type of investment risk"],
-    correct: 1,
-    number: 6
-  },
-  {
-    text: "What does 'ROI' stand for?",
-    answers: ["Return on Investment", "Rate of Interest", "Risk of Investment", "Return on Income"],
-    correct: 0,
-    number: 7
-  },
-  {
-    text: "What is a 'bear market'?",
-    answers: ["A market where prices are rising", "A market where prices are falling", "A market with stable prices", "A market with high dividends"],
-    correct: 1,
-    number: 8
-  },
-  {
-    text: "What is the primary purpose of the Federal Reserve?",
-    answers: ["To regulate stock markets", "To control monetary policy and banking", "To collect taxes", "To manage government spending"],
-    correct: 1,
-    number: 9
-  },
-  {
-    text: "What does 'liquidity' refer to in finance?",
-    answers: ["How quickly an asset can be converted to cash", "The amount of water in investments", "How profitable an investment is", "The risk level of an investment"],
-    correct: 0,
-    number: 10
-  },
-  {
-    text: "What is a mutual fund?",
-    answers: ["A type of bank account", "A pooled investment vehicle managed by professionals", "A government bond", "A type of insurance policy"],
-    correct: 1,
-    number: 11
-  },
-  {
-    text: "What does 'volatility' measure in the stock market?",
-    answers: ["The number of trades per day", "The price fluctuation of a security", "The dividend yield", "The market capitalization"],
-    correct: 1,
-    number: 12
-  },
-  {
-    text: "What is the difference between a stock and a bond?",
-    answers: ["Stocks are debt, bonds are equity", "Stocks are equity, bonds are debt", "They are the same thing", "Stocks are safer than bonds"],
-    correct: 1,
-    number: 13
-  },
-  {
-    text: "What does 'market capitalization' represent?",
-    answers: ["Total value of a company's shares", "Annual revenue of a company", "Number of employees", "Amount of debt a company has"],
-    correct: 0,
-    number: 14
-  },
-  {
-    text: "What is the purpose of an emergency fund?",
-    answers: ["To invest in high-risk stocks", "To cover unexpected expenses", "To pay taxes", "To buy luxury items"],
-    correct: 1,
-    number: 15
-  }
-];
-*/
+
+/**
+ * Custom hook for keyboard shortcuts
+ * Handles all keybinds and prevents conflicts with input fields
+ */
+const useKeybinds = (handlers: Record<string, () => void>, dependencies: any[] = []) => {
+  const handleKeyPress = useCallback((e: KeyboardEvent) => {
+    // Ignore if user is typing in an input field
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      return;
+    }
+
+    const key = e.key.toLowerCase();
+    const ctrl = e.ctrlKey || e.metaKey;
+    const shift = e.shiftKey;
+
+    // Define our custom shortcuts
+    const ourShortcuts = ['q', 'a', 'l', 'r', 'n', 'h', 'arrowleft', 'arrowright', 'f', 'c', 'v', 'e', '?'];
+    
+    // Prevent default for our shortcuts
+    if (ourShortcuts.includes(key) || (ctrl && ['arrowleft', 'arrowright'].includes(key))) {
+      e.preventDefault();
+    }
+
+    // Check for matching handler
+    Object.entries(handlers).forEach(([shortcut, handler]) => {
+      const [modifiers, targetKey] = shortcut.includes('+') 
+        ? [shortcut.split('+').slice(0, -1), shortcut.split('+').pop()!]
+        : [[], shortcut];
+      
+      const requiresCtrl = modifiers.includes('ctrl');
+      const requiresShift = modifiers.includes('shift');
+      
+      if (key === targetKey && 
+          (!requiresCtrl || ctrl) && 
+          (!requiresShift || shift)) {
+        handler();
+      }
+    });
+  }, dependencies);
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleKeyPress]);
+};
 
 const KimbillionaireControlPanel: React.FC = () => {
   // Game State
@@ -146,6 +99,7 @@ const KimbillionaireControlPanel: React.FC = () => {
   const [showQuestionEditor, setShowQuestionEditor] = useState(false);
   const [showAnimationPanel, setShowAnimationPanel] = useState(false);
   const [roaryEnabled, setRoaryEnabled] = useState(true);
+  const [showKeybindHelp, setShowKeybindHelp] = useState(false);
   // const [showProducerPreview, setShowProducerPreview] = useState(false); // Removed to reduce lag
   const [questions, setQuestions] = useState<Question[]>([]);
   // Removed questionsLoading state since it's not displayed in UI
@@ -1196,8 +1150,115 @@ const KimbillionaireControlPanel: React.FC = () => {
     handleSelectAnswer
   ]);
 
-  // Keyboard Shortcuts Integration - placed after all handler definitions
-  // Keyboard shortcuts removed for cleaner host experience during live shows
+  // Keyboard Shortcuts Integration
+  useKeybinds({
+    // Question Control
+    'q': () => {
+      if (!gameState.game_active || gameState.curtains_closed || answerLockedIn) return;
+      handleShowQuestion();
+    },
+    'a': () => {
+      if (!gameState.game_active || gameState.curtains_closed || answerLockedIn || 
+          !questionVisible || !gameState.typewriter_animation_complete) return;
+      handleShowAnswers();
+    },
+    'l': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          !answersVisible || answerLockedIn || answersRevealed || selectedAnswer === null) return;
+      handleLockInAnswer();
+    },
+    'r': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          !answerLockedIn || answersRevealed) return;
+      handleRevealAnswer();
+    },
+    
+    // Navigation
+    'n': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          (answerLockedIn && !answersRevealed) || gameState.lifeline_voting_active) return;
+      
+      // Handle lifeline vote start
+      if (answersRevealed && gameState.answer_is_wrong && 
+          gameState.available_lifelines_for_vote && gameState.available_lifelines_for_vote.length > 0 &&
+          !gameState.lifeline_voting_active) {
+        handleStartLifelineVote();
+      } else if (answersRevealed && gameState.current_question < 14) {
+        handleNextQuestion();
+      }
+    },
+    'arrowright': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          (answerLockedIn && !answersRevealed) || gameState.lifeline_voting_active) return;
+      
+      if (answersRevealed && gameState.answer_is_wrong && 
+          gameState.available_lifelines_for_vote && gameState.available_lifelines_for_vote.length > 0 &&
+          !gameState.lifeline_voting_active) {
+        handleStartLifelineVote();
+      } else if (answersRevealed && gameState.current_question < 14) {
+        handleNextQuestion();
+      }
+    },
+    'arrowleft': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          answerLockedIn || gameState.current_question === 0) return;
+      handlePreviousQuestion();
+    },
+    
+    // Utility
+    'h': () => {
+      if (!gameState.game_active) return;
+      handleHideQuestion();
+    },
+    
+    // Lifeline Controls
+    'v': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          !answersRevealed || !gameState.answer_is_wrong || 
+          !gameState.available_lifelines_for_vote || !gameState.available_lifelines_for_vote.length || 
+          gameState.lifeline_voting_active) return;
+      handleStartLifelineVote();
+    },
+    'e': () => {
+      if (!gameState.game_active || gameState.curtains_closed || 
+          !gameState.lifeline_voting_active) return;
+      handleEndLifelineVoting();
+    },
+    
+    // End Game Controls
+    'f': () => {
+      if (!gameState.game_active || gameState.current_question !== 14 || 
+          !answersRevealed || (gameState as any).finalLeaderboardShown) return;
+      handleShowFinalLeaderboard();
+    },
+    'c': () => {
+      if (!gameState.game_active || gameState.current_question !== 14 || 
+          !(gameState as any).finalLeaderboardShown) return;
+      handleRollCredits();
+    },
+    
+    // Help Toggle
+    '?': () => setShowKeybindHelp(!showKeybindHelp),
+  }, [
+    gameState,
+    questionVisible,
+    answersVisible,
+    answersRevealed,
+    answerLockedIn,
+    selectedAnswer,
+    showKeybindHelp,
+    handleShowQuestion,
+    handleShowAnswers,
+    handleLockInAnswer,
+    handleRevealAnswer,
+    handleNextQuestion,
+    handlePreviousQuestion,
+    handleHideQuestion,
+    handleStartLifelineVote,
+    handleEndLifelineVoting,
+    handleShowFinalLeaderboard,
+    handleRollCredits
+  ]);
 
   // Animation variants removed to improve performance
 
@@ -1240,6 +1301,23 @@ const KimbillionaireControlPanel: React.FC = () => {
               title="Animation Control Center">
               🎬 Animations
             </button>
+            <button 
+              onClick={() => setShowKeybindHelp(!showKeybindHelp)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '14px',
+                background: 'rgba(255, 215, 0, 0.1)',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                borderRadius: '8px',
+                color: '#FFD700',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                marginLeft: '10px'
+              }}
+              title="Press ? to toggle keyboard shortcuts"
+            >
+              ⌨️ Shortcuts
+            </button>
             <div className={styles.serverControls} style={{marginLeft: '20px', display: 'flex', gap: '8px'}}>
               <button 
                 className={roaryEnabled ? styles.successBtn : styles.dangerBtn}
@@ -1261,6 +1339,209 @@ const KimbillionaireControlPanel: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Keybind Help Panel */}
+      {showKeybindHelp && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(0, 20, 40, 0.98)',
+          border: '2px solid rgba(255, 215, 0, 0.5)',
+          borderRadius: '16px',
+          padding: '24px',
+          maxWidth: '600px',
+          maxHeight: '80vh',
+          overflowY: 'auto',
+          zIndex: 10000,
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px'
+          }}>
+            <h2 style={{ color: '#FFD700', margin: 0 }}>⌨️ Keyboard Shortcuts</h2>
+            <button
+              onClick={() => setShowKeybindHelp(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#FFD700',
+                fontSize: '24px',
+                cursor: 'pointer',
+                padding: '0 8px'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Question Controls */}
+            <div>
+              <h3 style={{ color: '#FFD700', fontSize: '16px', marginBottom: '8px' }}>
+                Question Controls
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { key: 'Q', desc: 'Show Question' },
+                  { key: 'A', desc: 'Show Answers' },
+                  { key: 'L', desc: 'Lock In Answer' },
+                  { key: 'R', desc: 'Reveal Answer' },
+                  { key: 'H', desc: 'Hide All' }
+                ].map(({ key, desc }) => (
+                  <div key={key} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '6px'
+                  }}>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{desc}</span>
+                    <kbd style={{
+                      background: 'rgba(255, 215, 0, 0.2)',
+                      border: '1px solid rgba(255, 215, 0, 0.4)',
+                      borderRadius: '4px',
+                      padding: '4px 12px',
+                      fontFamily: 'monospace',
+                      color: '#FFD700',
+                      fontWeight: 'bold'
+                    }}>{key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div>
+              <h3 style={{ color: '#FFD700', fontSize: '16px', marginBottom: '8px' }}>
+                Navigation
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { key: 'N or →', desc: 'Next Question / Start Lifeline Vote' },
+                  { key: '←', desc: 'Previous Question' }
+                ].map(({ key, desc }) => (
+                  <div key={key} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '6px'
+                  }}>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{desc}</span>
+                    <kbd style={{
+                      background: 'rgba(255, 215, 0, 0.2)',
+                      border: '1px solid rgba(255, 215, 0, 0.4)',
+                      borderRadius: '4px',
+                      padding: '4px 12px',
+                      fontFamily: 'monospace',
+                      color: '#FFD700',
+                      fontWeight: 'bold'
+                    }}>{key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Lifeline Controls */}
+            <div>
+              <h3 style={{ color: '#FFD700', fontSize: '16px', marginBottom: '8px' }}>
+                Lifeline Controls
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { key: 'V', desc: 'Start Lifeline Vote' },
+                  { key: 'E', desc: 'End Lifeline Voting' }
+                ].map(({ key, desc }) => (
+                  <div key={key} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '6px'
+                  }}>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{desc}</span>
+                    <kbd style={{
+                      background: 'rgba(255, 215, 0, 0.2)',
+                      border: '1px solid rgba(255, 215, 0, 0.4)',
+                      borderRadius: '4px',
+                      padding: '4px 12px',
+                      fontFamily: 'monospace',
+                      color: '#FFD700',
+                      fontWeight: 'bold'
+                    }}>{key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* End Game */}
+            <div>
+              <h3 style={{ color: '#FFD700', fontSize: '16px', marginBottom: '8px' }}>
+                End Game Sequence
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {[
+                  { key: 'F', desc: 'Show Final Leaderboard' },
+                  { key: 'C', desc: 'Roll Credits' }
+                ].map(({ key, desc }) => (
+                  <div key={key} style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '6px'
+                  }}>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>{desc}</span>
+                    <kbd style={{
+                      background: 'rgba(255, 215, 0, 0.2)',
+                      border: '1px solid rgba(255, 215, 0, 0.4)',
+                      borderRadius: '4px',
+                      padding: '4px 12px',
+                      fontFamily: 'monospace',
+                      color: '#FFD700',
+                      fontWeight: 'bold'
+                    }}>{key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Help */}
+            <div style={{
+              marginTop: '8px',
+              padding: '12px',
+              background: 'rgba(255, 215, 0, 0.1)',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 215, 0, 0.3)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <span style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                  Toggle this help
+                </span>
+                <kbd style={{
+                  background: 'rgba(255, 215, 0, 0.2)',
+                  border: '1px solid rgba(255, 215, 0, 0.4)',
+                  borderRadius: '4px',
+                  padding: '4px 12px',
+                  fontFamily: 'monospace',
+                  color: '#FFD700',
+                  fontWeight: 'bold'
+                }}>?</kbd>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Live Chat Configuration - Top Priority */}
       <div className={styles.container}>
@@ -1371,7 +1652,7 @@ const KimbillionaireControlPanel: React.FC = () => {
           }}>
             <span style={{fontSize: '20px'}}>🎮</span>
             <span style={{color: '#10b981', fontWeight: 'bold'}}>
-              Game Started! Click "Show Question" below to begin the first question.
+              Game Started! Press <kbd style={{background: 'rgba(255,255,255,0.2)', padding: '2px 6px', borderRadius: '4px', margin: '0 4px'}}>Q</kbd> to begin the first question.
             </span>
           </div>
         )}
@@ -1832,8 +2113,6 @@ const KimbillionaireControlPanel: React.FC = () => {
       </div>
 
       {/* Producer Preview removed to reduce lag */}
-
-      {/* Keyboard shortcuts help removed for cleaner host experience */}
 
       {/* Animation Control Panel Modal */}
       <AnimationControlPanel 

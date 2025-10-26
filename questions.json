@@ -1,167 +1,167 @@
 [
   {
-    "text": "who is juicing",
+    "number": 1,
+    "text": "What does 'buying the dip' mean?",
     "answers": [
-      "London",
-      "Berlin",
-      "Paris",
-      "Madrid"
+      "Buying when prices drop",
+      "Avoiding volatility",
+      "Selling at the top",
+      "Waiting for news"
     ],
-    "correct": 2,
-    "number": 1
+    "correct": 0
   },
   {
-    "text": "Which planet is known as the Red Planet?",
+    "number": 2,
+    "text": "What does VWAP show?",
     "answers": [
-      "Venus",
-      "Mars",
-      "Jupiter",
-      "Saturn"
+      "Volatility Weekly Action Pattern",
+      "Value Weighted Altcoin Price",
+      "Virtual Wallet Access Point",
+      "Volume Weighted Average Price"
     ],
-    "correct": 1,
-    "number": 2
+    "correct": 3
   },
   {
-    "text": "Who painted the Mona Lisa?",
+    "number": 3,
+    "text": "What does Open Interest represent?",
     "answers": [
-      "Van Gogh",
-      "Picasso",
-      "Da Vinci",
-      "Monet"
+      "Number of open contracts",
+      "Margin level of exchanges",
+      "Daily trading volume",
+      "Total open wallets"
     ],
-    "correct": 2,
-    "number": 3
+    "correct": 0
   },
   {
-    "text": "What is the largest mammal in the world?",
+    "number": 4,
+    "text": "What’s a Swing Failure Pattern (SFP)?",
     "answers": [
-      "African Elephant",
-      "Blue Whale",
-      "Giraffe",
-      "Polar Bear"
+      "A data glitch",
+      "A failed breakout that reverses",
+      "A high-volume continuation",
+      "A moving average crossover"
     ],
-    "correct": 1,
-    "number": 4
+    "correct": 1
   },
   {
-    "text": "In which year did World War II end?",
+    "number": 5,
+    "text": "What does a rising CVD with flat price mean?",
     "answers": [
-      "1944",
-      "1945",
-      "1946",
-      "1947"
+      "Buyers absorbing sellers",
+      "Price about to fall",
+      "No momentum",
+      "Selling pressure increasing"
     ],
-    "correct": 1,
-    "number": 5
+    "correct": 0
   },
   {
-    "text": "What is the chemical symbol for gold?",
+    "number": 6,
+    "text": "What’s a Fibonacci retracement used for?",
     "answers": [
-      "Go",
-      "Gd",
-      "Au",
-      "Ag"
+      "Setting leverage",
+      "Measuring open interest",
+      "Predicting inflation",
+      "Spotting support/resistance zones"
     ],
-    "correct": 2,
-    "number": 6
+    "correct": 3
   },
   {
-    "text": "Which Shakespeare play features the characters Romeo and Juliet?",
+    "number": 7,
+    "text": "What does a price 'gap' usually indicate?",
     "answers": [
-      "Hamlet",
-      "Macbeth",
-      "Romeo and Juliet",
-      "Othello"
+      "A sentiment or momentum shift",
+      "Exchange maintenance",
+      "Error in data",
+      "Stable conditions"
     ],
-    "correct": 2,
-    "number": 7
+    "correct": 0
   },
   {
-    "text": "What is the smallest country in the world?",
+    "number": 8,
+    "text": "What does FOMC stand for?",
     "answers": [
-      "Monaco",
-      "San Marino",
-      "Vatican City",
-      "Liechtenstein"
+      "Federal Online Money Center",
+      "Financial Order Management Council",
+      "Federal Open Market Committee",
+      "Foreign Operations Monetary Chamber"
     ],
-    "correct": 2,
-    "number": 8
+    "correct": 2
   },
   {
-    "text": "Who developed the theory of relativity?",
+    "number": 9,
+    "text": "What is the main job of the FOMC?",
     "answers": [
-      "Isaac Newton",
-      "Albert Einstein",
-      "Galileo Galilei",
-      "Stephen Hawking"
+      "Printing new money",
+      "Setting U.S. interest rates",
+      "Managing taxes",
+      "Regulating crypto markets"
     ],
-    "correct": 1,
-    "number": 9
+    "correct": 1
   },
   {
-    "text": "What is the hardest natural substance on Earth?",
+    "number": 10,
+    "text": "How many times a year does the FOMC usually meet?",
     "answers": [
-      "Gold",
-      "Iron",
-      "Diamond",
-      "Platinum"
+      "8",
+      "2",
+      "4",
+      "12"
     ],
-    "correct": 2,
-    "number": 10
+    "correct": 0
   },
   {
-    "text": "Which ocean is the largest?",
+    "number": 11,
+    "text": "What happens when the Fed raises interest rates?",
     "answers": [
-      "Atlantic Ocean",
-      "Indian Ocean",
-      "Arctic Ocean",
-      "Pacific Ocean"
+      "Borrowing becomes more expensive",
+      "Stocks instantly rally",
+      "The dollar weakens",
+      "Inflation increases"
     ],
-    "correct": 3,
-    "number": 11
+    "correct": 0
   },
   {
-    "text": "Who wrote the novel '1984'?",
+    "number": 12,
+    "text": "What do traders often watch during FOMC press conferences?",
     "answers": [
-      "George Orwell",
-      "Aldous Huxley",
-      "Ray Bradbury",
-      "H.G. Wells"
+      "Jerome Powell’s tone and wording",
+      "Exchange outages",
+      "Gold prices only",
+      "Meme coin performance"
     ],
-    "correct": 0,
-    "number": 12
+    "correct": 0
   },
   {
-    "text": "What is the speed of light in a vacuum?",
+    "number": 13,
+    "text": "What does 'rate pause' mean?",
     "answers": [
-      "299,792,458 m/s",
-      "300,000,000 m/s",
-      "299,000,000 m/s",
-      "301,000,000 m/s"
+      "Temporary rate hike",
+      "Sudden rate cut",
+      "No change in current interest rates",
+      "New fiscal policy"
     ],
-    "correct": 0,
-    "number": 13
+    "correct": 2
   },
   {
-    "text": "Which element has the atomic number 1?",
+    "number": 14,
+    "text": "When the Fed cuts rates, what is it usually trying to do?",
     "answers": [
-      "Helium",
-      "Hydrogen",
-      "Lithium",
-      "Carbon"
+      "Stimulate economic growth",
+      "Slow inflation",
+      "Strengthen the dollar",
+      "Cool off spending"
     ],
-    "correct": 1,
-    "number": 14
+    "correct": 0
   },
   {
-    "text": "Who was the first person to walk on the moon?",
+    "number": 15,
+    "text": "What’s the effect of higher rates on risky assets like Bitcoin?",
     "answers": [
-      "Buzz Aldrin",
-      "Neil Armstrong",
-      "John Glenn",
-      "Alan Shepard"
+      "Causes halving",
+      "Often bearish — money flows to safer assets",
+      "Always bullish",
+      "No impact"
     ],
-    "correct": 1,
-    "number": 15
+    "correct": 1
   }
 ]
