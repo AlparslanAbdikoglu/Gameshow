@@ -3,16 +3,39 @@
  * Ensures type safety across the broadcast-quality game show system
  */
 
-// Core Game Types
-export interface Question {
-  text: string;
-  answers: string[];
-  correct: number;
-  number: number;
-  category?: string;
-  difficulty?: 'easy' | 'medium' | 'hard';
-  timeLimit?: number;
-}
+// 🎮 Game Mode Types
+  export type GameMode = 'normal' | 'spooky';
+
+  export const GameModeConfig: Record<GameMode, {
+    label: string;
+    description: string;
+    color: string;
+    icon: string;
+  }> = {
+    normal: {
+      label: 'Kimbillionaire Classic',
+      description: 'The original game show experience.',
+      color: '#007bff',
+      icon: '🎩'
+    },
+    spooky: {
+      label: 'Spooky Halloween Edition',
+      description: 'Ghosts, ghouls, and eerie surprises!',
+      color: '#ff5722',
+      icon: '🎃'
+    }
+  };
+
+  // Core Game Types
+  export interface Question {
+    text: string;
+    answers: string[];
+    correct: number;
+    number: number;
+    category?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    timeLimit?: number;
+  }
 
 export interface GameState {
   current_question: number;
@@ -21,8 +44,8 @@ export interface GameState {
   lifelines_used: string[];
   update_needed: boolean;
   contestant_name?: string;
-  currentQuestion?: Question;  // Current question object from server
-  questions?: Question[];      // All questions from server
+  currentQuestion?: Question;
+  questions?: Question[];
   question_visible?: boolean;
   answers_visible?: boolean;
   answers_revealed?: boolean;
@@ -33,12 +56,17 @@ export interface GameState {
   curtains_closed?: boolean;
   preparing_for_game?: boolean;
   typewriter_animation_complete?: boolean;
+  selectedGameMode?: GameMode;
+  gameModeWheelActive?: boolean;
+
   // Lifeline states
   first_poll_winner?: string | null;
   is_revote_active?: boolean;
   excluded_answers?: number[];
+
   // Answer locking state
   answer_locked_in?: boolean;
+
   // Lifeline voting states
   lifeline_voting_active?: boolean;
   lifeline_voting_timer_active?: boolean;
@@ -52,9 +80,10 @@ export interface GameState {
   };
   lifeline_vote_winner?: string | null;
   answer_is_wrong?: boolean;
+
   // Ask a Mod lifeline states
   ask_a_mod_active?: boolean;
-  mod_responses?: Array<{username: string, message: string, timestamp: number}>;
+  mod_responses?: Array<{ username: string; message: string; timestamp: number }>;
   ask_a_mod_start_time?: number | null;
 }
 
@@ -139,7 +168,7 @@ export interface PerformanceMetrics {
   componentCount: number;
 }
 
-// Audience Types (for future features)
+// Audience Types
 export interface AudienceMetrics {
   totalPlayers: number;
   activeParticipants: number;
@@ -148,7 +177,7 @@ export interface AudienceMetrics {
   engagement: number;
 }
 
-// Event Types for WebSocket communication
+// Event Types
 export interface GameEvent {
   type: 'state_update' | 'question_change' | 'timer_update' | 'lifeline_used' | 'game_over';
   timestamp: number;
@@ -171,7 +200,7 @@ export interface StateResponse extends APIResponse {
   data: GameState;
 }
 
-// Component Props Types
+// Component Props
 export interface BaseComponentProps {
   className?: string;
   style?: React.CSSProperties;
@@ -190,7 +219,7 @@ export interface ProducerPreviewProps extends BaseComponentProps {
   onToggle: () => void;
 }
 
-// Error Handling Types
+// Error Handling
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
 export interface GameError {
@@ -202,7 +231,7 @@ export interface GameError {
   stack?: string;
 }
 
-// Configuration Types
+// Configuration
 export interface GameConfiguration {
   totalQuestions: number;
   questionTimeLimit: number;
@@ -212,9 +241,11 @@ export interface GameConfiguration {
   theme: 'classic' | 'modern' | 'custom';
   audioEnabled: boolean;
   animationsEnabled: boolean;
+  availableGameModes?: GameMode[];
+  defaultGameMode?: GameMode;
 }
 
-// Keyboard Shortcut Types
+// Keyboard Shortcuts
 export interface KeyboardShortcut {
   key: string;
   ctrl?: boolean;
@@ -229,7 +260,7 @@ export interface ShortcutCategory {
   shortcuts: KeyboardShortcut[];
 }
 
-// Animation Types
+// Animation
 export interface AnimationConfig {
   duration: number;
   easing: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | string;
@@ -237,7 +268,7 @@ export interface AnimationConfig {
   iterations?: number;
 }
 
-// Theme Types
+// Theme
 export interface ThemeColors {
   primary: string;
   secondary: string;
@@ -263,11 +294,10 @@ export interface GameTheme {
   shadows: Record<string, string>;
 }
 
-// Utility Types
+// Utility
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
 
 export type RequiredKeys<T, K extends keyof T> = T & Required<Pick<T, K>>;
-
 export type OptionalKeys<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
