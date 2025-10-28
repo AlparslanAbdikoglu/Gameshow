@@ -15,19 +15,17 @@ import PrizeConfiguration from './PrizeConfiguration';
 // import ProducerPreview from './ProducerPreview'; // Removed to reduce lag
 import { obsIntegration } from '../utils/obs-integration';
 import { gameApi } from '../utils/api';
-import type { 
+import { 
   Question, 
   GameState, 
   OBSConnectionStatus, 
-  OBSSettings
+  OBSSettings,
+   GameMode,             // ✅ new
+  GameModeConfig  
 } from '../types/gameTypes';
 import '../styles/theme.css';
 import styles from './KimbillionaireControlPanel.module.css';
 
-// Remove duplicate interfaces - now using types from gameTypes.ts
-// NO DEFAULT QUESTIONS - Control panel ONLY uses questions from the server
-
-// Removed defaultQuestions array - now using server as single source of truth
 
 /**
  * Custom hook for keyboard shortcuts
@@ -83,7 +81,8 @@ const KimbillionaireControlPanel: React.FC = () => {
     score: 0,
     game_active: false,
     lifelines_used: [],
-    update_needed: false
+    update_needed: false,
+    selectedGameMode: 'normal'  // ✅ default to classic
   });
   const [questionVisible, setQuestionVisible] = useState(false);
   const [answersVisible, setAnswersVisible] = useState(false);
@@ -1335,6 +1334,35 @@ const KimbillionaireControlPanel: React.FC = () => {
                 🤖 Roary {roaryEnabled ? 'ON' : 'OFF'}
               </button>
             </div>
+            <div className={styles.modeSelector} style={{ marginLeft: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+  <label htmlFor="gameMode" style={{ color: '#fff', fontWeight: 'bold' }}>🎮 Mode:</label>
+  <select
+    id="gameMode"
+    value={gameState.selectedGameMode || 'normal'}
+    onChange={(e) =>
+      setGameState((prev) => ({
+        ...prev,
+        selectedGameMode: e.target.value as GameMode
+      }))
+    }
+    style={{
+      background: 'rgba(255,255,255,0.1)',
+      border: '1px solid rgba(255,255,255,0.2)',
+      borderRadius: '6px',
+      color: '#fff',
+      padding: '6px 10px',
+      fontSize: '14px',
+      cursor: 'pointer'
+    }}
+  >
+    {Object.entries(GameModeConfig).map(([mode, config]) => (
+      <option key={mode} value={mode}>
+        {config.icon} {config.label}
+      </option>
+    ))}
+  </select>
+</div>
+
             {/* Producer Preview button removed to reduce lag */}
           </div>
         </div>
