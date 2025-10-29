@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What does 'buying the dip' mean?",
+    "text": "What do Single Prints in Market Profile usually signal?",
     "answers": [
-      "Buying when prices drop",
-      "Avoiding volatility",
-      "Selling at the top",
-      "Waiting for news"
+      "Strong directional aggression",
+      "Reversal confirmation",
+      "Balanced price acceptance",
+      "Low liquidity session"
     ],
     "correct": 0
   },
   {
     "number": 2,
-    "text": "What does VWAP show?",
+    "text": "What was the original name of Halloween?",
     "answers": [
-      "Volatility Weekly Action Pattern",
-      "Value Weighted Altcoin Price",
-      "Virtual Wallet Access Point",
-      "Volume Weighted Average Price"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 3,
-    "text": "What does Open Interest represent?",
-    "answers": [
-      "Number of open contracts",
-      "Margin level of exchanges",
-      "Daily trading volume",
-      "Total open wallets"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 4,
-    "text": "What’s a Swing Failure Pattern (SFP)?",
-    "answers": [
-      "A data glitch",
-      "A failed breakout that reverses",
-      "A high-volume continuation",
-      "A moving average crossover"
+      "All Lanterns Evening",
+      "Samhain",
+      "Harvest Night",
+      "Ghost Day"
     ],
     "correct": 1
   },
   {
-    "number": 5,
-    "text": "What does a rising CVD with flat price mean?",
+    "number": 3,
+    "text": "What does TPO stand for in Market Profile?",
     "answers": [
-      "Buyers absorbing sellers",
-      "Price about to fall",
-      "No momentum",
-      "Selling pressure increasing"
+      "Tick Pressure Output",
+      "Trade Position Overview",
+      "Time Price Opportunity",
+      "Trend Price Oscillation"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 4,
+    "text": "What does it mean when price opens above the previous day's value area?",
+    "answers": [
+      "Potential bullish directional bias",
+      "Market is balanced",
+      "No meaningful information",
+      "Trend is ending"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 5,
+    "text": "Which candy is the most popular Halloween treat in the U.S.?",
+    "answers": [
+      "Kinder Bueno",
+      "M&Ms",
+      "Candy Corn",
+      "Twix"
     ],
     "correct": 0
   },
   {
     "number": 6,
-    "text": "What’s a Fibonacci retracement used for?",
+    "text": "What does the Point of Control (POC) represent?",
     "answers": [
-      "Setting leverage",
-      "Measuring open interest",
-      "Predicting inflation",
-      "Spotting support/resistance zones"
+      "The highest volume candle",
+      "The session open price",
+      "The lowest traded price",
+      "The most traded price level"
     ],
     "correct": 3
   },
   {
     "number": 7,
-    "text": "What does a price 'gap' usually indicate?",
+    "text": "What does a High Volume Node (HVN) represent?",
     "answers": [
-      "A sentiment or momentum shift",
-      "Exchange maintenance",
-      "Error in data",
-      "Stable conditions"
+      "Unfilled liquidity",
+      "Strong participation / acceptance",
+      "Gap region",
+      "Rejection zone"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 8,
+    "text": "Where is VWAP most commonly used?",
+    "answers": [
+      "Intraday trading to gauge trend bias",
+      "Only on monthly charts",
+      "Only in long-term investing",
+      "To calculate taxes"
     ],
     "correct": 0
   },
   {
-    "number": 8,
-    "text": "What does FOMC stand for?",
-    "answers": [
-      "Federal Online Money Center",
-      "Financial Order Management Council",
-      "Federal Open Market Committee",
-      "Foreign Operations Monetary Chamber"
-    ],
-    "correct": 2
-  },
-  {
     "number": 9,
-    "text": "What is the main job of the FOMC?",
+    "text": "What vegetable were the first Jack-o’-lanterns made from?",
     "answers": [
-      "Printing new money",
-      "Setting U.S. interest rates",
-      "Managing taxes",
-      "Regulating crypto markets"
+      "Onions",
+      "Turnips",
+      "Potatoes",
+      "Pumpkins"
     ],
     "correct": 1
   },
   {
     "number": 10,
-    "text": "How many times a year does the FOMC usually meet?",
+    "text": "What does price trading inside the Value Area usually indicate?",
     "answers": [
-      "8",
-      "2",
-      "4",
-      "12"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 11,
-    "text": "What happens when the Fed raises interest rates?",
-    "answers": [
-      "Borrowing becomes more expensive",
-      "Stocks instantly rally",
-      "The dollar weakens",
-      "Inflation increases"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 12,
-    "text": "What do traders often watch during FOMC press conferences?",
-    "answers": [
-      "Jerome Powell’s tone and wording",
-      "Exchange outages",
-      "Gold prices only",
-      "Meme coin performance"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 13,
-    "text": "What does 'rate pause' mean?",
-    "answers": [
-      "Temporary rate hike",
-      "Sudden rate cut",
-      "No change in current interest rates",
-      "New fiscal policy"
+      "High volatility acceleration",
+      "Strong breakout pressure",
+      "Balanced market / consolidation",
+      "Liquidity vacuum"
     ],
     "correct": 2
   },
   {
-    "number": 14,
-    "text": "When the Fed cuts rates, what is it usually trying to do?",
+    "number": 11,
+    "text": "What does bullish CVD divergence indicate?",
     "answers": [
-      "Stimulate economic growth",
-      "Slow inflation",
-      "Strengthen the dollar",
-      "Cool off spending"
+      "Market is in balance",
+      "Price is rising with strong buying",
+      "Price is falling while buyers absorb selling",
+      "No momentum is present"
     ],
-    "correct": 0
+    "correct": 2
+  },
+  {
+    "number": 12,
+    "text": "Which type of gap suggests continuation in a trending market?",
+    "answers": [
+      "Liquidity gap",
+      "Runaway gap",
+      "Breakaway gap",
+      "Exhaustion gap"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 13,
+    "text": "What characterizes a Swing Failure Pattern (SFP)?",
+    "answers": [
+      "A low volume consolidation",
+      "A multi-day macro breakout",
+      "A strong trend continuation signal",
+      "A breakout that immediately fails and reverses"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 14,
+    "text": "What makes a trendline valid?",
+    "answers": [
+      "It always predicts breakouts",
+      "It is drawn through random highs",
+      "It has at least two touches and slopes consistently",
+      "It is drawn only on weekly charts"
+    ],
+    "correct": 2
   },
   {
     "number": 15,
-    "text": "What’s the effect of higher rates on risky assets like Bitcoin?",
+    "text": "What does rising Open Interest alongside rising price suggest?",
     "answers": [
-      "Causes halving",
-      "Often bearish — money flows to safer assets",
-      "Always bullish",
-      "No impact"
+      "New positions entering, trend strengthening",
+      "Positions closing, trend weakening",
+      "Only retail is trading",
+      "Market indecision"
     ],
-    "correct": 1
+    "correct": 0
   }
 ]
