@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What do Single Prints in Market Profile usually signal?",
+    "text": "Who is the mascot of Coinwise?",
     "answers": [
-      "Strong directional aggression",
-      "Reversal confirmation",
-      "Balanced price acceptance",
-      "Low liquidity session"
+      "An old Wise man",
+      "A Lion",
+      "Satoshi Nakamoto",
+      "Super crypto Man"
     ],
     "correct": 0
   },
   {
     "number": 2,
-    "text": "What was the original name of Halloween?",
+    "text": "Which coupon code currently gives you 30% off on Coinwise?",
     "answers": [
-      "All Lanterns Evening",
-      "Samhain",
-      "Harvest Night",
-      "Ghost Day"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 3,
-    "text": "What does TPO stand for in Market Profile?",
-    "answers": [
-      "Tick Pressure Output",
-      "Trade Position Overview",
-      "Time Price Opportunity",
-      "Trend Price Oscillation"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 4,
-    "text": "What does it mean when price opens above the previous day's value area?",
-    "answers": [
-      "Potential bullish directional bias",
-      "Market is balanced",
-      "No meaningful information",
-      "Trend is ending"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 5,
-    "text": "Which candy is the most popular Halloween treat in the U.S.?",
-    "answers": [
-      "Kinder Bueno",
-      "M&Ms",
-      "Candy Corn",
-      "Twix"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 6,
-    "text": "What does the Point of Control (POC) represent?",
-    "answers": [
-      "The highest volume candle",
-      "The session open price",
-      "The lowest traded price",
-      "The most traded price level"
+      "LionHeart",
+      "StayWise",
+      "30OFFNOW",
+      "HalloWise"
     ],
     "correct": 3
   },
   {
-    "number": 7,
-    "text": "What does a High Volume Node (HVN) represent?",
+    "number": 3,
+    "text": "In Coinwise vocabulary, what does Absorption mean?",
     "answers": [
-      "Unfilled liquidity",
-      "Strong participation / acceptance",
-      "Gap region",
-      "Rejection zone"
+      "All market orders get automatically canceled during high volatility.",
+      "When aggressive orders hit the market but fail to move price.",
+      "The market is experiencing a data delay causing price to freeze.",
+      "Liquidity has disappeared and no participants are trading."
     ],
     "correct": 1
   },
   {
-    "number": 8,
-    "text": "Where is VWAP most commonly used?",
+    "number": 4,
+    "text": "Is the 80% setup indicator included in Coinwise Basic?",
     "answers": [
-      "Intraday trading to gauge trend bias",
-      "Only on monthly charts",
-      "Only in long-term investing",
-      "To calculate taxes"
+      "Yes",
+      "No",
+      "Only the 90% setup is included",
+      "There is no such indicator"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 5,
+    "text": "Which tier grants access to all Coinwise training material?",
+    "answers": [
+      "Education+",
+      "Coinwise Basic",
+      "Coinwise Pro + Education",
+      "Coinwise Pro"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 6,
+    "text": "Counter trader Hujhuxin Sato is a ?",
+    "answers": [
+      "Panda",
+      "Wolf",
+      "Tiger",
+      "Lion"
     ],
     "correct": 0
   },
   {
-    "number": 9,
-    "text": "What vegetable were the first Jack-o’-lanterns made from?",
+    "number": 7,
+    "text": "What does a high funding rate in perpetual futures generally indicate?",
     "answers": [
-      "Onions",
-      "Turnips",
-      "Potatoes",
-      "Pumpkins"
+      "No clear direction of the market.",
+      "The exchange is halting funding payments.",
+      "Shorts are paying longs, meaning bearish bias.",
+      "Longs are paying shorts, meaning bullish bias."
+    ],
+    "correct": 3
+  },
+  {
+    "number": 8,
+    "text": "What is the point of a 'Trading Journal'?",
+    "answers": [
+      "To unlock hidden chart indicators.",
+      "To track wins and losses for psychological review",
+      "To automatically calculate exchange fees.",
+      "To post it on Twitter"
     ],
     "correct": 1
+  },
+  {
+    "number": 9,
+    "text": "If price is consolidating tightly at a key level with declining volume, what does this often suggest?",
+    "answers": [
+      "A breakout may be forming soon.",
+      "The market is permanently stable.",
+      "A liquidity sweep has already occurred.",
+      "No trader cares about the asset."
+    ],
+    "correct": 0
   },
   {
     "number": 10,
-    "text": "What does price trading inside the Value Area usually indicate?",
+    "text": "How many total learning classes are currently available on Coinwise?",
     "answers": [
-      "High volatility acceleration",
-      "Strong breakout pressure",
-      "Balanced market / consolidation",
-      "Liquidity vacuum"
+      "32",
+      "18",
+      "57",
+      "44"
     ],
-    "correct": 2
+    "correct": 3
   },
   {
     "number": 11,
-    "text": "What does bullish CVD divergence indicate?",
+    "text": "What is the URL for the Kimba dashboard?",
     "answers": [
-      "Market is in balance",
-      "Price is rising with strong buying",
-      "Price is falling while buyers absorb selling",
-      "No momentum is present"
+      "kingofthejungle.io",
+      "lionverse.app",
+      "PSG.live",
+      "app.kimba.tv"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 12,
+    "text": "Within the Kimba dashboard, what is the NFT collection called?",
+    "answers": [
+      "Lion Kings of Web3",
+      "The Majestic 100",
+      "Lions of Liquania",
+      "Guardians of the Savanna"
     ],
     "correct": 2
   },
   {
-    "number": 12,
-    "text": "Which type of gap suggests continuation in a trending market?",
-    "answers": [
-      "Liquidity gap",
-      "Runaway gap",
-      "Breakaway gap",
-      "Exhaustion gap"
-    ],
-    "correct": 1
-  },
-  {
     "number": 13,
-    "text": "What characterizes a Swing Failure Pattern (SFP)?",
+    "text": "In trading, what does 'S/R Flip' refer to?",
     "answers": [
-      "A low volume consolidation",
-      "A multi-day macro breakout",
-      "A strong trend continuation signal",
-      "A breakout that immediately fails and reverses"
+      "A trading bot entering cooldown mode.",
+      "A long-term moving average crossover.",
+      "A sudden liquidation cascade.",
+      "A support level turning into resistance or vice versa."
     ],
     "correct": 3
   },
   {
     "number": 14,
-    "text": "What makes a trendline valid?",
+    "text": "What is the purpose of a 'Volume Profile' tool?",
     "answers": [
-      "It always predicts breakouts",
-      "It is drawn through random highs",
-      "It has at least two touches and slopes consistently",
-      "It is drawn only on weekly charts"
+      "To identify candle wick length distribution.",
+      "To measure network hash power.",
+      "To track order book refresh rate.",
+      "To show the total trading volume at specific price levels over a given time period"
     ],
-    "correct": 2
+    "correct": 3
   },
   {
     "number": 15,
-    "text": "What does rising Open Interest alongside rising price suggest?",
+    "text": "What is the Fear & Greed Index used for?",
     "answers": [
-      "New positions entering, trend strengthening",
-      "Positions closing, trend weakening",
-      "Only retail is trading",
-      "Market indecision"
+      "To track exchange withdrawal volume only.",
+      "To gauge emotional sentiment extremes in the market.",
+      "To measure browser performance.",
+      "To analyze moving averages."
     ],
-    "correct": 0
+    "correct": 1
   }
 ]
