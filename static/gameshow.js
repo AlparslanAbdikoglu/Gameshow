@@ -843,7 +843,23 @@ function handleWebSocketMessage(message) {
         case 'hot_seat_activated':
             handleHotSeatActivated(message);
             break;
-            
+
+        case 'hot_seat_entry_started':
+            handleHotSeatEntryStarted(message);
+            break;
+
+        case 'hot_seat_entry_countdown':
+            handleHotSeatEntryCountdown(message);
+            break;
+
+        case 'hot_seat_entry_update':
+            handleHotSeatEntryUpdate(message);
+            break;
+
+        case 'hot_seat_no_entries':
+            handleHotSeatNoEntries(message);
+            break;
+
         case 'hot_seat_timer_update':
             handleHotSeatTimerUpdate(message);
             break;
@@ -863,9 +879,9 @@ function handleWebSocketMessage(message) {
         case 'leaderboard_update':
             handleLeaderboardUpdate(message);
             break;
-            
+
         case 'show_leaderboard':
-            showLeaderboard(message.period || 'current_game');
+            showLeaderboard(message.period || 'current_game', message.data);
             break;
             
         case 'hide_leaderboard':
@@ -3246,7 +3262,55 @@ function updateInfoPanel(state) {
             console.log('❌ DEBUG: Missing info area elements, cannot update panel');
             return;
         }
-        
+
+        if (state.hot_seat_entry_active) {
+            const entryMessage = state.hot_seat_entry_message || 'Type JOIN in chat to enter the hot seat!';
+            const remainingSeconds = typeof state.hot_seat_entry_remaining === 'number'
+                ? Math.max(0, state.hot_seat_entry_remaining)
+                : null;
+            const entriesCount = typeof state.hot_seat_entry_count === 'number'
+                ? state.hot_seat_entry_count
+                : 0;
+
+            infoTitle.textContent = 'HOT SEAT ACTIVATED';
+
+            const iconSpan = infoIcon.querySelector('span');
+            if (iconSpan) {
+                iconSpan.textContent = '🔥';
+            } else {
+                infoIcon.textContent = '🔥';
+            }
+
+            infoMessage.textContent = entryMessage;
+            infoMessage.style.display = 'block';
+
+            const detailsParts = [];
+            if (remainingSeconds !== null) {
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                const formatted = minutes > 0
+                    ? `${minutes}:${seconds.toString().padStart(2, '0')} remaining`
+                    : `${seconds}s remaining`;
+                detailsParts.push(formatted);
+            }
+
+            detailsParts.push(entriesCount === 1 ? '1 entry so far' : `${entriesCount} entries so far`);
+
+            if (state.hot_seat_entry_last_join) {
+                detailsParts.push(`${state.hot_seat_entry_last_join} joined!`);
+            }
+
+            infoDetails.textContent = detailsParts.filter(Boolean).join(' • ');
+            infoDetails.style.display = 'block';
+
+            const integratedVoting = document.getElementById('integrated-voting');
+            if (integratedVoting) {
+                integratedVoting.style.display = 'none';
+            }
+
+            return;
+        }
+
         // Determine dynamic status based on actual game state
         let title = "GAME STATUS";
         let icon = "🎮";
@@ -4072,6 +4136,96 @@ document.addEventListener('keydown', function(event) {
 
 console.log('📜 Kimbillionaire gameshow client script loaded');
 // Hot Seat Feature Functions
+
+let hotSeatEntryState = {
+    active: false,
+    remainingSeconds: 0,
+    entries: 0,
+    message: '',
+    lastJoin: null
+};
+
+function mergeHotSeatEntryState(partial = {}) {
+    hotSeatEntryState = {
+        active: partial.active !== undefined ? partial.active : hotSeatEntryState.active,
+        remainingSeconds: typeof partial.remainingSeconds === 'number'
+            ? partial.remainingSeconds
+            : hotSeatEntryState.remainingSeconds,
+        entries: typeof partial.entries === 'number'
+            ? partial.entries
+            : hotSeatEntryState.entries,
+        message: partial.message !== undefined ? partial.message : hotSeatEntryState.message,
+        lastJoin: partial.lastJoin !== undefined ? partial.lastJoin : hotSeatEntryState.lastJoin
+    };
+
+    if (!currentState || typeof currentState !== 'object') {
+        currentState = {};
+    }
+
+    currentState.hot_seat_entry_active = hotSeatEntryState.active;
+    currentState.hot_seat_entry_remaining = hotSeatEntryState.remainingSeconds;
+    currentState.hot_seat_entry_count = hotSeatEntryState.entries;
+    currentState.hot_seat_entry_message = hotSeatEntryState.message;
+    currentState.hot_seat_entry_last_join = hotSeatEntryState.lastJoin;
+
+    updateInfoPanel(currentState);
+}
+
+function handleHotSeatEntryStarted(message) {
+    const durationMs = typeof message.duration === 'number' ? message.duration : 0;
+    const remainingSeconds = Math.max(0, Math.ceil(durationMs / 1000));
+    const entryMessage = message.message || 'Type JOIN in chat to enter the hot seat!';
+
+    mergeHotSeatEntryState({
+        active: true,
+        remainingSeconds,
+        entries: 0,
+        message: entryMessage,
+        lastJoin: null
+    });
+}
+
+function handleHotSeatEntryCountdown(message) {
+    const remainingMs = typeof message.remaining === 'number' ? message.remaining : null;
+    const remainingSeconds = remainingMs !== null ? Math.max(0, Math.ceil(remainingMs / 1000)) : hotSeatEntryState.remainingSeconds;
+    const entries = typeof message.entries === 'number' ? message.entries : hotSeatEntryState.entries;
+
+    mergeHotSeatEntryState({
+        active: true,
+        remainingSeconds,
+        entries
+    });
+}
+
+function handleHotSeatEntryUpdate(message) {
+    const entries = typeof message.entries === 'number' ? message.entries : hotSeatEntryState.entries;
+    const lastJoin = message.username || null;
+    const joinMessage = lastJoin
+        ? `${lastJoin} joined the hot seat! Type JOIN to enter.`
+        : hotSeatEntryState.message || 'Type JOIN in chat to enter the hot seat!';
+
+    mergeHotSeatEntryState({
+        active: true,
+        entries,
+        message: joinMessage,
+        lastJoin
+    });
+}
+
+function handleHotSeatNoEntries(message) {
+    const infoMessage = message && message.message
+        ? message.message
+        : 'No entries received for the hot seat round.';
+
+    mergeHotSeatEntryState({
+        active: false,
+        remainingSeconds: 0,
+        entries: 0,
+        message: infoMessage,
+        lastJoin: null
+    });
+}
+
 function handleHotSeatActivated(message) {
     const participants = Array.isArray(message.users) && message.users.length
         ? message.users
@@ -4083,6 +4237,22 @@ function handleHotSeatActivated(message) {
     const timerValue = typeof message.timer === 'number' && message.timer > 0
         ? message.timer
         : fallbackTimer;
+
+    hotSeatEntryState = {
+        active: false,
+        remainingSeconds: 0,
+        entries: 0,
+        message: '',
+        lastJoin: null
+    };
+
+    if (currentState && typeof currentState === 'object') {
+        currentState.hot_seat_entry_active = false;
+        currentState.hot_seat_entry_remaining = 0;
+        currentState.hot_seat_entry_count = 0;
+        currentState.hot_seat_entry_message = '';
+        currentState.hot_seat_entry_last_join = null;
+    }
 
     console.log("🔥 HOT SEAT ACTIVATED for user:", primaryUser);
     if (participants.length > 1) {
@@ -4280,9 +4450,9 @@ function handleLeaderboardUpdate(message) {
     }
 }
 
-function showLeaderboard(period = 'current_game') {
+function showLeaderboard(period = 'current_game', leaderboardData = null) {
     console.log("🏆 Showing leaderboard for period:", period);
-    
+
     const overlay = document.getElementById('leaderboard-overlay');
     const periodBadge = document.getElementById('leaderboard-period');
     const listContainer = document.getElementById('leaderboard-list');
@@ -4294,6 +4464,10 @@ function showLeaderboard(period = 'current_game') {
     
     // Store current period
     currentLeaderboardPeriod = period;
+
+    if (leaderboardData && typeof leaderboardData === 'object') {
+        currentLeaderboardData = leaderboardData;
+    }
     
     // Prepare for animation
     overlay.style.display = 'block';
