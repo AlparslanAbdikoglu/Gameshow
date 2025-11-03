@@ -126,8 +126,8 @@ let gameState = {
   // Hot Seat Feature States
   hot_seat_enabled: false,    // Master toggle for hot seat feature
   hot_seat_active: false,     // Is hot seat mode active for current question
-  hot_seat_user: null,        // Username of selected hot seat player (DEPRECATED - use hot_seat_users)
-  hot_seat_users: [],         // Array of hot seat winners (supports multiple players)
+  hot_seat_user: null,        // Primary username of the active hot seat player
+  hot_seat_users: [],         // Array of hot seat winners (for display and history)
   hot_seat_timer: 60,         // Seconds remaining for hot seat answer
   hot_seat_answered: false,    // Has hot seat user submitted answer
   hot_seat_answer: null,       // Answer submitted by hot seat user (A/B/C/D)
@@ -4759,59 +4759,105 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
+function initializeHotSeatSession(selectedUsers, options = {}) {
+  const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
+
+  if (uniqueUsers.length === 0) {
+    console.warn('⚠️ HOT SEAT activation skipped - no valid users provided');
+    return false;
+  }
+
+  const selectionMethod = options.selectionMethod || 'manual';
+  const primaryUser = uniqueUsers[0];
+  const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
+
+  // End any lingering entry countdown now that a session is beginning
+  if (gameState.hot_seat_entry_timer_interval) {
+    clearInterval(gameState.hot_seat_entry_timer_interval);
+    gameState.hot_seat_entry_timer_interval = null;
+  }
+  gameState.hot_seat_entry_active = false;
+
+  gameState.hot_seat_active = true;
+  gameState.hot_seat_users = uniqueUsers;
+  gameState.hot_seat_user = primaryUser;
+  gameState.hot_seat_timer = timerDuration;
+  gameState.hot_seat_answered = false;
+  gameState.hot_seat_answer = null;
+  gameState.hot_seat_correct = null;
+
+  console.log(`🔥 HOT SEAT ACTIVATED for user: ${primaryUser} (Method: ${selectionMethod})`);
+  if (uniqueUsers.length > 1) {
+    console.log(`👥 Additional hot seat participants: ${uniqueUsers.slice(1).join(', ')}`);
+  }
+  console.log(`⏱️ ${primaryUser} has ${timerDuration} seconds to submit their answer`);
+
+  if (gameState.audience_poll_active) {
+    console.log('🔕 Audience poll disabled while hot seat is active');
+    gameState.audience_poll_active = false;
+  }
+
+  uniqueUsers.forEach(user => {
+    addPointsToPlayer(user, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
+    ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
+      const player = initializePlayerInLeaderboard(user, period);
+      player.hot_seat_appearances++;
+    });
+  });
+
+  startHotSeatTimer();
+
+  broadcastToClients({
+    type: 'hot_seat_activated',
+    user: primaryUser,
+    users: uniqueUsers,
+    timer: timerDuration,
+    questionNumber: gameState.current_question + 1,
+    message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
+    selectionMethod,
+    timestamp: Date.now()
+  });
+
+  return true;
+}
+
 // Draw winners from hot seat entries
 function drawHotSeatWinners() {
   console.log(`🎲 Drawing ${gameState.hot_seat_winner_count} hot seat winner(s) from ${gameState.hot_seat_entries.length} entries`);
-  
+
   if (gameState.hot_seat_entries.length === 0) {
     console.log('⚠️ No entries to draw from');
     return false;
   }
-  
-  // Shuffle entries for fair selection
+
   const shuffled = [...gameState.hot_seat_entries].sort(() => Math.random() - 0.5);
-  
-  // Select winners (up to the number of entries)
   const winnerCount = Math.min(gameState.hot_seat_winner_count, shuffled.length);
-  gameState.hot_seat_users = shuffled.slice(0, winnerCount);
-  gameState.hot_seat_active = true;
-  
-  // For backward compatibility, set hot_seat_user to first winner
-  gameState.hot_seat_user = gameState.hot_seat_users[0];
-  
-  console.log(`🎯 Hot seat winners selected: ${gameState.hot_seat_users.join(', ')}`);
-  
-  // Broadcast winners
-  broadcastToClients({
-    type: 'hot_seat_activated',
-    users: gameState.hot_seat_users,
-    message: `Hot seat activated for: ${gameState.hot_seat_users.join(', ')}`,
-    timestamp: Date.now()
-  });
-  
-  // Clear entries for next time
+  const winners = shuffled.slice(0, winnerCount);
+
+  console.log(`🎯 Hot seat winners selected: ${winners.join(', ')}`);
+
   gameState.hot_seat_entries = [];
   gameState.hot_seat_entry_active = false;
-  
-  return true;
+
+  return initializeHotSeatSession(winners, {
+    selectionMethod: 'join_entry',
+    message: `Hot seat activated for: ${winners.join(', ')}`
+  });
 }
 
 function selectHotSeatUser(manualUsername = null) {
   console.log('🎯 Selecting hot seat user...');
   console.log(`📊 Current participants count: ${gameState.gameshow_participants.length}`);
-  
-  // Use manual username if provided, otherwise select random from participants
+
   let selectedUser = manualUsername;
   let selectionMethod = manualUsername ? 'manual' : 'participants';
-  
+
   if (!selectedUser && gameState.gameshow_participants.length > 0) {
-    // Randomly select from active participants
     const randomIndex = Math.floor(Math.random() * gameState.gameshow_participants.length);
     selectedUser = gameState.gameshow_participants[randomIndex];
     console.log(`✅ Selected from ${gameState.gameshow_participants.length} active participants`);
   }
-  
-  // FALLBACK 1: Use recent chat messages if no participants yet
+
   if (!selectedUser && recentChatMessages.length > 0) {
     console.log('⚠️ No voting participants yet, checking recent chat users...');
     const uniqueChatUsers = [...new Set(recentChatMessages.map(msg => msg.username))];
@@ -4819,11 +4865,10 @@ function selectHotSeatUser(manualUsername = null) {
       const randomIndex = Math.floor(Math.random() * uniqueChatUsers.length);
       selectedUser = uniqueChatUsers[randomIndex];
       selectionMethod = 'recent_chat';
-      console.log(`📨 Selected from ${uniqueChatUsers.length} recent chat users`);
+      console.log(`✅ Selected from ${uniqueChatUsers.length} recent chat users`);
     }
   }
-  
-  // FALLBACK 2: Use poll voter history from previous questions
+
   if (!selectedUser && gameState.poll_voter_history && gameState.poll_voter_history.length > 0) {
     console.log('⚠️ No chat users found, checking poll voter history...');
     const randomIndex = Math.floor(Math.random() * gameState.poll_voter_history.length);
@@ -4831,8 +4876,7 @@ function selectHotSeatUser(manualUsername = null) {
     selectionMethod = 'poll_history';
     console.log(`🗳️ Selected from ${gameState.poll_voter_history.length} previous poll voters`);
   }
-  
-  // PRODUCTION SAFETY: Never use demo participants in live production
+
   if (!selectedUser) {
     console.warn('⚠️ HOT SEAT SKIPPED - No real participants available');
     console.log(`📊 Participant sources checked:`);
@@ -4840,51 +4884,20 @@ function selectHotSeatUser(manualUsername = null) {
     console.log(`   - Recent chat users: ${recentChatMessages.length > 0 ? [...new Set(recentChatMessages.map(msg => msg.username))].length : 0}`);
     console.log(`   - Poll voter history: ${gameState.poll_voter_history ? gameState.poll_voter_history.length : 0}`);
     console.log('💡 Hot seat will activate when real participants join the game');
-    
-    // Broadcast skip notification (not a failure, just skipped for production safety)
+
     broadcastToClients({
       type: 'hot_seat_skipped',
       reason: 'Waiting for real participants',
       questionNumber: gameState.current_question + 1,
       timestamp: Date.now()
     });
-    
+
     return false;
   }
-  
-  // Activate hot seat mode
-  gameState.hot_seat_active = true;
-  gameState.hot_seat_user = selectedUser;
-  gameState.hot_seat_timer = 60;
-  gameState.hot_seat_answered = false;
-  gameState.hot_seat_answer = null;
-  gameState.hot_seat_correct = null;
-  
-  console.log(`🔥 HOT SEAT ACTIVATED for user: ${selectedUser} (Method: ${selectionMethod})`);
-  console.log(`⏱️ ${selectedUser} has 60 seconds to submit their answer`);
-  
-  // LEADERBOARD: Award points for being selected for hot seat
-  addPointsToPlayer(selectedUser, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
-  
-  // Update hot seat stats
-  ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-    const player = initializePlayerInLeaderboard(selectedUser, period);
-    player.hot_seat_appearances++;
+
+  return initializeHotSeatSession([selectedUser], {
+    selectionMethod
   });
-  
-  // Start countdown timer
-  startHotSeatTimer();
-  
-  // Broadcast hot seat activation to all clients
-  broadcastToClients({
-    type: 'hot_seat_activated',
-    user: selectedUser,
-    timer: 60,
-    questionNumber: gameState.current_question + 1,
-    timestamp: Date.now()
-  });
-  
-  return true;
 }
 
 function startHotSeatTimer() {
@@ -4949,11 +4962,10 @@ function processHotSeatAnswer(username, answer) {
   }
   
   // Support both legacy single user and new multiple users array
-  const isHotSeatUser = gameState.hot_seat_users.includes(username) || 
-                        username === gameState.hot_seat_user;
-  
+  const isHotSeatUser = username === gameState.hot_seat_user;
+
   if (!isHotSeatUser) {
-    console.log(`⚠️ ${username} is not a hot seat user`);
+    console.log(`⚠️ ${username} is not the active hot seat player (${gameState.hot_seat_user})`);
     return false;
   }
   
@@ -5040,6 +5052,7 @@ function endHotSeat(wasCorrect = null, timeout = false) {
   // Reset hot seat state
   gameState.hot_seat_active = false;
   gameState.hot_seat_user = null;
+  gameState.hot_seat_users = [];
   gameState.hot_seat_timer = 60;
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
@@ -5698,9 +5711,8 @@ function processVoteFromChat(data) {
   // Check if hot seat is active and this is one of the hot seat users
   if (gameState.hot_seat_active) {
     // Support both legacy single user and new multiple users array
-    const isHotSeatUser = gameState.hot_seat_users.includes(data.username) || 
-                          data.username === gameState.hot_seat_user;
-    
+    const isHotSeatUser = data.username === gameState.hot_seat_user;
+
     if (isHotSeatUser) {
       const answer = data.text?.toUpperCase().trim();
       if (['A', 'B', 'C', 'D'].includes(answer)) {
@@ -5710,7 +5722,7 @@ function processVoteFromChat(data) {
       }
     } else {
       // Not a hot seat user, ignore their vote
-      console.log(`ℹ️ Ignoring vote from ${data.username} - hot seat active for users: ${gameState.hot_seat_users.join(', ')}`);
+      console.log(`ℹ️ Ignoring vote from ${data.username} - hot seat active for ${gameState.hot_seat_user}`);
       return;
     }
   }
