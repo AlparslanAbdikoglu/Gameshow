@@ -5247,13 +5247,14 @@ function getTopLeaderboardPlayers(count = 10) {
 }
 
 function finalizeGameLeaderboard() {
-  console.log('🏁 GAME COMPLETE - Finalizing current game leaderboard');
-  
-  // Get final game stats
-  const finalStats = getLeaderboardStats().current_game;
-  gameState.final_game_stats = finalStats;
-  gameState.game_completed = true;
-  
+    console.log('🏁 GAME COMPLETE - Finalizing current game leaderboard');
+    
+    // CRITICAL: Mark game as completed to prevent further questions
+    gameState.game_completed = true;
+    gameState.endGameTriggered = true;
+    
+    // Get final game stats
+    const finalStats = getLeaderboardStats().current_game;
   // Log the winner if there are players
   if (finalStats && finalStats.length > 0) {
     const winner = finalStats[0];
@@ -8438,143 +8439,153 @@ async function handleAPI(req, res, pathname) {
             console.log('Curtains closed');
             break;
             
-          case 'next_question':
-            // Validation: Check if answers have been revealed (prevent skipping questions)
-            if (!gameState.answers_revealed) {
-              console.warn(`⚠️ Cannot go to next question - current question answers not revealed yet`);
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ 
-                error: 'Cannot skip question - reveal answer for current question first',
-                state: 'answers_not_revealed',
-                current_question: gameState.current_question + 1
-              }));
-              return;
-            }
+         case 'next_question':
+    // CRITICAL: Check if we've reached question 15 (the final question)
+    if (gameState.current_question >= 14) {
+        console.warn(`⚠️ Cannot advance - already at question 15 (final question)`);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+            error: 'Game complete - question 15 is the final question',
+            state: 'game_complete',
+            current_question: gameState.current_question + 1
+        }));
+        return;
+    }
+    
+    // Validation: Check if answers have been revealed (prevent skipping questions)
+    if (!gameState.answers_revealed) {
+        console.warn(`⚠️ Cannot go to next question - current question answers not revealed yet`);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+            error: 'Cannot skip question - reveal answer for current question first',
+            state: 'answers_not_revealed',
+            current_question: gameState.current_question + 1
+        }));
+        return;
+    }
+    
+    if (gameState.current_question < questions.length - 1) {
+        // Track game flow metrics
+        performanceMetrics.gameFlow.questionTransitions++;
+        
+        // LEADERBOARD: Clear current question tracking
+        currentQuestionVotes = [];
+        gameState.answers_shown_time = null;
+        
+        // FIRST: Stop all audio and clear lifeline effects BEFORE state changes
+        console.log('🔇 Stopping all audio before next question');
+        broadcastToClients({ type: 'audio_command', command: 'stop_all_audio' });
+        
+        console.log('🧹 Clearing answer highlighting and lifeline effects before next question');
+        broadcastToClients({
+            type: 'clear_lifeline_effects',
+            reason: 'next_question_pre_clear',
+            timestamp: Date.now()
+        });
+        
+        gameState.current_question++;
+        gameState.question_visible = false;
+        gameState.answers_visible = false;
+        gameState.answers_revealed = false;
+        gameState.selected_answer = null;
+        gameState.first_selected_answer = null; // Reset first selected answer for new question
+        gameState.answer_is_wrong = false;
+        gameState.answer_locked_in = false;
+        gameState.typewriter_animation_complete = false;
+        gameState.correct_answer_highlighted = false; // Reset highlighting for new question
+        gameState.persistent_wrong_answers = []; // Reset persistent wrong answers for new question
+        
+        // COMPLETE VOTING PANEL RESET for new question
+        gameState.audience_poll_active = false;
+        gameState.show_voting_activity = false;
+        gameState.show_poll_winner = null;
+        gameState.poll_winner_votes = 0;
+        gameState.poll_winner_percentage = 0;
+        gameState.poll_voters = [];
+        gameState.poll_voter_history = [];
+        gameState.poll_all_votes = [];
+        
+        // Clear question-level vote tracking for new question (prevents same answer re-voting)
+        gameState.question_voter_answers = {};
+        console.log('🗑️ Cleared question-level vote tracking for new question');
+        
+        // Reset lifeline states for new question
+        gameState.first_poll_winner = null;
+        gameState.is_revote_active = false;
+        gameState.excluded_answers = [];
+        gameState.host_selection_history = []; // Clear host selection history for new question
+        
+        // Clear any existing poll timer
+        if (pollTimer) {
+            clearTimeout(pollTimer);
+            pollTimer = null;
+        }
+        
+        // Broadcast poll ended event to all clients (including poll overlay)
+        broadcastToClients({
+            type: 'audience_poll_ended',
+            reason: 'next_question',
+            timestamp: Date.now()
+        });
+        
+        // Reset lifeline voting states for next question
+        if (gameState.lifeline_voting_active) {
+            gameState.lifeline_voting_active = false;
+            gameState.lifeline_votes = [];
+            gameState.lifeline_voter_history = [];
+            gameState.available_lifelines_for_vote = [];
+            gameState.lifeline_vote_winner = null;
+            gameState.lifeline_vote_counts = {
+                fiftyFifty: 0,
+                takeAnotherVote: 0,
+                askAMod: 0
+            };
+            console.log('🗳️ Lifeline voting reset for next question');
             
-            if (gameState.current_question < questions.length - 1) {
-              // Track game flow metrics
-              performanceMetrics.gameFlow.questionTransitions++;
-              
-              // LEADERBOARD: Clear current question tracking
-              currentQuestionVotes = [];
-              gameState.answers_shown_time = null;
-              
-              // FIRST: Stop all audio and clear lifeline effects BEFORE state changes
-              console.log('🔇 Stopping all audio before next question');
-              broadcastToClients({ type: 'audio_command', command: 'stop_all_audio' });
-              
-              console.log('🧹 Clearing answer highlighting and lifeline effects before next question');
-              broadcastToClients({
-                type: 'clear_lifeline_effects',
-                reason: 'next_question_pre_clear',
-                timestamp: Date.now()
-              });
-              
-              gameState.current_question++;
-              gameState.question_visible = false;
-              gameState.answers_visible = false;
-              gameState.answers_revealed = false;
-              gameState.selected_answer = null;
-              gameState.first_selected_answer = null; // Reset first selected answer for new question
-              gameState.answer_is_wrong = false;
-              gameState.answer_locked_in = false;
-              gameState.typewriter_animation_complete = false;
-              gameState.correct_answer_highlighted = false; // Reset highlighting for new question
-              // REMOVED: original_wrong_answer reset - now handled by persistent_wrong_answers array
-              gameState.persistent_wrong_answers = []; // Reset persistent wrong answers for new question
-              
-              // COMPLETE VOTING PANEL RESET for new question
-              gameState.audience_poll_active = false;
-              gameState.show_voting_activity = false;
-              gameState.show_poll_winner = null;
-              gameState.poll_winner_votes = 0;
-              gameState.poll_winner_percentage = 0;
-              gameState.poll_voters = [];
-              gameState.poll_voter_history = [];
-              gameState.poll_all_votes = [];
-              
-              // Clear question-level vote tracking for new question (prevents same answer re-voting)
-              gameState.question_voter_answers = {};
-              console.log('🗑️ Cleared question-level vote tracking for new question');
-              
-              // Reset lifeline states for new question
-              gameState.first_poll_winner = null;
-              gameState.is_revote_active = false;
-              gameState.excluded_answers = [];
-              gameState.host_selection_history = []; // Clear host selection history for new question
-              
-              // Clear any existing poll timer
-              if (pollTimer) {
-                clearTimeout(pollTimer);
-                pollTimer = null;
-              }
-              
-              // Broadcast poll ended event to all clients (including poll overlay)
-              broadcastToClients({
-                type: 'audience_poll_ended',
+            // Hide the lifeline voting panel
+            broadcastToClients({
+                type: 'hide_lifeline_voting_panel',
                 reason: 'next_question',
                 timestamp: Date.now()
-              });
-              
-              // Reset lifeline voting states for next question
-              if (gameState.lifeline_voting_active) {
-                gameState.lifeline_voting_active = false;
-                gameState.lifeline_votes = [];
-                gameState.lifeline_voter_history = [];
-                gameState.available_lifelines_for_vote = [];
-                gameState.lifeline_vote_winner = null;
-                gameState.lifeline_vote_counts = {
-                  fiftyFifty: 0,
-                  takeAnotherVote: 0,
-                  askAMod: 0
-                };
-                console.log('🗳️ Lifeline voting reset for next question');
-                
-                // Hide the lifeline voting panel
-                broadcastToClients({
-                  type: 'hide_lifeline_voting_panel',
-                  reason: 'next_question',
-                  timestamp: Date.now()
-                });
-              }
-              
-              // Reset Ask a Mod states for next question and ensure Set integrity
-              gameState.ask_a_mod_active = false;
-              gameState.mod_responses = [];
-              gameState.ask_a_mod_start_time = null;
-              if (!(gameState.processed_mod_messages instanceof Set)) {
-                gameState.processed_mod_messages = new Set();
-              } else {
-                gameState.processed_mod_messages.clear();
-              }
-              
-              // Clear lifeline effects for new question
-              broadcastToClients({
-                type: 'clear_lifeline_effects',
-                reason: 'next_question',
-                timestamp: Date.now()
-              });
-              
-              // Stop any currently playing lock-in sound effects and reset audio for next level
-              console.log('🔇 Stopping any playing lock-in audio for next question');
-              broadcastToClients({
-                type: 'audio_command',
-                command: 'stop_lock_audio',
-                reason: 'next_question',
-                timestamp: Date.now()
-              });
-              
-              // Set preparing_for_game to true to show "Get ready for the next question..." message
-              gameState.preparing_for_game = true;
-              console.log('📢 Setting preparing_for_game = true to show "Get ready" message between questions');
-              
-              // Broadcast the updated state so the client shows the "Get ready" message
-              broadcastState();
-              
-              console.log('🔄 Next question - all voting states completely reset');
-            }
-            break;
-            
+            });
+        }
+        
+        // Reset Ask a Mod states for next question and ensure Set integrity
+        gameState.ask_a_mod_active = false;
+        gameState.mod_responses = [];
+        gameState.ask_a_mod_start_time = null;
+        if (!(gameState.processed_mod_messages instanceof Set)) {
+            gameState.processed_mod_messages = new Set();
+        } else {
+            gameState.processed_mod_messages.clear();
+        }
+        
+        // Clear lifeline effects for new question
+        broadcastToClients({
+            type: 'clear_lifeline_effects',
+            reason: 'next_question',
+            timestamp: Date.now()
+        });
+        
+        // Stop any currently playing lock-in sound effects and reset audio for next level
+        console.log('🔇 Stopping any playing lock-in audio for next question');
+        broadcastToClients({
+            type: 'audio_command',
+            command: 'stop_lock_audio',
+            reason: 'next_question',
+            timestamp: Date.now()
+        });
+        
+        // Set preparing_for_game to true to show "Get ready for the next question..." message
+        gameState.preparing_for_game = true;
+        console.log('📢 Setting preparing_for_game = true to show "Get ready" message between questions');
+        
+        // Broadcast the updated state so the client shows the "Get ready" message
+        broadcastState();
+        
+        console.log('🔄 Next question - all voting states completely reset');
+    }
+    break;
           case 'previous_question':
             if (gameState.current_question > 0 && !gameState.answer_locked_in) {
               gameState.current_question--;
