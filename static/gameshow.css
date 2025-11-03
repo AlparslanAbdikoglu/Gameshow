@@ -3318,12 +3318,41 @@ body {
 }
 /* Hot Seat Display Styles */
 .hot-seat-display {
-    margin-top: 20px;
-    padding: 15px;
-    background: linear-gradient(135deg, rgba(255, 69, 0, 0.3), rgba(255, 140, 0, 0.2));
-    border: 2px solid rgba(255, 69, 0, 0.8);
-    border-radius: 10px;
+    position: relative;
+    margin: 20px auto 0 auto;
+    padding: 24px 28px;
+    background: linear-gradient(135deg, rgba(255, 69, 0, 0.35), rgba(255, 140, 0, 0.25));
+    border: 2px solid rgba(255, 69, 0, 0.85);
+    border-radius: 18px;
     animation: hotSeatPulse 2s ease-in-out infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 18px 48px rgba(255, 69, 0, 0.35);
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.hot-seat-display.active {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: min(520px, 90vw);
+    padding: 36px 48px;
+    z-index: 1200;
+    background: radial-gradient(circle at top, rgba(255, 160, 0, 0.3), rgba(128, 20, 0, 0.9));
+    border-radius: 26px;
+    box-shadow: 0 40px 90px rgba(255, 69, 0, 0.55), 0 0 140px rgba(255, 140, 0, 0.45);
+}
+
+.hot-seat-display.active .hot-seat-status {
+    font-size: 18px;
+    max-width: 460px;
 }
 
 @keyframes hotSeatPulse {
@@ -3386,11 +3415,44 @@ body {
 }
 
 .hot-seat-status {
-    font-size: 14px;
+    font-size: 16px;
     color: #FFD700;
     text-align: center;
-    margin-top: 10px;
+    margin-top: 4px;
     font-style: italic;
+    line-height: 1.4;
+    max-width: 380px;
+}
+
+body.hot-seat-active {
+    overflow: hidden;
+    position: relative;
+}
+
+body.hot-seat-active::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(8, 12, 24, 0.75);
+    backdrop-filter: blur(2px);
+    z-index: 1100;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.35s ease;
+}
+
+body.hot-seat-active .contestant-content > :not(#hot-seat-display) {
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+}
+
+body.hot-seat-active .integrated-voting {
+    display: none !important;
+}
+
+body.hot-seat-active .hot-seat-display.active {
+    pointer-events: auto;
 }
 
 /* Hot Seat HUD Overlay */

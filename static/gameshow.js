@@ -4073,51 +4073,94 @@ document.addEventListener('keydown', function(event) {
 console.log('📜 Kimbillionaire gameshow client script loaded');
 // Hot Seat Feature Functions
 function handleHotSeatActivated(message) {
-    console.log("🔥 HOT SEAT ACTIVATED for user:", message.user);
-    
-    // Show hot seat display in info panel
+    const participants = Array.isArray(message.users) && message.users.length
+        ? message.users
+        : (message.user ? [message.user] : []);
+    const primaryUser = participants[0] || 'Mystery Player';
+    const fallbackTimer = (currentState && typeof currentState.hot_seat_timer === 'number')
+        ? currentState.hot_seat_timer
+        : 60;
+    const timerValue = typeof message.timer === 'number' && message.timer > 0
+        ? message.timer
+        : fallbackTimer;
+
+    console.log("🔥 HOT SEAT ACTIVATED for user:", primaryUser);
+    if (participants.length > 1) {
+        console.log("👥 Additional hot seat participants:", participants.slice(1).join(', '));
+    }
+
     const display = document.getElementById("hot-seat-display");
     const userEl = document.getElementById("hot-seat-user");
     const timerEl = document.getElementById("hot-seat-timer");
     const statusEl = document.getElementById("hot-seat-status");
-    
-    if (display && userEl && timerEl) {
-        userEl.textContent = message.user;
-        timerEl.textContent = message.timer + "s";
-        timerEl.className = "hot-seat-timer";
-        statusEl.textContent = "Type A, B, C, or D to answer!";
+
+    if (display && userEl && timerEl && statusEl) {
         display.classList.remove("hidden");
+        display.classList.add("active");
+        display.setAttribute('aria-hidden', 'false');
+        display.setAttribute('role', 'dialog');
+        display.setAttribute('aria-modal', 'true');
+        display.setAttribute('aria-label', `Hot seat active for ${primaryUser}`);
+
+        userEl.textContent = primaryUser;
+        timerEl.textContent = `${timerValue}s`;
+        timerEl.className = "hot-seat-timer";
+        statusEl.style.color = "";
+
+        if (participants.length > 1) {
+            statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
+        } else {
+            statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+        }
     }
-    
-    // Show HUD overlay for 5 seconds
+
+    const infoMessage = document.getElementById('info-message');
+    const infoDetails = document.getElementById('info-details');
+    if (infoMessage) {
+        infoMessage.textContent = `🔥 HOT SEAT: ${primaryUser} is live!`;
+    }
+    if (infoDetails) {
+        infoDetails.textContent = 'Only the hot seat player can lock in an answer during this round.';
+    }
+
     const hud = document.getElementById("hot-seat-hud");
     const hudUser = document.getElementById("hot-seat-hud-user");
     const hudTimer = document.getElementById("hot-seat-hud-timer");
-    
+
     if (hud && hudUser && hudTimer) {
-        hudUser.textContent = message.user;
-        hudTimer.textContent = message.timer + " seconds remaining";
+        hudUser.textContent = primaryUser;
+        hudTimer.textContent = `${timerValue} seconds remaining`;
         hud.classList.remove("hidden");
-        
-        // Hide HUD after 5 seconds
+
         setTimeout(() => {
             hud.classList.add("hidden");
         }, 5000);
     }
-    
-    // Play dramatic sound effect
-    if (soundSystem) {
-        soundSystem.playLockIn();
+
+    document.body.classList.add('hot-seat-active');
+
+    if (currentState) {
+        currentState.hot_seat_user = primaryUser;
+        currentState.hot_seat_users = participants;
+        currentState.hot_seat_timer = timerValue;
+    }
+
+    const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playLockIn === 'function')
+        ? window.soundSystem
+        : (audioSystem && typeof audioSystem.playLockIn === 'function' ? audioSystem : null);
+
+    if (audioController) {
+        audioController.playLockIn();
     }
 }
 
 function handleHotSeatTimerUpdate(message) {
     const timerEl = document.getElementById("hot-seat-timer");
     const hudTimer = document.getElementById("hot-seat-hud-timer");
-    
+
     if (timerEl) {
-        timerEl.textContent = message.timer + "s";
-        
+        timerEl.textContent = `${message.timer}s`;
+
         // Add warning class at 20 seconds
         if (message.timer <= 20 && message.timer > 10) {
             timerEl.className = "hot-seat-timer warning";
@@ -4135,43 +4178,56 @@ function handleHotSeatTimerUpdate(message) {
 
 function handleHotSeatAnswered(message) {
     console.log("🎯 HOT SEAT ANSWER:", message.user, "selected", message.answer);
-    
+
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
         statusEl.textContent = `Answer ${message.answer} locked in! (${message.timeRemaining}s remaining)`;
         statusEl.style.color = "#4CAF50";
     }
-    
+
     // Play lock-in sound
-    if (soundSystem) {
-        soundSystem.playLockIn();
+    const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playLockIn === 'function')
+        ? window.soundSystem
+        : (audioSystem && typeof audioSystem.playLockIn === 'function' ? audioSystem : null);
+
+    if (audioController) {
+        audioController.playLockIn();
     }
 }
 
 function handleHotSeatTimeout(message) {
     console.log("⏰ HOT SEAT TIMEOUT for", message.user);
-    
+
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
         statusEl.textContent = "TIME IS UP! No answer submitted.";
         statusEl.style.color = "#FF4500";
     }
-    
+
     // Play wrong answer sound
-    if (soundSystem) {
-        soundSystem.playWrong();
+    const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playWrong === 'function')
+        ? window.soundSystem
+        : (audioSystem && typeof audioSystem.playWrong === 'function' ? audioSystem : null);
+
+    if (audioController) {
+        audioController.playWrong();
     }
 }
 
 function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
-    
+
     // Hide hot seat display
     const display = document.getElementById("hot-seat-display");
     if (display) {
+        display.classList.remove("active");
         display.classList.add("hidden");
+        display.setAttribute('aria-hidden', 'true');
+        display.removeAttribute('aria-modal');
+        display.removeAttribute('aria-label');
+        display.removeAttribute('role');
     }
-    
+
     // Hide HUD if still visible
     const hud = document.getElementById("hot-seat-hud");
     if (hud) {
@@ -4183,6 +4239,17 @@ function handleHotSeatEnded(message) {
     if (statusEl) {
         statusEl.style.color = "";
     }
+
+    const infoMessage = document.getElementById('info-message');
+    const infoDetails = document.getElementById('info-details');
+    if (infoMessage) {
+        infoMessage.textContent = 'Waiting for the next contestant...';
+    }
+    if (infoDetails) {
+        infoDetails.textContent = 'Get ready to type JOIN in chat when the host calls for the next hot seat!';
+    }
+
+    document.body.classList.remove('hot-seat-active');
 }
 
 // Leaderboard Display Functions
