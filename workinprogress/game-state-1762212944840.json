@@ -56111,14 +56111,14 @@
       "chat_participation_cooldown": 1000
     }
   },
-  "timestamp": 1762212044803,
+  "timestamp": 1762212944824,
   "serverHealth": {
     "startTime": 1762204244588,
     "crashCount": 0,
     "lastCrash": null,
     "memoryWarnings": 0,
-    "connectionCount": 10,
-    "lastHeartbeat": 1762212044803
+    "connectionCount": 6,
+    "lastHeartbeat": 1762212944824
   },
   "version": "3.0.0"
 }
