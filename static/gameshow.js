@@ -4266,6 +4266,7 @@ function handleHotSeatActivated(message) {
 
     if (display && userEl && timerEl && statusEl) {
         display.classList.remove("hidden");
+        display.classList.remove('entry-open');
         display.classList.add("active");
         display.setAttribute('aria-hidden', 'false');
         display.setAttribute('role', 'dialog');
@@ -4292,6 +4293,19 @@ function handleHotSeatActivated(message) {
     if (infoDetails) {
         infoDetails.textContent = 'Only the hot seat player can lock in an answer during this round.';
     }
+
+    const bannerMessageParts = [`${primaryUser} is on the hot seat now!`];
+    if (participants.length > 1) {
+        bannerMessageParts.push(`Alternates: ${participants.slice(1).join(', ')}`);
+    }
+    bannerMessageParts.push('Lions cheer them on!');
+
+    setHotSeatBanner({
+        visible: true,
+        mode: 'active',
+        title: 'Hot Seat Live',
+        message: bannerMessageParts.join(' ')
+    });
 
     const hud = document.getElementById("hot-seat-hud");
     const hudUser = document.getElementById("hot-seat-hud-user");
@@ -4355,6 +4369,13 @@ function handleHotSeatAnswered(message) {
         statusEl.style.color = "#4CAF50";
     }
 
+    setHotSeatBanner({
+        visible: true,
+        mode: 'active',
+        title: 'Hot Seat Live',
+        message: `${message.user} locked in ${message.answer}. Lions stand by!`
+    });
+
     // Play lock-in sound
     const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playLockIn === 'function')
         ? window.soundSystem
@@ -4374,6 +4395,13 @@ function handleHotSeatTimeout(message) {
         statusEl.style.color = "#FF4500";
     }
 
+    setHotSeatBanner({
+        visible: true,
+        mode: 'active',
+        title: 'Hot Seat Live',
+        message: `Time expired for ${message.user}. Lions get ready for the next entry!`
+    });
+
     // Play wrong answer sound
     const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playWrong === 'function')
         ? window.soundSystem
@@ -4391,6 +4419,7 @@ function handleHotSeatEnded(message) {
     const display = document.getElementById("hot-seat-display");
     if (display) {
         display.classList.remove("active");
+        display.classList.remove('entry-open');
         display.classList.add("hidden");
         display.setAttribute('aria-hidden', 'true');
         display.removeAttribute('aria-modal');
@@ -4420,6 +4449,8 @@ function handleHotSeatEnded(message) {
     }
 
     document.body.classList.remove('hot-seat-active');
+
+    setHotSeatBanner({ visible: false });
 }
 
 // Leaderboard Display Functions

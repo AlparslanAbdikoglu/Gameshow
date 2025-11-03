@@ -137,6 +137,7 @@ let gameState = {
   // Hot Seat Entry Collection
   hot_seat_entry_active: false,  // Is entry collection period active
   hot_seat_entries: [],          // Array of usernames who typed "JOIN"
+  hot_seat_entry_lookup: new Set(), // Track lowercase usernames for deduplication
   hot_seat_entry_duration: 30000, // Duration for entry collection (30 seconds)
   hot_seat_entry_start_time: null, // Timestamp when entry collection started
   hot_seat_winner_count: 1,      // Number of hot seat winners to select
@@ -1745,6 +1746,7 @@ wss.on('connection', (ws, req) => {
   delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
+  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -1903,7 +1905,8 @@ wss.on('connection', (ws, req) => {
           delete cleanGameState.lifeline_countdown_interval;
           delete cleanGameState.hot_seat_timer_interval;
           delete cleanGameState.hot_seat_entry_timer_interval;
-          
+          delete cleanGameState.hot_seat_entry_lookup;
+
           // Convert Set to Array for JSON serialization
           if (cleanGameState.processed_mod_messages instanceof Set) {
             cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
@@ -2073,18 +2076,39 @@ wss.on('connection', (ws, req) => {
         processGiveawayEntry(data.username, data.text);
         
         // Check for hot seat entry (JOIN command)
-        if (gameState.hot_seat_entry_active && data.text && data.text.toUpperCase().trim() === 'JOIN') {
-          if (!gameState.hot_seat_entries.includes(data.username)) {
-            gameState.hot_seat_entries.push(data.username);
-            console.log(`🎯 Hot Seat Entry: ${data.username} joined! (Total entries: ${gameState.hot_seat_entries.length})`);
-            
+        const messageText = typeof data.text === 'string' ? data.text : '';
+        const normalizedUsername = (data.username || '').trim();
+        const lowerUsername = normalizedUsername.toLowerCase();
+        const joinDetected = gameState.hot_seat_entry_active &&
+          normalizedUsername &&
+          /\bjoin\b/i.test(messageText);
+
+        if (joinDetected) {
+          if (!(gameState.hot_seat_entry_lookup instanceof Set)) {
+            const existingEntries = Array.isArray(gameState.hot_seat_entries)
+              ? gameState.hot_seat_entries
+              : [];
+            gameState.hot_seat_entry_lookup = new Set(
+              existingEntries
+                .map(name => (name || '').toLowerCase())
+                .filter(Boolean)
+            );
+          }
+
+          if (!gameState.hot_seat_entry_lookup.has(lowerUsername)) {
+            gameState.hot_seat_entry_lookup.add(lowerUsername);
+            gameState.hot_seat_entries.push(normalizedUsername);
+            console.log(`🎯 Hot Seat Entry: ${normalizedUsername} joined! (Total entries: ${gameState.hot_seat_entries.length})`);
+
             // Broadcast entry count update
             broadcastToClients({
               type: 'hot_seat_entry_update',
               entries: gameState.hot_seat_entries.length,
-              username: data.username,
+              username: normalizedUsername,
               timestamp: Date.now()
             });
+          } else {
+            console.log(`ℹ️ Ignoring duplicate hot seat entry from ${normalizedUsername}`);
           }
         }
         
@@ -2151,11 +2175,9 @@ wss.on('connection', (ws, req) => {
           }
         }
         
-        // Process as vote if poll is active
-        if (gameState.audience_poll_active) {
-          processVoteFromChat(data);
-        }
-        
+        // Always run vote processing to support hot seat answers and polls
+        processVoteFromChat(data);
+
         // Process as lifeline vote if lifeline voting is active
         if (gameState.lifeline_voting_active) {
           try {
@@ -2563,7 +2585,8 @@ function broadcastState(force = false, critical = false) {
   delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-  
+  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+
   // Convert Set to Array for JSON serialization
   if (cleanGameState.processed_mod_messages instanceof Set) {
     cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
@@ -4759,6 +4782,7 @@ function startHotSeatEntryPeriod() {
   
   // Reset entries
   gameState.hot_seat_entries = [];
+  gameState.hot_seat_entry_lookup = new Set();
   gameState.hot_seat_entry_active = true;
   gameState.hot_seat_entry_start_time = Date.now();
   
@@ -4766,7 +4790,7 @@ function startHotSeatEntryPeriod() {
   broadcastToClients({
     type: 'hot_seat_entry_started',
     duration: gameState.hot_seat_entry_duration,
-    message: 'Type JOIN in chat to enter the hot seat!',
+    message: 'Lions type JOIN in chat to enter the hot seat!',
     timestamp: Date.now()
   });
   
@@ -4833,6 +4857,7 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     gameState.hot_seat_entry_timer_interval = null;
   }
   gameState.hot_seat_entry_active = false;
+  gameState.hot_seat_entry_lookup = new Set();
 
   gameState.hot_seat_active = true;
   gameState.hot_seat_users = uniqueUsers;
@@ -4893,6 +4918,7 @@ function drawHotSeatWinners() {
   console.log(`🎯 Hot seat winners selected: ${winners.join(', ')}`);
 
   gameState.hot_seat_entries = [];
+  gameState.hot_seat_entry_lookup = new Set();
   gameState.hot_seat_entry_active = false;
 
   return initializeHotSeatSession(winners, {
@@ -6813,7 +6839,8 @@ async function handleAPI(req, res, pathname) {
     delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
     delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
     delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-    
+    delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+
     // Convert Set to Array for JSON serialization
     if (cleanGameState.processed_mod_messages instanceof Set) {
       cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
@@ -10799,7 +10826,8 @@ async function handleAPI(req, res, pathname) {
         delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
         delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
         delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-        
+        delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, state: cleanGameState }));
         
