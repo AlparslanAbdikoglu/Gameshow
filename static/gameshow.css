@@ -3338,16 +3338,17 @@ body {
 }
 
 .hot-seat-display.active {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: min(520px, 90vw);
-    padding: 36px 48px;
-    z-index: 1200;
-    background: radial-gradient(circle at top, rgba(255, 160, 0, 0.3), rgba(128, 20, 0, 0.9));
-    border-radius: 26px;
-    box-shadow: 0 40px 90px rgba(255, 69, 0, 0.55), 0 0 140px rgba(255, 140, 0, 0.45);
+    position: relative;
+    top: auto;
+    left: auto;
+    transform: none;
+    width: 100%;
+    max-width: 420px;
+    padding: 24px 28px;
+    z-index: auto;
+    background: linear-gradient(135deg, rgba(255, 140, 0, 0.35), rgba(255, 69, 0, 0.25));
+    border-radius: 18px;
+    box-shadow: 0 18px 48px rgba(255, 69, 0, 0.35);
 }
 
 .hot-seat-display.active .hot-seat-status {
@@ -3425,30 +3426,22 @@ body {
 }
 
 body.hot-seat-active {
-    overflow: hidden;
+    overflow: visible;
     position: relative;
 }
 
 body.hot-seat-active::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: rgba(8, 12, 24, 0.75);
-    backdrop-filter: blur(2px);
-    z-index: 1100;
-    pointer-events: none;
-    opacity: 1;
-    transition: opacity 0.35s ease;
+    content: none;
 }
 
 body.hot-seat-active .contestant-content > :not(#hot-seat-display) {
-    opacity: 0;
+    opacity: 1;
     transition: opacity 0.25s ease;
-    pointer-events: none;
+    pointer-events: auto;
 }
 
 body.hot-seat-active .integrated-voting {
-    display: none !important;
+    display: inherit;
 }
 
 body.hot-seat-active .hot-seat-display.active {

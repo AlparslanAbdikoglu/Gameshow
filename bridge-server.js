@@ -201,7 +201,9 @@ let gameState = {
   giveaway_keyword: 'JUICE',                // Chat keyword for 1x weight entry
   giveaway_winners: [],                     // Array of selected winners
   giveaway_closed: false,                   // Flag for when giveaway is closed but not yet reset
-  giveaway_show_voters: new Set()           // Track users who voted during the show for 3x weight bonus
+  giveaway_show_voters: new Set(),          // Track users who voted during the show for 3x weight bonus
+  leaderboard_visible: false,
+  leaderboard_period: 'current_game'
 };
 
 // Vote update batching system to prevent WebSocket flooding
@@ -247,7 +249,7 @@ let leaderboardData = {
 
 let leaderboardSettings = {
   display_enabled: true,
-  display_mode: 'current', // 'current', 'daily', 'weekly', 'monthly', 'all_time'
+  display_mode: 'current_game', // 'current_game', 'daily', 'weekly', 'monthly', 'all_time'
   display_count: 5,        // Number of players to show
   auto_hide_during_questions: false,
   show_animations: true,
@@ -270,6 +272,52 @@ let leaderboardSettings = {
     streak_10: 50
   }
 };
+
+const VALID_LEADERBOARD_PERIODS = ['current_game', 'daily', 'weekly', 'monthly', 'all_time'];
+
+function normalizeLeaderboardPeriod(requestedPeriod) {
+  if (!requestedPeriod) {
+    return 'current_game';
+  }
+
+  const sanitized = requestedPeriod.toString().toLowerCase().replace(/\s+/g, '_').replace(/-+/g, '_');
+
+  if (sanitized === 'current') {
+    return 'current_game';
+  }
+
+  return VALID_LEADERBOARD_PERIODS.includes(sanitized) ? sanitized : 'current_game';
+}
+
+function showLeaderboardOverlay(period = 'current_game') {
+  const normalizedPeriod = normalizeLeaderboardPeriod(period);
+
+  leaderboardSettings.display_mode = normalizedPeriod;
+  gameState.leaderboard_visible = true;
+  gameState.leaderboard_period = normalizedPeriod;
+
+  const payload = {
+    type: 'show_leaderboard',
+    period: normalizedPeriod,
+    data: getLeaderboardStats(),
+    timestamp: Date.now()
+  };
+
+  broadcastToClients(payload);
+  broadcastLeaderboardUpdate();
+  broadcastState(true);
+}
+
+function hideLeaderboardOverlay() {
+  gameState.leaderboard_visible = false;
+
+  broadcastToClients({
+    type: 'hide_leaderboard',
+    timestamp: Date.now()
+  });
+
+  broadcastState(true);
+}
 
 // Track vote timing for speed bonuses
 let currentQuestionVotes = [];  // Array of {username, answer, timestamp, isCorrect}
@@ -2424,8 +2472,16 @@ wss.on('connection', (ws, req) => {
       if (data.type === 'broadcast') {
         console.log('📡 Broadcasting message from control panel:', data.message);
         if (data.message) {
-          // Broadcast the message to all connected clients
-          broadcastToClients(data.message);
+          if (data.message.type === 'show_leaderboard') {
+            console.log('🏆 Broadcast request to show leaderboard overlay');
+            showLeaderboardOverlay(data.message.period || leaderboardSettings.display_mode || 'current_game');
+          } else if (data.message.type === 'hide_leaderboard') {
+            console.log('👻 Broadcast request to hide leaderboard overlay');
+            hideLeaderboardOverlay();
+          } else {
+            // Broadcast the message to all connected clients
+            broadcastToClients(data.message);
+          }
         }
       }
       
@@ -4960,9 +5016,11 @@ function processHotSeatAnswer(username, answer) {
   if (!gameState.hot_seat_active) {
     return false;
   }
-  
-  // Support both legacy single user and new multiple users array
-  const isHotSeatUser = username === gameState.hot_seat_user;
+
+  const normalizedUsername = (username || '').toLowerCase();
+  const activeHotSeatUser = (gameState.hot_seat_user || '').toLowerCase();
+
+  const isHotSeatUser = normalizedUsername !== '' && normalizedUsername === activeHotSeatUser;
 
   if (!isHotSeatUser) {
     console.log(`⚠️ ${username} is not the active hot seat player (${gameState.hot_seat_user})`);
@@ -9914,7 +9972,7 @@ async function handleAPI(req, res, pathname) {
             
           case 'show_final_leaderboard':
             console.log('🏆 Showing final leaderboard with winners');
-            
+
             // Get top winners based on prize configuration
             const topWinners = getTopLeaderboardPlayers(gameState.prizeConfiguration.topWinnersCount);
             
@@ -9939,10 +9997,20 @@ async function handleAPI(req, res, pathname) {
             console.log(`🎉 Displayed top ${gameState.prizeConfiguration.topWinnersCount} winners`);
             broadcastState();
             break;
-            
+
+          case 'show_leaderboard':
+            console.log(`🏆 Manual leaderboard show requested for period: ${data.period || 'current_game'}`);
+            showLeaderboardOverlay(data.period || leaderboardSettings.display_mode || 'current_game');
+            break;
+
+          case 'hide_leaderboard':
+            console.log('👻 Manual leaderboard hide requested');
+            hideLeaderboardOverlay();
+            break;
+
           case 'roll_credits':
             console.log('🎬 Rolling credits after showing winners');
-            
+
             // Hide the leaderboard first
             broadcastToClients({
               type: 'hide_leaderboard'
