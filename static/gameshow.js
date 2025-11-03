@@ -3264,12 +3264,15 @@ function updateInfoPanel(state) {
         }
 
         if (state.hot_seat_entry_active) {
-            const entryMessage = state.hot_seat_entry_message || 'Lions type JOIN in chat to enter the hot seat!';
+            const entryMessage = state.hot_seat_entry_message || 'Type JOIN in chat to enter the hot seat!';
+            const remainingSeconds = typeof state.hot_seat_entry_remaining === 'number'
+                ? Math.max(0, state.hot_seat_entry_remaining)
+                : null;
             const entriesCount = typeof state.hot_seat_entry_count === 'number'
                 ? state.hot_seat_entry_count
                 : 0;
 
-            infoTitle.textContent = 'HOT SEAT ENTRY';
+            infoTitle.textContent = 'HOT SEAT ACTIVATED';
 
             const iconSpan = infoIcon.querySelector('span');
             if (iconSpan) {
@@ -3282,10 +3285,19 @@ function updateInfoPanel(state) {
             infoMessage.style.display = 'block';
 
             const detailsParts = [];
-            detailsParts.push(entriesCount === 1 ? '1 Lion ready' : `${entriesCount} Lions ready`);
+            if (remainingSeconds !== null) {
+                const minutes = Math.floor(remainingSeconds / 60);
+                const seconds = remainingSeconds % 60;
+                const formatted = minutes > 0
+                    ? `${minutes}:${seconds.toString().padStart(2, '0')} remaining`
+                    : `${seconds}s remaining`;
+                detailsParts.push(formatted);
+            }
+
+            detailsParts.push(entriesCount === 1 ? '1 entry so far' : `${entriesCount} entries so far`);
 
             if (state.hot_seat_entry_last_join) {
-                detailsParts.push(`${state.hot_seat_entry_last_join} just joined!`);
+                detailsParts.push(`${state.hot_seat_entry_last_join} joined!`);
             }
 
             infoDetails.textContent = detailsParts.filter(Boolean).join(' • ');
@@ -4133,149 +4145,6 @@ let hotSeatEntryState = {
     lastJoin: null
 };
 
-const hotSeatBannerState = {
-    visible: false,
-    mode: 'entry',
-    title: '',
-    message: ''
-};
-
-function setHotSeatBanner({ visible = false, mode = 'entry', title = '', message = '' } = {}) {
-    const banner = document.getElementById('hot-seat-banner');
-    const heading = document.getElementById('hot-seat-banner-heading');
-    const text = document.getElementById('hot-seat-banner-message');
-
-    if (!banner || !heading || !text) {
-        return;
-    }
-
-    if (!visible) {
-        if (hotSeatBannerState.visible) {
-            banner.classList.add('hidden');
-            banner.classList.remove('entry-mode', 'active-mode');
-            banner.removeAttribute('role');
-            banner.removeAttribute('aria-live');
-            banner.setAttribute('aria-hidden', 'true');
-        }
-
-        hotSeatBannerState.visible = false;
-        hotSeatBannerState.mode = 'entry';
-        hotSeatBannerState.title = '';
-        hotSeatBannerState.message = '';
-        return;
-    }
-
-    if (
-        hotSeatBannerState.visible &&
-        hotSeatBannerState.mode === mode &&
-        hotSeatBannerState.title === title &&
-        hotSeatBannerState.message === message
-    ) {
-        return;
-    }
-
-    hotSeatBannerState.visible = true;
-    hotSeatBannerState.mode = mode;
-    hotSeatBannerState.title = title;
-    hotSeatBannerState.message = message;
-
-    heading.textContent = title;
-    text.textContent = message;
-
-    banner.classList.remove('hidden', 'entry-mode', 'active-mode');
-    banner.classList.add(mode === 'active' ? 'active-mode' : 'entry-mode');
-    banner.setAttribute('role', 'status');
-    banner.setAttribute('aria-live', 'polite');
-    banner.setAttribute('aria-hidden', 'false');
-}
-
-function formatHotSeatEntryCountdown(seconds) {
-    if (typeof seconds !== 'number' || !Number.isFinite(seconds)) {
-        return 'Join Now';
-    }
-
-    const clamped = Math.max(0, Math.ceil(seconds));
-    if (clamped >= 60) {
-        const minutes = Math.floor(clamped / 60);
-        const secs = (clamped % 60).toString().padStart(2, '0');
-        return `${minutes}:${secs}`;
-    }
-
-    return `${clamped}s`;
-}
-
-function updateHotSeatEntryDisplay({
-    active = false,
-    remainingSeconds = 0,
-    entries = 0,
-    message = '',
-    lastJoin = null
-} = {}) {
-    const display = document.getElementById('hot-seat-display');
-    const userEl = document.getElementById('hot-seat-user');
-    const timerEl = document.getElementById('hot-seat-timer');
-    const statusEl = document.getElementById('hot-seat-status');
-
-    if (!display || !userEl || !timerEl || !statusEl) {
-        return;
-    }
-
-    if (active) {
-        const normalizedMessage = typeof message === 'string' ? message : '';
-
-        display.classList.remove('hidden');
-        display.classList.remove('active');
-        display.classList.add('entry-open');
-        display.setAttribute('aria-hidden', 'false');
-        display.setAttribute('role', 'status');
-        display.setAttribute('aria-live', 'polite');
-        display.setAttribute('aria-label', 'Hot seat entry period is active');
-
-        userEl.textContent = 'JOIN NOW';
-
-        timerEl.textContent = formatHotSeatEntryCountdown(remainingSeconds);
-        timerEl.className = 'hot-seat-timer entry-countdown';
-
-        const statusParts = [];
-        if (normalizedMessage) {
-            statusParts.push(normalizedMessage);
-        }
-
-        if (typeof entries === 'number' && entries >= 0) {
-            statusParts.push(entries === 1 ? '1 Lion ready' : `${entries} Lions ready`);
-        }
-
-        if (lastJoin && (!normalizedMessage || !normalizedMessage.includes(lastJoin))) {
-            statusParts.push(`${lastJoin} just joined!`);
-        }
-
-        statusEl.textContent = statusParts.filter(Boolean).join(' • ') || 'Lions type JOIN in chat to enter the hot seat!';
-        statusEl.style.color = '';
-    } else {
-        display.classList.remove('entry-open');
-        display.removeAttribute('role');
-        display.removeAttribute('aria-live');
-        display.removeAttribute('aria-label');
-
-        if (!document.body.classList.contains('hot-seat-active')) {
-            display.classList.add('hidden');
-            display.setAttribute('aria-hidden', 'true');
-        }
-
-        timerEl.className = 'hot-seat-timer';
-    }
-}
-
-function refreshHotSeatEntryDisplay() {
-    updateHotSeatEntryDisplay({
-        active: hotSeatEntryState.active,
-        remainingSeconds: hotSeatEntryState.remainingSeconds,
-        entries: hotSeatEntryState.entries,
-        message: hotSeatEntryState.message,
-        lastJoin: hotSeatEntryState.lastJoin
-    });
-}
-
 function mergeHotSeatEntryState(partial = {}) {
     hotSeatEntryState = {
         active: partial.active !== undefined ? partial.active : hotSeatEntryState.active,
@@ -4300,38 +4169,12 @@ function mergeHotSeatEntryState(partial = {}) {
     currentState.hot_seat_entry_last_join = hotSeatEntryState.lastJoin;
 
     updateInfoPanel(currentState);
-
-    refreshHotSeatEntryDisplay();
-
-    if (hotSeatEntryState.active) {
-        const entryCount = typeof hotSeatEntryState.entries === 'number'
-            ? hotSeatEntryState.entries
-            : 0;
-        const entryLabel = entryCount === 1 ? '1 Lion ready' : `${entryCount} Lions ready`;
-        const bannerParts = [];
-
-        if (hotSeatEntryState.lastJoin) {
-            bannerParts.push(`${hotSeatEntryState.lastJoin} just joined!`);
-        }
-
-        bannerParts.push(entryLabel);
-        bannerParts.push('Lions type JOIN in chat now!');
-
-        setHotSeatBanner({
-            visible: true,
-            mode: 'entry',
-            title: 'Hot Seat Entry Open',
-            message: bannerParts.join(' ')
-        });
-    } else if (!document.body.classList.contains('hot-seat-active')) {
-        setHotSeatBanner({ visible: false });
-    }
 }
 
 function handleHotSeatEntryStarted(message) {
     const durationMs = typeof message.duration === 'number' ? message.duration : 0;
     const remainingSeconds = Math.max(0, Math.ceil(durationMs / 1000));
-    const entryMessage = message.message || 'Lions type JOIN in chat now to enter the hot seat!';
+    const entryMessage = message.message || 'Type JOIN in chat to enter the hot seat!';
 
     mergeHotSeatEntryState({
         active: true,
@@ -4358,8 +4201,8 @@ function handleHotSeatEntryUpdate(message) {
     const entries = typeof message.entries === 'number' ? message.entries : hotSeatEntryState.entries;
     const lastJoin = message.username || null;
     const joinMessage = lastJoin
-        ? `${lastJoin} joined the hot seat! Lions type JOIN to enter.`
-        : hotSeatEntryState.message || 'Lions type JOIN in chat to enter the hot seat!';
+        ? `${lastJoin} joined the hot seat! Type JOIN to enter.`
+        : hotSeatEntryState.message || 'Type JOIN in chat to enter the hot seat!';
 
     mergeHotSeatEntryState({
         active: true,
@@ -4381,10 +4224,6 @@ function handleHotSeatNoEntries(message) {
         message: infoMessage,
         lastJoin: null
     });
-
-    if (!document.body.classList.contains('hot-seat-active')) {
-        setHotSeatBanner({ visible: false });
-    }
 }
 
 function handleHotSeatActivated(message) {
@@ -4414,8 +4253,6 @@ function handleHotSeatActivated(message) {
         currentState.hot_seat_entry_message = '';
         currentState.hot_seat_entry_last_join = null;
     }
-
-    refreshHotSeatEntryDisplay();
 
     console.log("🔥 HOT SEAT ACTIVATED for user:", primaryUser);
     if (participants.length > 1) {
