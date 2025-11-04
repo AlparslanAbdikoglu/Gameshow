@@ -221,7 +221,7 @@ let gameState = {
   hot_seat_entry_active: false,  // Is entry collection period active
   hot_seat_entries: [],          // Array of usernames who typed "JOIN"
   hot_seat_entry_lookup: new Set(), // Track lowercase usernames for deduplication
-  hot_seat_entry_duration: 30000, // Duration for entry collection (30 seconds)
+  hot_seat_entry_duration: 60000, // Duration for entry collection (60 seconds)
   hot_seat_entry_start_time: null, // Timestamp when entry collection started
   hot_seat_winner_count: 1,      // Number of hot seat winners to select
   hot_seat_entry_timer_interval: null, // Reference to entry countdown timer
