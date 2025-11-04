@@ -75,7 +75,7 @@ function sanitizeProfileHtml(html = '') {
 
   return html
     .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/on\w+\b(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi, '')
     .replace(/javascript:/gi, '')
     .trim();
 }
