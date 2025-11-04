@@ -389,6 +389,14 @@ export const gameApi = {
     return response.json();
   },
 
+  getParticipantProfiles: async () => {
+    const response = await fetch(`${API_BASE}/participant-profiles`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+  },
+
   // Credits system
   endGameCredits: async () => {
     const response = await fetch(`${API_BASE}/control`, {
@@ -400,7 +408,35 @@ export const gameApi = {
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
+    return response.json();
+  },
+
+  stopCredits: async () => {
+    const response = await fetch(`${API_BASE}/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'stop_credits' }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
+  updateParticipantProfiles: async (profiles: Record<string, unknown>) => {
+    const response = await fetch(`${API_BASE}/control`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'update_participant_profiles', profiles }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     return response.json();
   },
 

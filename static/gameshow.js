@@ -118,6 +118,9 @@ let pollTimer = null;
 let dataLoaded = false;  // Track if questions and prizes are loaded
 let queuedStateUpdates = [];  // Queue for state updates that arrive before data loads
 let countdownInterval = null;
+let hotSeatProfileOverlayTimer = null;
+const HOT_SEAT_PROFILE_DISPLAY_MS = 8000;
+let hotSeatProfileElements = null;
 
 // Initialize the gameshow when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
@@ -891,10 +894,26 @@ function handleWebSocketMessage(message) {
         case 'show_endgame_leaderboard':
             showEndGameLeaderboard(message.winners, message.prizeConfig);
             break;
-            
+
+        case 'participant_profiles_updated':
+            console.log('📘 Participant profiles updated:', message.profiles ? Object.keys(message.profiles).length : 0);
+            if (currentState) {
+                currentState.participant_profiles = message.profiles || {};
+            }
+            break;
+
         case 'roll_credits':
             console.log('🎬 Received command to roll credits');
             startCreditsRoll();
+            break;
+
+        case 'hide_credits':
+            console.log('🎬 Received command to hide credits');
+            hideCredits();
+            if (currentState) {
+                currentState.credits_rolling = false;
+                currentState.credits_displayed = false;
+            }
             break;
             
         case 'confetti_trigger':
@@ -3999,115 +4018,124 @@ function hideHowToPlay() {
 function showCredits(participants) {
     const overlay = document.getElementById('credits-overlay');
     const participantsContainer = document.getElementById('credits-participants');
-    
+
     if (!overlay || !participantsContainer) {
         console.error('❌ Credits elements not found');
         return;
     }
-    
+
+    const titleEl = overlay.querySelector('.credits-title');
+    const subtitleEl = overlay.querySelector('.credits-subtitle');
+    const footerEl = overlay.querySelector('.credits-message');
+
+    if (titleEl) {
+        titleEl.textContent = 'KIMBILLIONAIRE';
+    }
+
+    if (subtitleEl) {
+        const customMessage = currentState
+            && currentState.prizeConfiguration
+            && currentState.prizeConfiguration.customMessage;
+        subtitleEl.textContent = customMessage || 'Thank you for playing!';
+    }
+
+    if (footerEl) {
+        const prizeName = currentState
+            && currentState.prizeConfiguration
+            && currentState.prizeConfiguration.prizeName;
+        footerEl.textContent = prizeName
+            ? `See you next time! Tonight's prize: ${prizeName}`
+            : 'See you next time!';
+    }
+
+    const uniqueParticipants = Array.isArray(participants)
+        ? Array.from(new Set(participants.filter(Boolean)))
+        : [];
+
     // Clear previous participants
     participantsContainer.innerHTML = '';
-    
-    // Show the overlay
+
+    // Show the overlay with fade in
     overlay.classList.remove('hidden');
-    console.log('🎬 Showing credits with', participants.length, 'participants');
-    
-    // Create scrolling container for all names
-    if (participants && participants.length > 0) {
-        // Create a container that will scroll
+    overlay.classList.add('visible');
+    overlay.style.opacity = '0';
+    overlay.style.display = '';
+    requestAnimationFrame(() => {
+        overlay.style.transition = 'opacity 0.6s ease';
+        overlay.style.opacity = '1';
+    });
+
+    console.log('🎬 Showing credits with', uniqueParticipants.length, 'participants');
+
+    if (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playApplause === 'function') {
+        window.soundSystem.playApplause();
+    }
+
+    let scrollDurationSeconds = 12;
+
+    if (uniqueParticipants.length > 0) {
         const scrollContainer = document.createElement('div');
         scrollContainer.className = 'credits-name-container';
-        
-        // Add all participant names to the scrolling container
-        participants.forEach((participant, index) => {
+
+        uniqueParticipants.forEach((participant) => {
             const nameDiv = document.createElement('div');
             nameDiv.className = 'credits-name';
             nameDiv.textContent = participant;
             scrollContainer.appendChild(nameDiv);
         });
-        
-        // Add the scrolling container to the viewport
+
         participantsContainer.appendChild(scrollContainer);
-        
-        // Calculate duration based on number of participants (about 1.5 seconds per name)
-        const scrollDuration = Math.max(10, participants.length * 1.5);
-        scrollContainer.style.animationDuration = scrollDuration + 's';
-        
-        console.log(`🎬 Starting credit scroll for ${participants.length} names over ${scrollDuration} seconds`);
-        
-        // Start fade out after scroll completes
-        setTimeout(() => {
-            console.log('🎬 Credits scroll complete, starting fade out');
-            
-            // Add fade out transition
-            overlay.style.transition = 'opacity 2s ease-out';
-            overlay.style.opacity = '0';
-            
-            // Hide completely after fade
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.style.opacity = '';
-                overlay.style.transition = '';
-                
-                // Clear the local credits state
-                if (currentState) {
-                    currentState.credits_rolling = false;
-                    currentState.credits_displayed = false;
-                }
-                
-                // Notify server that credits are complete
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                        type: 'credits_complete',
-                        timestamp: Date.now()
-                    }));
-                    console.log('📡 Sent credits_complete to server');
-                }
-                
-                console.log('🎬 Credits fully hidden');
-            }, 2000); // Wait for fade to complete
-        }, scrollDuration * 1000); // Start fade right after last name exits
-        
+
+        scrollDurationSeconds = Math.max(18, uniqueParticipants.length * 1.5);
+        scrollContainer.style.animationDuration = `${scrollDurationSeconds}s`;
+
+        console.log(`🎬 Starting credit scroll for ${uniqueParticipants.length} names over ${scrollDurationSeconds} seconds`);
     } else {
-        // No participants, show default message
         const messageDiv = document.createElement('div');
         messageDiv.className = 'credits-name';
         messageDiv.textContent = 'Thanks for watching!';
         participantsContainer.appendChild(messageDiv);
-        
-        // Auto-hide after a delay with fade
-        setTimeout(() => {
-            // Fade out smoothly
-            overlay.style.transition = 'opacity 2s ease-out';
-            overlay.style.opacity = '0';
-            
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.style.opacity = '';
-                overlay.style.transition = '';
-                
-                if (currentState) {
-                    currentState.credits_rolling = false;
-                    currentState.credits_displayed = false;
-                }
-                
-                // Notify server that credits are complete
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({
-                        type: 'credits_complete',
-                        timestamp: Date.now()
-                    }));
-                    console.log('📡 Sent credits_complete to server');
-                }
-            }, 2000);
-        }, 3000); // Show message for 3 seconds before fading
     }
+
+    const fadeOutDelay = uniqueParticipants.length > 0
+        ? scrollDurationSeconds * 1000
+        : 3000;
+
+    setTimeout(() => {
+        overlay.style.transition = 'opacity 0.8s ease-out';
+        overlay.style.opacity = '0';
+
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('visible');
+            overlay.style.opacity = '';
+            overlay.style.transition = '';
+
+            if (currentState) {
+                currentState.credits_rolling = false;
+                currentState.credits_displayed = false;
+            }
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'credits_complete',
+                    timestamp: Date.now()
+                }));
+                console.log('📡 Sent credits_complete to server');
+            }
+
+            console.log('🎬 Credits fully hidden');
+        }, 900);
+    }, fadeOutDelay);
 }
 
 function hideCredits() {
     const overlay = document.getElementById('credits-overlay');
     if (overlay) {
+        overlay.classList.remove('visible');
         overlay.classList.add('hidden');
+        overlay.style.opacity = '';
+        overlay.style.transition = '';
         console.log('🎬 Hiding credits');
     }
 }
@@ -4176,6 +4204,8 @@ function handleHotSeatEntryStarted(message) {
     const remainingSeconds = Math.max(0, Math.ceil(durationMs / 1000));
     const entryMessage = message.message || 'Type JOIN in chat to enter the hot seat!';
 
+    hideHotSeatProfileOverlay(true);
+
     mergeHotSeatEntryState({
         active: true,
         remainingSeconds,
@@ -4226,6 +4256,196 @@ function handleHotSeatNoEntries(message) {
     });
 }
 
+function ensureHotSeatProfileOverlay() {
+    if (hotSeatProfileElements) {
+        return hotSeatProfileElements;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'hot-seat-profile-overlay';
+    overlay.className = 'hot-seat-profile-overlay hidden';
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.setAttribute('aria-hidden', 'true');
+
+    const card = document.createElement('div');
+    card.className = 'hot-seat-profile-card';
+
+    const header = document.createElement('div');
+    header.className = 'hot-seat-profile-header';
+    header.innerHTML = `
+        <span class="hot-seat-profile-icon">🔥</span>
+        <span class="hot-seat-profile-label">Hot Seat Selected</span>
+    `;
+
+    const nameEl = document.createElement('div');
+    nameEl.id = 'hot-seat-profile-name';
+    nameEl.className = 'hot-seat-profile-name';
+    nameEl.textContent = 'Contestant';
+
+    const selectionEl = document.createElement('div');
+    selectionEl.id = 'hot-seat-profile-selection';
+    selectionEl.className = 'hot-seat-profile-selection';
+
+    const storyEl = document.createElement('div');
+    storyEl.id = 'hot-seat-profile-story';
+    storyEl.className = 'hot-seat-profile-story';
+    storyEl.innerHTML = '<p class="hot-seat-profile-story-line">Background story will appear here when available.</p>';
+
+    card.appendChild(header);
+    card.appendChild(nameEl);
+    card.appendChild(selectionEl);
+    card.appendChild(storyEl);
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+
+    hotSeatProfileElements = {
+        overlay,
+        card,
+        nameEl,
+        selectionEl,
+        storyEl
+    };
+
+    return hotSeatProfileElements;
+}
+
+function escapeHtml(text) {
+    return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function convertMarkdownToHtml(markdown) {
+    if (!markdown || typeof markdown !== 'string') {
+        return '';
+    }
+
+    const escaped = escapeHtml(markdown.trim());
+    if (!escaped) {
+        return '';
+    }
+
+    const lines = escaped.split(/\r?\n/);
+    const htmlParts = [];
+    let listBuffer = [];
+
+    const flushList = () => {
+        if (listBuffer.length === 0) {
+            return;
+        }
+        htmlParts.push(`
+            <ul class="hot-seat-profile-story-list">
+                ${listBuffer.map(item => `<li>${item}</li>`).join('')}
+            </ul>
+        `);
+        listBuffer = [];
+    };
+
+    lines.forEach(line => {
+        const trimmed = line.trim();
+
+        if (!trimmed) {
+            flushList();
+            return;
+        }
+
+        if (/^[-*]\s+/.test(trimmed)) {
+            listBuffer.push(trimmed.replace(/^[-*]\s+/, ''));
+            return;
+        }
+
+        flushList();
+
+        if (/^#{1,6}\s+/.test(trimmed)) {
+            const text = trimmed.replace(/^#{1,6}\s+/, '');
+            htmlParts.push(`<p class="hot-seat-profile-story-heading">${text}</p>`);
+            return;
+        }
+
+        htmlParts.push(`<p class="hot-seat-profile-story-line">${trimmed}</p>`);
+    });
+
+    flushList();
+
+    return htmlParts.join('');
+}
+
+function hideHotSeatProfileOverlay(immediate = false) {
+    if (!hotSeatProfileElements) {
+        return;
+    }
+
+    const { overlay } = hotSeatProfileElements;
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove('visible');
+
+    const applyHidden = () => {
+        overlay.classList.add('hidden');
+        overlay.setAttribute('aria-hidden', 'true');
+    };
+
+    if (immediate) {
+        applyHidden();
+    } else {
+        setTimeout(applyHidden, 250);
+    }
+}
+
+function showHotSeatProfileOverlay({ username, displayName, story, selectionMethod, alternates }) {
+    const elements = ensureHotSeatProfileOverlay();
+    const name = displayName || username || 'Hot Seat Player';
+    const otherPlayers = Array.isArray(alternates) ? alternates.filter(Boolean) : [];
+
+    if (hotSeatProfileOverlayTimer) {
+        clearTimeout(hotSeatProfileOverlayTimer);
+        hotSeatProfileOverlayTimer = null;
+    }
+
+    elements.nameEl.textContent = name;
+
+    const selectionParts = [];
+    if (selectionMethod) {
+        const formattedMethod = selectionMethod.replace(/_/g, ' ');
+        selectionParts.push(`Selected via ${formattedMethod}`);
+    }
+
+    if (otherPlayers.length) {
+        selectionParts.push(`Alternates: ${otherPlayers.join(', ')}`);
+    }
+
+    elements.selectionEl.textContent = selectionParts.join(' • ') || 'Give them your best energy!';
+
+    const storyHtml = convertMarkdownToHtml(story || '');
+    if (storyHtml) {
+        elements.storyEl.innerHTML = storyHtml;
+    } else {
+        elements.storyEl.innerHTML = '<p class="hot-seat-profile-story-line">No background story submitted yet. Cheer them on!</p>';
+    }
+
+    elements.overlay.classList.remove('hidden');
+    elements.overlay.setAttribute('aria-hidden', 'false');
+
+    // Trigger animation on next frame for smooth fade
+    requestAnimationFrame(() => {
+        elements.overlay.classList.add('visible');
+        elements.card.classList.remove('reveal');
+        // Force reflow to restart animation
+        void elements.card.offsetWidth;
+        elements.card.classList.add('reveal');
+    });
+
+    hotSeatProfileOverlayTimer = setTimeout(() => {
+        hideHotSeatProfileOverlay();
+        hotSeatProfileOverlayTimer = null;
+    }, HOT_SEAT_PROFILE_DISPLAY_MS);
+}
+
 function handleHotSeatActivated(message) {
     const participants = Array.isArray(message.users) && message.users.length
         ? message.users
@@ -4258,6 +4478,26 @@ function handleHotSeatActivated(message) {
     if (participants.length > 1) {
         console.log("👥 Additional hot seat participants:", participants.slice(1).join(', '));
     }
+
+    if (message.participantProfiles && currentState) {
+        currentState.participant_profiles = message.participantProfiles;
+    }
+
+    const profileMap = (message.participantProfiles)
+        || (currentState && currentState.participant_profiles)
+        || {};
+    const normalizedUser = primaryUser.toLowerCase();
+    const profile = message.profile
+        || profileMap[normalizedUser]
+        || null;
+
+    showHotSeatProfileOverlay({
+        username: primaryUser,
+        displayName: profile && profile.displayName ? profile.displayName : primaryUser,
+        story: profile ? profile.story : '',
+        selectionMethod: message.selectionMethod,
+        alternates: participants.slice(1)
+    });
 
     const display = document.getElementById("hot-seat-display");
     const userEl = document.getElementById("hot-seat-user");
@@ -4451,6 +4691,8 @@ function handleHotSeatEnded(message) {
     document.body.classList.remove('hot-seat-active');
 
     setHotSeatBanner({ visible: false });
+
+    hideHotSeatProfileOverlay();
 }
 
 // Leaderboard Display Functions
@@ -4666,206 +4908,15 @@ function showEndGameLeaderboard(winners, prizeConfig) {
 // Start credits roll
 function startCreditsRoll() {
     console.log('🎬 Starting credits roll...');
-    
+
     // Hide the winners leaderboard first
     hideLeaderboard();
-    
-    // Create credits overlay if it doesn't exist
-    let creditsOverlay = document.getElementById('credits-overlay');
-    if (!creditsOverlay) {
-        creditsOverlay = document.createElement('div');
-        creditsOverlay.id = 'credits-overlay';
-        creditsOverlay.className = 'credits-overlay';
-        creditsOverlay.innerHTML = `
-            <div class="credits-container">
-                <div class="credits-content" id="credits-content">
-                    <div class="credits-section">
-                        <h1 class="credits-title">🎮 KIMBILLIONAIRE 🎮</h1>
-                        <p class="credits-subtitle">Thank you for playing!</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Created By</h2>
-                        <p class="credits-name">KageWins</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Game Host</h2>
-                        <p class="credits-name">AI Roary</p>
-                        <p class="credits-role">Powered by Gemini 2.5 Pro</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Technical Development</h2>
-                        <p class="credits-name">Bridge Server System</p>
-                        <p class="credits-role">WebSocket Architecture</p>
-                        <p class="credits-name">React Control Panel</p>
-                        <p class="credits-role">Live Broadcasting Integration</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Special Thanks</h2>
-                        <p class="credits-name">Our Amazing Community</p>
-                        <p class="credits-name">All Players & Participants</p>
-                        <p class="credits-name">Twitch Chat</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Audio & Visual Effects</h2>
-                        <p class="credits-role">Applause Sound Effects</p>
-                        <p class="credits-role">Question Music</p>
-                        <p class="credits-role">Lock-In Effects</p>
-                        <p class="credits-role">Confetti Celebrations</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Powered By</h2>
-                        <p class="credits-name">OBS Studio</p>
-                        <p class="credits-name">Node.js & React</p>
-                        <p class="credits-name">WebSocket Technology</p>
-                    </div>
-                    
-                    <div class="credits-section" style="margin-top: 100px;">
-                        <h1 class="credits-title">🏆 Congratulations Winners! 🏆</h1>
-                        <p class="credits-subtitle">See you next game!</p>
-                    </div>
-                    
-                    <div class="credits-section" style="margin-top: 200px;">
-                        <p class="credits-copyright">© 2025 Kimbillionaire Gameshow</p>
-                        <p class="credits-copyright">All Rights Reserved</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(creditsOverlay);
-    }
-    
-    // Add CSS for credits if not already added
-    if (!document.getElementById('credits-styles')) {
-        const creditsStyles = document.createElement('style');
-        creditsStyles.id = 'credits-styles';
-        creditsStyles.textContent = `
-            .credits-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(180deg, #000428 0%, #004e92 100%);
-                z-index: 10000;
-                display: none;
-                overflow: hidden;
-            }
-            
-            .credits-container {
-                width: 100%;
-                height: 100%;
-                position: relative;
-                display: flex;
-                justify-content: center;
-                align-items: flex-end;
-            }
-            
-            .credits-content {
-                text-align: center;
-                color: white;
-                animation: creditsRoll 30s linear;
-                padding-bottom: 100vh;
-            }
-            
-            .credits-section {
-                margin-bottom: 80px;
-            }
-            
-            .credits-title {
-                font-size: 60px;
-                font-weight: bold;
-                color: #FFD700;
-                text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-                margin-bottom: 20px;
-            }
-            
-            .credits-subtitle {
-                font-size: 28px;
-                color: #FFA500;
-                margin-bottom: 40px;
-            }
-            
-            .credits-heading {
-                font-size: 36px;
-                color: #FFD700;
-                margin-bottom: 15px;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-            }
-            
-            .credits-name {
-                font-size: 24px;
-                color: #FFFFFF;
-                margin: 10px 0;
-                font-weight: 500;
-            }
-            
-            .credits-role {
-                font-size: 18px;
-                color: #B0B0B0;
-                margin: 5px 0;
-                font-style: italic;
-            }
-            
-            .credits-copyright {
-                font-size: 16px;
-                color: #808080;
-                margin: 5px 0;
-            }
-            
-            @keyframes creditsRoll {
-                0% {
-                    transform: translateY(100%);
-                }
-                100% {
-                    transform: translateY(-100%);
-                }
-            }
-            
-            @keyframes fadeInCredits {
-                0% {
-                    opacity: 0;
-                }
-                100% {
-                    opacity: 1;
-                }
-            }
-        `;
-        document.head.appendChild(creditsStyles);
-    }
-    
-    // Show credits with fade in
-    creditsOverlay.style.display = 'block';
-    creditsOverlay.style.opacity = '0';
-    creditsOverlay.style.animation = 'fadeInCredits 2s forwards';
-    
-    // Play end game music if available
-    if (window.soundSystem && window.soundSystem.playApplause) {
-        window.soundSystem.playApplause();
-    }
-    
-    // Hide credits after animation completes (30 seconds)
-    setTimeout(() => {
-        creditsOverlay.style.animation = 'fadeInCredits 2s reverse';
-        setTimeout(() => {
-            creditsOverlay.style.display = 'none';
-            console.log('🎬 Credits roll completed');
-            
-            // Broadcast credits completed
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'credits_complete',
-                    timestamp: Date.now()
-                }));
-            }
-        }, 2000);
-    }, 32000); // 30s for roll + 2s for fade out
+
+    const participants = (currentState && Array.isArray(currentState.gameshow_participants))
+        ? currentState.gameshow_participants
+        : [];
+
+    showCredits(participants);
 }
 
 // Create massive confetti effect for winners

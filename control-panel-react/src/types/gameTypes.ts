@@ -26,6 +26,14 @@
     }
   };
 
+  export interface ParticipantProfile {
+    username: string;
+    displayName: string;
+    story: string;
+  }
+
+  export type ParticipantProfileMap = Record<string, ParticipantProfile>;
+
   // Core Game Types
   export interface Question {
     text: string;
@@ -58,6 +66,7 @@ export interface GameState {
   typewriter_animation_complete?: boolean;
   selectedGameMode?: GameMode;
   gameModeWheelActive?: boolean;
+  participant_profiles?: ParticipantProfileMap;
 
   // Lifeline states
   first_poll_winner?: string | null;

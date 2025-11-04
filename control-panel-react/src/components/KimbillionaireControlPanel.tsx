@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, ChangeEvent } from 'react';
 // import PerformanceTest from './PerformanceTest'; // Removed to reduce lag
 import QuestionControlSection from './QuestionControlSection';
 import GlassPanel from './GlassPanel';
@@ -15,13 +15,15 @@ import PrizeConfiguration from './PrizeConfiguration';
 // import ProducerPreview from './ProducerPreview'; // Removed to reduce lag
 import { obsIntegration } from '../utils/obs-integration';
 import { gameApi } from '../utils/api';
-import { 
-  Question, 
-  GameState, 
-  OBSConnectionStatus, 
+import {
+  Question,
+  GameState,
+  OBSConnectionStatus,
   OBSSettings,
    GameMode,             // ✅ new
-  GameModeConfig  
+  GameModeConfig,
+  ParticipantProfile,
+  ParticipantProfileMap
 } from '../types/gameTypes';
 import '../styles/theme.css';
 import styles from './KimbillionaireControlPanel.module.css';
@@ -99,6 +101,22 @@ const KimbillionaireControlPanel: React.FC = () => {
   const [showAnimationPanel, setShowAnimationPanel] = useState(false);
   const [roaryEnabled, setRoaryEnabled] = useState(true);
   const [showKeybindHelp, setShowKeybindHelp] = useState(false);
+  const [participantProfiles, setParticipantProfiles] = useState<ParticipantProfileMap>({});
+  const [profileUploadStatus, setProfileUploadStatus] = useState<string | null>(null);
+  const [profileUploadError, setProfileUploadError] = useState<string | null>(null);
+  const [profileFileName, setProfileFileName] = useState<string | null>(null);
+
+  const participantProfileCount = useMemo(() => {
+    return Object.keys(participantProfiles || {}).length;
+  }, [participantProfiles]);
+
+  const participantProfilePreview = useMemo(() => {
+    return Object.values(participantProfiles || {}).slice(0, 5);
+  }, [participantProfiles]);
+
+  const profilePreviewRemainder = useMemo(() => {
+    return Math.max(0, participantProfileCount - participantProfilePreview.length);
+  }, [participantProfileCount, participantProfilePreview]);
   // const [showProducerPreview, setShowProducerPreview] = useState(false); // Removed to reduce lag
   const [questions, setQuestions] = useState<Question[]>([]);
   // Removed questionsLoading state since it's not displayed in UI
@@ -158,7 +176,11 @@ const KimbillionaireControlPanel: React.FC = () => {
         if (currentState.questions && currentState.questions.length > 0) {
           setQuestions(currentState.questions);
         }
-        
+
+        if (currentState.participant_profiles) {
+          setParticipantProfiles(currentState.participant_profiles);
+        }
+
         console.log('✅ Initial game state loaded successfully');
       } catch (error) {
         console.error('❌ Failed to load initial game state:', error);
@@ -178,6 +200,21 @@ const KimbillionaireControlPanel: React.FC = () => {
       }
     };
     loadRoaryStatus();
+  }, []);
+
+  useEffect(() => {
+    const loadParticipantProfiles = async () => {
+      try {
+        const response = await gameApi.getParticipantProfiles();
+        if (response && response.profiles) {
+          setParticipantProfiles(response.profiles as ParticipantProfileMap);
+        }
+      } catch (error) {
+        console.log('Participant profiles not loaded yet - continuing without cached profiles');
+      }
+    };
+
+    loadParticipantProfiles();
   }, []);
 
   // Load current prizes from server on mount
@@ -881,15 +918,83 @@ const KimbillionaireControlPanel: React.FC = () => {
   const handleResetLifelines = useCallback(async () => {
     try {
       console.log('🔄 Resetting all lifelines...');
-      
+
       // Reset lifelines by sending a reset_game request or specific lifeline reset
       // For now, we'll just update the local state and let the game reset handle it
       alert('Lifelines will be reset with the next game reset.');
-      
+
     } catch (error) {
       console.error('❌ Failed to reset lifelines:', error);
       alert('Failed to reset lifelines. Please try again.');
     }
+  }, []);
+
+  const parseParticipantStories = useCallback((markdown: string): ParticipantProfile[] => {
+    const normalised = (markdown || '').replace(/\r\n/g, '\n');
+    const lines = normalised.split('\n');
+    const profiles: ParticipantProfile[] = [];
+    let current: { displayName?: string; username?: string; storyLines: string[] } | null = null;
+
+    const pushCurrent = () => {
+      if (!current) {
+        return;
+      }
+
+      const rawIdentifier = (current.username || current.displayName || '').trim();
+      const username = rawIdentifier.toLowerCase().replace(/[^a-z0-9_]/g, '');
+      if (!username) {
+        current = null;
+        return;
+      }
+
+      const displayName = (current.displayName || current.username || username).trim();
+      const story = current.storyLines.join('\n').trim();
+
+      profiles.push({
+        username,
+        displayName: displayName || username,
+        story
+      });
+
+      current = null;
+    };
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+
+      if (/^##\s+/.test(trimmed)) {
+        pushCurrent();
+        const heading = trimmed.replace(/^##\s+/, '').trim();
+        current = {
+          displayName: heading,
+          username: undefined,
+          storyLines: []
+        };
+        return;
+      }
+
+      if (!current) {
+        if (trimmed.length > 0) {
+          current = {
+            displayName: trimmed,
+            username: undefined,
+            storyLines: []
+          };
+        }
+        return;
+      }
+
+      if (!current.username && /^@[\w-]+$/.test(trimmed)) {
+        current.username = trimmed.slice(1);
+        return;
+      }
+
+      current.storyLines.push(line);
+    });
+
+    pushCurrent();
+
+    return profiles.filter(profile => profile.username);
   }, []);
 
   // Removed unused handleSetTheme function
@@ -933,6 +1038,59 @@ const KimbillionaireControlPanel: React.FC = () => {
       alert('Failed to roll credits. Please check the server connection.');
     }
   }, []);
+
+  const handleStopCredits = useCallback(async () => {
+    try {
+      await gameApi.stopCredits();
+      console.log('🛑 Credits overlay hidden');
+    } catch (error) {
+      console.error('❌ Failed to stop credits:', error);
+      alert('Failed to hide the credits overlay. Please check the server connection.');
+    }
+  }, []);
+
+  const handleParticipantProfileUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setProfileUploadStatus(`Reading ${file.name}...`);
+    setProfileUploadError(null);
+
+    try {
+      const fileText = await file.text();
+      const parsedProfiles = parseParticipantStories(fileText);
+
+      if (parsedProfiles.length === 0) {
+        throw new Error('No participant entries found in the uploaded file.');
+      }
+
+      const profileMap: ParticipantProfileMap = {};
+      parsedProfiles.forEach((profile) => {
+        const key = profile.username.toLowerCase();
+        profileMap[key] = {
+          username: key,
+          displayName: profile.displayName,
+          story: profile.story
+        };
+      });
+
+      setParticipantProfiles(profileMap);
+      setProfileFileName(file.name);
+      setProfileUploadStatus(`Uploading ${parsedProfiles.length} profile${parsedProfiles.length === 1 ? '' : 's'} to the game...`);
+
+      await gameApi.updateParticipantProfiles(profileMap);
+
+      setProfileUploadStatus(`Uploaded ${parsedProfiles.length} profile${parsedProfiles.length === 1 ? '' : 's'} successfully.`);
+    } catch (error: any) {
+      console.error('❌ Failed to upload participant profiles:', error);
+      setProfileUploadError(error?.message || 'Failed to upload participant profiles.');
+      setProfileUploadStatus(null);
+    } finally {
+      event.target.value = '';
+    }
+  }, [parseParticipantStories]);
 
   const handleToggleRoary = useCallback(async () => {
     try {
@@ -2005,6 +2163,116 @@ const KimbillionaireControlPanel: React.FC = () => {
       {/* Prize Configuration Section */}
       <div className={styles.controlSection}>
         <PrizeConfiguration disabled={!gameState.game_active} />
+      </div>
+
+      <div className={styles.controlSection}>
+        <h2>End Game & Credits</h2>
+        <div style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '12px',
+          marginBottom: '16px'
+        }}>
+          <button
+            className={styles.primaryBtn}
+            onClick={handleShowFinalLeaderboard}
+            style={{ minWidth: '200px' }}
+          >
+            Show Final Leaderboard
+          </button>
+          <button
+            className={styles.primaryBtn}
+            onClick={handleRollCredits}
+            disabled={gameState.credits_rolling}
+            style={{
+              minWidth: '160px',
+              opacity: gameState.credits_rolling ? 0.6 : 1,
+              cursor: gameState.credits_rolling ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Roll Credits
+          </button>
+          <button
+            className={styles.secondaryBtn}
+            onClick={handleStopCredits}
+            disabled={!gameState.credits_rolling}
+            style={{
+              minWidth: '160px',
+              opacity: gameState.credits_rolling ? 1 : 0.6,
+              cursor: gameState.credits_rolling ? 'pointer' : 'not-allowed'
+            }}
+          >
+            Hide Credits
+          </button>
+        </div>
+
+        <div style={{
+          marginBottom: '12px',
+          color: gameState.credits_rolling ? '#4CAF50' : 'rgba(255, 255, 255, 0.7)'
+        }}>
+          {gameState.credits_rolling ? 'Credits overlay is currently active.' : 'Credits overlay is idle.'}
+        </div>
+
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.04)',
+          border: '1px solid rgba(255, 215, 0, 0.25)',
+          borderRadius: '12px',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px'
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontWeight: 600 }}>Upload participant stories (.md)</label>
+            <input
+              type="file"
+              accept=".md,.markdown,.txt"
+              onChange={handleParticipantProfileUpload}
+              style={{
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 215, 0, 0.3)',
+                background: 'rgba(0, 0, 0, 0.25)',
+                color: '#fff'
+              }}
+            />
+          </div>
+
+          {profileUploadStatus && (
+            <p style={{ color: '#4CAF50', margin: 0 }}>{profileUploadStatus}</p>
+          )}
+
+          {profileUploadError && (
+            <p style={{ color: '#ff6b6b', margin: 0 }}>{profileUploadError}</p>
+          )}
+
+          <p style={{
+            margin: 0,
+            color: 'rgba(255, 255, 255, 0.75)'
+          }}>
+            Profiles loaded: {participantProfileCount}
+            {profileFileName ? ` (source: ${profileFileName})` : ''}
+          </p>
+
+          {participantProfilePreview.length > 0 && (
+            <div style={{ color: 'rgba(255, 255, 255, 0.75)' }}>
+              <span style={{ fontWeight: 600 }}>Preview:</span>
+              <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
+                {participantProfilePreview.map((profile) => (
+                  <li key={profile.username} style={{ listStyle: 'disc', marginBottom: '4px' }}>
+                    <strong>{profile.displayName}</strong>
+                    <span style={{ opacity: 0.7 }}> @{profile.username}</span>
+                  </li>
+                ))}
+                {profilePreviewRemainder > 0 && (
+                  <li style={{ listStyle: 'disc', marginTop: '4px', opacity: 0.7 }}>
+                    ...and {profilePreviewRemainder} more.
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
 

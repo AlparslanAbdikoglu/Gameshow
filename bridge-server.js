@@ -15,6 +15,8 @@ const fs = require('fs');
 const url = require('url');
 const WebSocket = require('ws');
 
+const PARTICIPANT_PROFILES_FILE = path.join(__dirname, 'participant-profiles.json');
+
 // Debug flags - set to false in production for performance
 const DEBUG_LIFELINE_VOTING = false; // Enable only when debugging voting issues
 const DEBUG_VERBOSE_LOGGING = false; // Reduces console spam during gameplay
@@ -34,7 +36,148 @@ const performanceMetrics = {
   }
 };
 
-// Function to track vote processing performance
+// Function to safely normalise usernames for consistent lookups
+const normalizeUsername = (username = '') => username.toLowerCase().trim();
+
+// Participant profile persistence helpers
+function loadParticipantProfiles() {
+  try {
+    if (!fs.existsSync(PARTICIPANT_PROFILES_FILE)) {
+      console.log('ℹ️ No participant profile file found, starting with empty profile set');
+      return {};
+    }
+
+    const raw = fs.readFileSync(PARTICIPANT_PROFILES_FILE, 'utf-8');
+    if (!raw) {
+      return {};
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return {};
+    }
+
+    // Ensure every profile has required fields and normalised keys
+    const normalisedProfiles = {};
+    Object.entries(parsed).forEach(([key, value]) => {
+      if (!value || typeof value !== 'object') return;
+
+      const username = normalizeUsername(value.username || key);
+      if (!username) return;
+
+      normalisedProfiles[username] = {
+        username,
+        displayName: value.displayName || value.username || key,
+        story: value.story || ''
+      };
+    });
+
+    console.log(`📖 Loaded ${Object.keys(normalisedProfiles).length} participant profile(s)`);
+    return normalisedProfiles;
+  } catch (error) {
+    console.error('❌ Failed to load participant profiles:', error);
+    return {};
+  }
+}
+
+function saveParticipantProfiles(profiles = {}) {
+  try {
+    const serialisableProfiles = {};
+    Object.entries(profiles).forEach(([key, value]) => {
+      if (!value || typeof value !== 'object') return;
+      const username = normalizeUsername(key);
+      if (!username) return;
+
+      serialisableProfiles[username] = {
+        username,
+        displayName: value.displayName || value.username || key,
+        story: value.story || ''
+      };
+    });
+
+    fs.writeFileSync(
+      PARTICIPANT_PROFILES_FILE,
+      JSON.stringify(serialisableProfiles, null, 2),
+      'utf-8'
+    );
+
+    console.log(`💾 Saved ${Object.keys(serialisableProfiles).length} participant profile(s)`);
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to save participant profiles:', error);
+    return false;
+  }
+}
+
+// Load participant profiles from disk during startup
+const initialParticipantProfiles = loadParticipantProfiles();
+
+function getParticipantProfile(username) {
+  if (!username) {
+    return null;
+  }
+
+  const key = normalizeUsername(username);
+  if (!key) {
+    return null;
+  }
+
+  if (!gameState.participant_profiles || typeof gameState.participant_profiles !== 'object') {
+    gameState.participant_profiles = {};
+  }
+
+  const profile = gameState.participant_profiles[key];
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    username: profile.username || key,
+    displayName: profile.displayName || profile.username || username,
+    story: profile.story || ''
+  };
+}
+
+function applyParticipantProfilesUpdate(payload) {
+  if (!payload) {
+    return gameState.participant_profiles || {};
+  }
+
+  const updatedProfiles = {};
+
+  if (Array.isArray(payload)) {
+    payload.forEach((profile) => {
+      if (!profile || typeof profile !== 'object') return;
+      const username = normalizeUsername(profile.username || profile.displayName);
+      if (!username) return;
+
+      updatedProfiles[username] = {
+        username,
+        displayName: profile.displayName || profile.username || username,
+        story: profile.story || profile.bio || ''
+      };
+    });
+  } else if (typeof payload === 'object') {
+    Object.entries(payload).forEach(([key, profile]) => {
+      if (!profile || typeof profile !== 'object') return;
+      const username = normalizeUsername(profile.username || key);
+      if (!username) return;
+
+      updatedProfiles[username] = {
+        username,
+        displayName: profile.displayName || profile.username || key,
+        story: profile.story || profile.bio || ''
+      };
+    });
+  }
+
+  gameState.participant_profiles = updatedProfiles;
+  saveParticipantProfiles(updatedProfiles);
+
+  console.log(`📝 Participant profiles updated (${Object.keys(updatedProfiles).length} entries)`);
+  return updatedProfiles;
+}
+
 function trackVoteProcessing(processingTime, rejected = false, duplicate = false) {
   performanceMetrics.lifeline.votesProcessed++;
   if (rejected) performanceMetrics.lifeline.votesRejected++;
@@ -204,7 +347,8 @@ let gameState = {
   giveaway_closed: false,                   // Flag for when giveaway is closed but not yet reset
   giveaway_show_voters: new Set(),          // Track users who voted during the show for 3x weight bonus
   leaderboard_visible: false,
-  leaderboard_period: 'current_game'
+  leaderboard_period: 'current_game',
+  participant_profiles: initialParticipantProfiles
 };
 
 // Vote update batching system to prevent WebSocket flooding
@@ -4850,6 +4994,15 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   const selectionMethod = options.selectionMethod || 'manual';
   const primaryUser = uniqueUsers[0];
   const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
+  const primaryProfile = getParticipantProfile(primaryUser);
+  const profileMap = {};
+
+  uniqueUsers.forEach((user) => {
+    const profile = getParticipantProfile(user);
+    if (profile) {
+      profileMap[normalizeUsername(user)] = profile;
+    }
+  });
 
   // End any lingering entry countdown now that a session is beginning
   if (gameState.hot_seat_entry_timer_interval) {
@@ -4896,6 +5049,8 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     questionNumber: gameState.current_question + 1,
     message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
     selectionMethod,
+    profile: primaryProfile || null,
+    participantProfiles: Object.keys(profileMap).length ? profileMap : undefined,
     timestamp: Date.now()
   });
 
@@ -6939,6 +7094,15 @@ async function handleAPI(req, res, pathname) {
   if (pathname === '/api/prizes') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ prizes: prizeAmounts }));
+    return;
+  }
+
+  if (pathname === '/api/participant-profiles' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      success: true,
+      profiles: gameState.participant_profiles || {}
+    }));
     return;
   }
   
@@ -9558,7 +9722,7 @@ async function handleAPI(req, res, pathname) {
             if (data.prizes && Array.isArray(data.prizes)) {
               prizeAmounts = [...data.prizes];
               gameState.prizes = [...data.prizes]; // Sync with game state
-              
+
               // Save to file for persistence
               const saved = savePrizes(prizeAmounts);
               if (saved) {
@@ -9566,7 +9730,7 @@ async function handleAPI(req, res, pathname) {
               } else {
                 console.log(`💰 Prize amounts updated (memory only):`, prizeAmounts);
               }
-              
+
               // Broadcast update to all clients so browser can update
               broadcastToClients({
                 type: 'prizes_updated',
@@ -9574,6 +9738,24 @@ async function handleAPI(req, res, pathname) {
                 saved: saved
               });
             }
+            break;
+
+          case 'update_participant_profiles':
+            if (!data.profiles) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'profiles payload required' }));
+              return;
+            }
+
+            const updatedProfiles = applyParticipantProfilesUpdate(data.profiles);
+
+            broadcastToClients({
+              type: 'participant_profiles_updated',
+              profiles: updatedProfiles,
+              timestamp: Date.now()
+            });
+
+            broadcastState(true, true);
             break;
             
           case 'recalculate_lifelines':
@@ -9937,25 +10119,26 @@ async function handleAPI(req, res, pathname) {
             
           case 'end_game_credits':
             console.log('🎭 Starting end game credits roll...');
-            
+
             // Set credits rolling state
             gameState.credits_rolling = true;
             gameState.credits_scrolling = true;
-            
+
             // Close curtains for cinematic effect
             gameState.curtains_closed = true;
-            
+
             // End any active polls
             gameState.audience_poll_active = false;
             gameState.show_voting_activity = false;
             gameState.show_poll_winner = null;
-            
+
             console.log(`🎭 Credits will feature ${gameState.gameshow_participants.length} participants`);
             console.log('🎭 Participants:', gameState.gameshow_participants.join(', '));
             console.log('🎬 Credits will display all names and end naturally');
-            
+
             // Note: Credits now end naturally in the frontend after all names are shown
             // The frontend will clear the credits_rolling state when complete
+            broadcastState();
             break;
             
           case 'start_credits_scroll':
@@ -10042,15 +10225,28 @@ async function handleAPI(req, res, pathname) {
             broadcastToClients({
               type: 'hide_leaderboard'
             });
-            
+
             // Then start the credits roll
             broadcastToClients({
               type: 'roll_credits',
               timestamp: Date.now()
             });
-            
+
             gameState.credits_rolling = true;
             broadcastState();
+            break;
+
+          case 'stop_credits':
+            console.log('🛑 Manual stop requested for credits roll');
+            gameState.credits_rolling = false;
+            gameState.credits_scrolling = false;
+
+            broadcastToClients({
+              type: 'hide_credits',
+              timestamp: Date.now()
+            });
+
+            broadcastState(true, true);
             break;
             
           case 'end_hot_seat':
