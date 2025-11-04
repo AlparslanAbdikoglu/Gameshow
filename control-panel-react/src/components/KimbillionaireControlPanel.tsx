@@ -74,6 +74,155 @@ const useKeybinds = (handlers: Record<string, () => void>, dependencies: any[] =
   }, [handleKeyPress]);
 };
 
+interface HotSeatProfileData {
+  username: string;
+  displayName: string;
+  storyHtml: string;
+  storyText: string;
+}
+
+interface HotSeatProfileParseResult {
+  profiles: Record<string, HotSeatProfileData>;
+  errors: string[];
+}
+
+const applyInlineProfileFormatting = (text: string) =>
+  text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/__(.+?)__/g, '<strong>$1</strong>')
+    .replace(/(?<!\\)\*(?!\s)([^*]+?)\*(?!\s)/g, '<em>$1</em>')
+    .replace(/_(?!\s)([^_]+?)_(?!\s)/g, '<em>$1</em>');
+
+const escapeProfileHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const convertProfileStoryToHtml = (raw: string) => {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { html: '', text: '' };
+  }
+
+  const blocks = trimmed.split(/\n{2,}/);
+  const htmlBlocks = blocks
+    .map((block) => {
+      const lines = block
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length === 0) {
+        return '';
+      }
+
+      if (lines.every((line) => /^[-*]\s+/.test(line))) {
+        const items = lines
+          .map((line) => line.replace(/^[-*]\s+/, ''))
+          .map((line) => `<li>${applyInlineProfileFormatting(escapeProfileHtml(line))}</li>`)
+          .join('');
+        return `<ul>${items}</ul>`;
+      }
+
+      const paragraph = lines.join(' ');
+      return `<p>${applyInlineProfileFormatting(escapeProfileHtml(paragraph))}</p>`;
+    })
+    .filter(Boolean)
+    .join('');
+
+  return {
+    html: htmlBlocks,
+    text: trimmed
+  };
+};
+
+const parseHotSeatProfilesMarkdown = (markdown: string): HotSeatProfileParseResult => {
+  const lines = markdown.split(/\r?\n/);
+  const profiles: Record<string, HotSeatProfileData> = {};
+  const errors: string[] = [];
+
+  let currentIdentifier: string | null = null;
+  let currentDisplayName: string | null = null;
+  let buffer: string[] = [];
+
+  const flushCurrent = () => {
+    if (!currentIdentifier) {
+      buffer = [];
+      return;
+    }
+
+    const storyRaw = buffer.join('\n');
+    const { html, text } = convertProfileStoryToHtml(storyRaw);
+    const normalized = currentIdentifier.trim().toLowerCase();
+
+    if (!normalized) {
+      errors.push('Skipped profile with empty username.');
+      buffer = [];
+      currentIdentifier = null;
+      currentDisplayName = null;
+      return;
+    }
+
+    profiles[normalized] = {
+      username: currentIdentifier.trim(),
+      displayName: (currentDisplayName || currentIdentifier).trim(),
+      storyHtml: html,
+      storyText: text
+    };
+
+    buffer = [];
+    currentIdentifier = null;
+    currentDisplayName = null;
+  };
+
+  lines.forEach((line, index) => {
+    const headingMatch = line.match(/^##\s+(.+)/);
+    if (headingMatch) {
+      flushCurrent();
+
+      let headingText = headingMatch[1].trim();
+      if (!headingText) {
+        errors.push(`Line ${index + 1}: heading is missing a username.`);
+        return;
+      }
+
+      let usernamePart = headingText;
+      let displayNamePart = headingText;
+
+      if (headingText.includes('|')) {
+        const [userSegment, displaySegment] = headingText.split('|');
+        usernamePart = userSegment.trim();
+        displayNamePart = (displaySegment || userSegment).trim();
+      }
+
+      if (usernamePart.startsWith('@')) {
+        usernamePart = usernamePart.slice(1).trim();
+      }
+
+      if (!usernamePart) {
+        errors.push(`Line ${index + 1}: heading must include a username.`);
+        return;
+      }
+
+      currentIdentifier = usernamePart;
+      currentDisplayName = displayNamePart;
+      buffer = [];
+      return;
+    }
+
+    if (currentIdentifier) {
+      buffer.push(line);
+    }
+  });
+
+  flushCurrent();
+
+  return { profiles, errors };
+};
+
 const KimbillionaireControlPanel: React.FC = () => {
   // Game State
   const [gameState, setGameState] = useState<GameState>({
@@ -99,6 +248,11 @@ const KimbillionaireControlPanel: React.FC = () => {
   const [showAnimationPanel, setShowAnimationPanel] = useState(false);
   const [roaryEnabled, setRoaryEnabled] = useState(true);
   const [showKeybindHelp, setShowKeybindHelp] = useState(false);
+  const [hotSeatProfilesCount, setHotSeatProfilesCount] = useState(0);
+  const [hotSeatProfileStatus, setHotSeatProfileStatus] = useState<string | null>(null);
+  const [hotSeatProfileError, setHotSeatProfileError] = useState<string | null>(null);
+  const [isUploadingHotSeatProfiles, setIsUploadingHotSeatProfiles] = useState(false);
+  const [hotSeatProfileFileName, setHotSeatProfileFileName] = useState<string | null>(null);
   // const [showProducerPreview, setShowProducerPreview] = useState(false); // Removed to reduce lag
   const [questions, setQuestions] = useState<Question[]>([]);
   // Removed questionsLoading state since it's not displayed in UI
@@ -153,7 +307,22 @@ const KimbillionaireControlPanel: React.FC = () => {
         setAnswersRevealed(currentState.answers_revealed || false);
         setAnswerLockedIn(currentState.answer_locked_in || false);
         setSelectedAnswer(currentState.selected_answer);
-        
+
+        const loadedProfiles = currentState.hot_seat_profiles || {};
+        const profileCount = Object.keys(loadedProfiles).length;
+        setHotSeatProfilesCount(profileCount);
+        setHotSeatProfileError(null);
+        setHotSeatProfileFileName(null);
+
+        if (profileCount > 0) {
+          const lastUpdated = currentState.hot_seat_profiles_last_update
+            ? new Date(currentState.hot_seat_profiles_last_update).toLocaleTimeString()
+            : null;
+          setHotSeatProfileStatus(`Loaded ${profileCount} hot seat profile${profileCount === 1 ? '' : 's'}${lastUpdated ? ` · Updated ${lastUpdated}` : ''}.`);
+        } else {
+          setHotSeatProfileStatus(null);
+        }
+
         // Load questions from state if available
         if (currentState.questions && currentState.questions.length > 0) {
           setQuestions(currentState.questions);
@@ -934,11 +1103,57 @@ const KimbillionaireControlPanel: React.FC = () => {
     }
   }, []);
 
+  const handleHotSeatProfileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    setIsUploadingHotSeatProfiles(true);
+    setHotSeatProfileStatus(null);
+    setHotSeatProfileError(null);
+
+    try {
+      const fileContents = await file.text();
+      const { profiles, errors } = parseHotSeatProfilesMarkdown(fileContents);
+      const profileCount = Object.keys(profiles).length;
+
+      if (profileCount === 0) {
+        setHotSeatProfileError('No valid profiles were found in the uploaded markdown file.');
+        return;
+      }
+
+      console.log(`📁 Uploading ${profileCount} hot seat profile(s) from ${file.name}`);
+      const response = await gameApi.uploadHotSeatProfiles(profiles);
+      const uploadedCount = typeof response?.count === 'number' ? response.count : profileCount;
+
+      setHotSeatProfilesCount(uploadedCount);
+      setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name}.`);
+      setHotSeatProfileFileName(file.name);
+
+      if (errors.length > 0) {
+        const preview = errors.slice(0, 3).join('; ');
+        const overflow = errors.length > 3 ? ` (and ${errors.length - 3} more)` : '';
+        setHotSeatProfileError(`Some entries were skipped: ${preview}${overflow}`);
+      } else {
+        setHotSeatProfileError(null);
+      }
+    } catch (error) {
+      console.error('❌ Failed to upload hot seat profiles:', error);
+      setHotSeatProfileError(error instanceof Error ? error.message : 'Unknown error while uploading profiles.');
+    } finally {
+      setIsUploadingHotSeatProfiles(false);
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  }, []);
+
   const handleToggleRoary = useCallback(async () => {
     try {
       const newState = !roaryEnabled;
       setRoaryEnabled(newState);
-      
+
       // Send toggle command to server
       const response = await fetch('/api/roary/toggle', {
         method: 'POST',
@@ -962,6 +1177,13 @@ const KimbillionaireControlPanel: React.FC = () => {
       alert('Failed to toggle Roary. Please check the server connection.');
     }
   }, [roaryEnabled]);
+
+  const participantCount = Array.isArray(gameState.gameshow_participants)
+    ? gameState.gameshow_participants.length
+    : 0;
+  const creditsRolling = Boolean(gameState.credits_rolling);
+  const creditsScrolling = Boolean(gameState.credits_scrolling);
+  const creditsStatusLabel = creditsRolling ? 'Rolling' : creditsScrolling ? 'Scrolling' : 'Idle';
 
 
   const handleOBSReconnect = useCallback(async () => {
@@ -2006,6 +2228,78 @@ const KimbillionaireControlPanel: React.FC = () => {
       <div className={styles.controlSection}>
         <PrizeConfiguration disabled={!gameState.game_active} />
       </div>
+
+      <GlassPanel title="Credits & Hot Seat Highlights">
+        <div className={styles.creditsStatusGrid}>
+          <div className={styles.creditsStatusCard}>
+            <span className={styles.creditsStatusLabel}>Credits Status</span>
+            <span className={`${styles.creditsStatusValue} ${creditsRolling ? styles.creditsStatusActive : styles.creditsStatusIdle}`}>
+              {creditsStatusLabel}
+            </span>
+            <span className={styles.creditsStatusSubtext}>
+              {participantCount} participant{participantCount === 1 ? '' : 's'} ready for credits
+            </span>
+          </div>
+          <div className={styles.creditsStatusCard}>
+            <span className={styles.creditsStatusLabel}>Hot Seat Profiles</span>
+            <span className={`${styles.creditsStatusValue} ${hotSeatProfilesCount > 0 ? styles.creditsStatusActive : styles.creditsStatusIdle}`}>
+              {hotSeatProfilesCount}
+            </span>
+            <span className={styles.creditsStatusSubtext}>
+              {hotSeatProfileFileName ? `Last upload: ${hotSeatProfileFileName}` : 'Upload markdown to spotlight players'}
+            </span>
+          </div>
+        </div>
+
+        <div className={styles.creditsButtonRow}>
+          <button
+            className={styles.primaryBtn}
+            onClick={handleShowFinalLeaderboard}
+          >
+            Show Final Leaderboard
+          </button>
+          <button
+            className={styles.secondaryBtn}
+            onClick={handleEndGameCredits}
+          >
+            Prepare Credits Overlay
+          </button>
+          <button
+            className={styles.secondaryBtn}
+            onClick={handleStartCreditsScroll}
+          >
+            Start Credits Scroll
+          </button>
+          <button
+            className={`${styles.glowingBtn} ${styles.primaryBtn}`}
+            onClick={handleRollCredits}
+          >
+            Roll Credits
+          </button>
+        </div>
+
+        <div className={styles.hotSeatUpload}>
+          <label htmlFor="hotSeatProfileUpload">Upload hot seat background stories (.md)</label>
+          <input
+            id="hotSeatProfileUpload"
+            type="file"
+            accept=".md,.markdown,.txt"
+            onChange={handleHotSeatProfileUpload}
+            disabled={isUploadingHotSeatProfiles}
+          />
+          <div className={styles.uploadStatusRow}>
+            {isUploadingHotSeatProfiles && (
+              <span className={styles.uploadStatus}>Uploading profiles...</span>
+            )}
+            {!isUploadingHotSeatProfiles && hotSeatProfileStatus && (
+              <span className={styles.uploadStatus}>{hotSeatProfileStatus}</span>
+            )}
+            {!isUploadingHotSeatProfiles && hotSeatProfileError && (
+              <span className={styles.uploadStatusError}>{hotSeatProfileError}</span>
+            )}
+          </div>
+        </div>
+      </GlassPanel>
 
 
       {/* Performance Test removed to reduce lag */}

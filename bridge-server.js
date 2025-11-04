@@ -64,6 +64,80 @@ function trackVoteProcessing(processingTime, rejected = false, duplicate = false
   }
 }
 
+function normalizeUsername(username) {
+  return typeof username === 'string' ? username.trim().toLowerCase() : '';
+}
+
+function sanitizeProfileHtml(html = '') {
+  if (typeof html !== 'string') {
+    return '';
+  }
+
+  return html
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+    .replace(/on\w+="[^"]*"/gi, '')
+    .replace(/javascript:/gi, '')
+    .trim();
+}
+
+function buildHotSeatProfileMap(profiles = {}) {
+  const sanitizedProfiles = {};
+
+  if (!profiles || typeof profiles !== 'object') {
+    return sanitizedProfiles;
+  }
+
+  Object.values(profiles).forEach((profile) => {
+    if (!profile || typeof profile !== 'object') {
+      return;
+    }
+
+    const sourceUsername = typeof profile.username === 'string' && profile.username.trim()
+      ? profile.username.trim()
+      : typeof profile.displayName === 'string' && profile.displayName.trim()
+        ? profile.displayName.trim()
+        : typeof profile.id === 'string' && profile.id.trim()
+          ? profile.id.trim()
+          : '';
+
+    const normalized = normalizeUsername(sourceUsername);
+    if (!normalized) {
+      return;
+    }
+
+    sanitizedProfiles[normalized] = {
+      username: sourceUsername,
+      displayName: typeof profile.displayName === 'string' && profile.displayName.trim()
+        ? profile.displayName.trim()
+        : sourceUsername,
+      storyHtml: sanitizeProfileHtml(profile.storyHtml || profile.story || ''),
+      storyText: typeof profile.storyText === 'string' ? profile.storyText.trim() : '',
+      lastUpdated: Date.now()
+    };
+  });
+
+  return sanitizedProfiles;
+}
+
+function getHotSeatProfile(username) {
+  const normalized = normalizeUsername(username);
+  if (!normalized || !gameState.hot_seat_profiles) {
+    return null;
+  }
+
+  const profile = gameState.hot_seat_profiles[normalized];
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    username: profile.username,
+    displayName: profile.displayName || profile.username,
+    storyHtml: profile.storyHtml || '',
+    storyText: profile.storyText || ''
+  };
+}
+
 // Game state
 let gameState = {
   current_question: 0,
@@ -133,6 +207,8 @@ let gameState = {
   hot_seat_answer: null,       // Answer submitted by hot seat user (A/B/C/D)
   hot_seat_correct: null,      // Was hot seat answer correct (true/false/null)
   hot_seat_history: [],        // Log of all hot seat sessions: [{question, user, answer, correct, timestamp}]
+  hot_seat_profiles: {},       // Map of uploaded hot seat profile stories keyed by username
+  hot_seat_profiles_last_update: null, // Timestamp of last profile upload for status displays
   hot_seat_timer_interval: null, // Reference to timer interval for cleanup
   // Hot Seat Entry Collection
   hot_seat_entry_active: false,  // Is entry collection period active
@@ -4873,6 +4949,16 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   }
   console.log(`⏱️ ${primaryUser} has ${timerDuration} seconds to submit their answer`);
 
+  const primaryProfile = getHotSeatProfile(primaryUser);
+  if (primaryProfile && primaryProfile.storyHtml) {
+    console.log(`🧾 Found uploaded profile for hot seat player ${primaryUser}`);
+  }
+
+  const alternateProfiles = uniqueUsers
+    .slice(1)
+    .map(username => ({ username, profile: getHotSeatProfile(username) }))
+    .filter(entry => entry.profile && entry.profile.storyHtml);
+
   if (gameState.audience_poll_active) {
     console.log('🔕 Audience poll disabled while hot seat is active');
     gameState.audience_poll_active = false;
@@ -4896,6 +4982,8 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     questionNumber: gameState.current_question + 1,
     message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
     selectionMethod,
+    profile: primaryProfile || null,
+    alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
     timestamp: Date.now()
   });
 
@@ -10035,6 +10123,25 @@ async function handleAPI(req, res, pathname) {
             hideLeaderboardOverlay();
             break;
 
+          case 'upload_hot_seat_profiles': {
+            const profilesPayload = data.profiles || {};
+            const sanitizedProfiles = buildHotSeatProfileMap(profilesPayload);
+            const profileCount = Object.keys(sanitizedProfiles).length;
+
+            gameState.hot_seat_profiles = sanitizedProfiles;
+            gameState.hot_seat_profiles_last_update = Date.now();
+
+            console.log(`📝 Loaded ${profileCount} hot seat profile${profileCount === 1 ? '' : 's'} from control panel upload`);
+
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+              success: true,
+              count: profileCount,
+              lastUpdate: gameState.hot_seat_profiles_last_update
+            }));
+            return;
+          }
+
           case 'roll_credits':
             console.log('🎬 Rolling credits after showing winners');
 
@@ -10808,10 +10915,10 @@ async function handleAPI(req, res, pathname) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ 
               error: `Unknown action: ${data.action}`,
-              available_actions: ['start_game', 'reset_game', 'next_question', 'show_question', 'show_answers', 'reveal_answer', 'set_selected_answer', 'lock_answer', 'set_contestant', 'end_game_credits', 'start_credits_scroll', 'test_credits', 'trigger_lifeline', 'break_poll_tie', 'break_lifeline_tie', 'activate_hot_seat', 'end_hot_seat', 'add_demo_participants']
+              available_actions: ['start_game', 'reset_game', 'next_question', 'show_question', 'show_answers', 'reveal_answer', 'set_selected_answer', 'lock_answer', 'set_contestant', 'end_game_credits', 'start_credits_scroll', 'test_credits', 'trigger_lifeline', 'break_poll_tie', 'break_lifeline_tie', 'activate_hot_seat', 'end_hot_seat', 'add_demo_participants', 'upload_hot_seat_profiles']
             }));
             return; // Don't call broadcastState for unknown actions
-            
+
         }
         
         gameState.update_needed = true;

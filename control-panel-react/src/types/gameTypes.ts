@@ -85,6 +85,25 @@ export interface GameState {
   ask_a_mod_active?: boolean;
   mod_responses?: Array<{ username: string; message: string; timestamp: number }>;
   ask_a_mod_start_time?: number | null;
+  credits_rolling?: boolean;
+  credits_scrolling?: boolean;
+  gameshow_participants?: string[];
+  hot_seat_profiles?: Record<string, {
+    username: string;
+    displayName: string;
+    storyHtml?: string;
+    storyText?: string;
+    lastUpdated?: number;
+  }>;
+  hot_seat_profiles_last_update?: number | null;
+  prizeConfiguration?: {
+    enabled?: boolean;
+    topWinnersCount?: number;
+    prizeName?: string;
+    prizeAmount?: number;
+    customMessage?: string;
+    winnersAnnounced?: boolean;
+  };
 }
 
 // Lifeline Types

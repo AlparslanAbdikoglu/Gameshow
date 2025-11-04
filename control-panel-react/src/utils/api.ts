@@ -186,6 +186,22 @@ export const gameApi = {
     return response.json();
   },
 
+  uploadHotSeatProfiles: async (profiles: Record<string, any>) => {
+    const response = await fetch(`${API_BASE}/control`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action: 'upload_hot_seat_profiles', profiles }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   resetGame: async () => {
     const response = await fetch(`${API_BASE}/control`, {
       method: 'POST',
