@@ -4638,11 +4638,21 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     const overlay = document.getElementById('leaderboard-overlay');
     const periodBadge = document.getElementById('leaderboard-period');
     const listContainer = document.getElementById('leaderboard-list');
-    
+    const header = document.querySelector('.leaderboard-overlay-header h2');
+
     if (!overlay || !periodBadge || !listContainer) {
         console.error('❌ Leaderboard elements not found');
         return;
     }
+
+    if (header) {
+        header.textContent = '🏆 LEADERBOARD';
+        header.style.fontSize = '';
+        header.style.animation = '';
+    }
+
+    periodBadge.style.background = '';
+    periodBadge.style.animation = '';
     
     // Store current period
     currentLeaderboardPeriod = period;

@@ -73,11 +73,18 @@ function sanitizeProfileHtml(html = '') {
     return '';
   }
 
-  return html
-    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-    .replace(/on\w+\b(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi, '')
-    .replace(/javascript:/gi, '')
-    .trim();
+  let sanitized = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+
+  sanitized = sanitized.replace(/<([a-z][^>]*)>/gi, (fullTag, tagContent) => {
+    let cleaned = tagContent
+      .replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+      .replace(/\s+on[a-z0-9_-]+(?=\s|\/?>)/gi, '')
+      .replace(/\s+(?:href|src|xlink:href)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, '');
+
+    return `<${cleaned}>`;
+  });
+
+  return sanitized.trim();
 }
 
 function buildHotSeatProfileMap(profiles = {}) {
@@ -10025,27 +10032,41 @@ async function handleAPI(req, res, pathname) {
             
           case 'end_game_credits':
             console.log('🎭 Starting end game credits roll...');
-            
+
             // Set credits rolling state
             gameState.credits_rolling = true;
             gameState.credits_scrolling = true;
-            
+
             // Close curtains for cinematic effect
             gameState.curtains_closed = true;
-            
+
             // End any active polls
             gameState.audience_poll_active = false;
             gameState.show_voting_activity = false;
             gameState.show_poll_winner = null;
-            
+
             console.log(`🎭 Credits will feature ${gameState.gameshow_participants.length} participants`);
             console.log('🎭 Participants:', gameState.gameshow_participants.join(', '));
             console.log('🎬 Credits will display all names and end naturally');
-            
+
+            // Hide the leaderboard overlay so credits have full focus
+            broadcastToClients({
+              type: 'hide_leaderboard'
+            });
+
+            // Kick off the credits sequence on all connected displays
+            broadcastToClients({
+              type: 'roll_credits',
+              timestamp: Date.now()
+            });
+
+            // Notify control panels and overlays of the updated state
+            broadcastState();
+
             // Note: Credits now end naturally in the frontend after all names are shown
             // The frontend will clear the credits_rolling state when complete
             break;
-            
+
           case 'start_credits_scroll':
             // This case is now deprecated - credits scroll automatically
             console.log('⚠️ start_credits_scroll is deprecated - credits now scroll automatically');

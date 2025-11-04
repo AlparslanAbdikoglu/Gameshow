@@ -420,20 +420,6 @@ export const gameApi = {
     return response.json();
   },
 
-  startCreditsScroll: async () => {
-    const response = await fetch(`${API_BASE}/control`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start_credits_scroll' }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return response.json();
-  },
-
   // Timer Configuration functions
   getTimerConfig: async () => {
     const response = await fetch(`${API_BASE}/timer-config`);

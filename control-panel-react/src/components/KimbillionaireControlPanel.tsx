@@ -1073,16 +1073,6 @@ const KimbillionaireControlPanel: React.FC = () => {
     }
   }, []);
 
-  const handleStartCreditsScroll = useCallback(async () => {
-    try {
-      await gameApi.startCreditsScroll();
-      console.log('📜 Credits scroll started - names will now animate');
-    } catch (error) {
-      console.error('❌ Failed to start credits scroll:', error);
-      alert('Failed to start credits scroll. Please check the server connection.');
-    }
-  }, []);
-
   const handleShowFinalLeaderboard = useCallback(async () => {
     try {
       await gameApi.sendCommand('show_final_leaderboard');
@@ -1090,16 +1080,6 @@ const KimbillionaireControlPanel: React.FC = () => {
     } catch (error) {
       console.error('❌ Failed to show final leaderboard:', error);
       alert('Failed to show final leaderboard. Please check the server connection.');
-    }
-  }, []);
-
-  const handleRollCredits = useCallback(async () => {
-    try {
-      await gameApi.sendCommand('roll_credits');
-      console.log('🎬 Credits rolling after winners display');
-    } catch (error) {
-      console.error('❌ Failed to roll credits:', error);
-      alert('Failed to roll credits. Please check the server connection.');
     }
   }, []);
 
@@ -1182,8 +1162,7 @@ const KimbillionaireControlPanel: React.FC = () => {
     ? gameState.gameshow_participants.length
     : 0;
   const creditsRolling = Boolean(gameState.credits_rolling);
-  const creditsScrolling = Boolean(gameState.credits_scrolling);
-  const creditsStatusLabel = creditsRolling ? 'Rolling' : creditsScrolling ? 'Scrolling' : 'Idle';
+  const creditsStatusLabel = creditsRolling ? 'Rolling' : 'Idle';
 
 
   const handleOBSReconnect = useCallback(async () => {
@@ -1453,9 +1432,9 @@ const KimbillionaireControlPanel: React.FC = () => {
       handleShowFinalLeaderboard();
     },
     'c': () => {
-      if (!gameState.game_active || gameState.current_question !== 14 || 
+      if (!gameState.game_active || gameState.current_question !== 14 ||
           !(gameState as any).finalLeaderboardShown) return;
-      handleRollCredits();
+      handleEndGameCredits();
     },
     
     // Help Toggle
@@ -1478,7 +1457,7 @@ const KimbillionaireControlPanel: React.FC = () => {
     handleStartLifelineVote,
     handleEndLifelineVoting,
     handleShowFinalLeaderboard,
-    handleRollCredits
+    handleEndGameCredits
   ]);
 
   // Animation variants removed to improve performance
@@ -2186,12 +2165,10 @@ const KimbillionaireControlPanel: React.FC = () => {
           onHideQuestion={handleHideQuestion}
           onNextQuestion={handleNextQuestion}
           onPreviousQuestion={handlePreviousQuestion}
-          onEndGameCredits={handleEndGameCredits}
-          onStartCreditsScroll={handleStartCreditsScroll}
           onStartLifelineVote={handleStartLifelineVote}
           onEndLifelineVoting={handleEndLifelineVoting}
           onShowFinalLeaderboard={handleShowFinalLeaderboard}
-          onRollCredits={handleRollCredits}
+          onRollCredits={handleEndGameCredits}
           disabled={!gameState.game_active || gameState.curtains_closed}
         />
       </div>
@@ -2249,33 +2226,6 @@ const KimbillionaireControlPanel: React.FC = () => {
               {hotSeatProfileFileName ? `Last upload: ${hotSeatProfileFileName}` : 'Upload markdown to spotlight players'}
             </span>
           </div>
-        </div>
-
-        <div className={styles.creditsButtonRow}>
-          <button
-            className={styles.primaryBtn}
-            onClick={handleShowFinalLeaderboard}
-          >
-            Show Final Leaderboard
-          </button>
-          <button
-            className={styles.secondaryBtn}
-            onClick={handleEndGameCredits}
-          >
-            Prepare Credits Overlay
-          </button>
-          <button
-            className={styles.secondaryBtn}
-            onClick={handleStartCreditsScroll}
-          >
-            Start Credits Scroll
-          </button>
-          <button
-            className={`${styles.glowingBtn} ${styles.primaryBtn}`}
-            onClick={handleRollCredits}
-          >
-            Roll Credits
-          </button>
         </div>
 
         <div className={styles.hotSeatUpload}>
