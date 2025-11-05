@@ -3274,9 +3274,9 @@ body {
 
 .credits-content {
     width: 100%;
-    max-width: 820px;
+    max-width: 770px;
     text-align: center;
-    padding: 48px 64px;
+    padding: 32px 40px;
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.4), rgba(0, 20, 60, 0.65));
     backdrop-filter: blur(24px);
     border-radius: 24px;
@@ -3285,7 +3285,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 28px;
+    gap: 24px;
+    box-sizing: border-box;
+    max-height: calc(100vh - 120px);
+    overflow: hidden
 }
 
 #credits-overlay.credits-roll-active .credits-content {
@@ -3297,16 +3300,16 @@ body {
 }
 
 .credits-title {
-    font-size: 48px;
+    font-size: 44px;
     font-weight: bold;
     color: #FFD700;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
     margin: 0;
-    animation: creditsGlow 3s ease-in-out infinite;
+    animation: creditsGlow 8s ease-in-out infinite;
 }
 
 .credits-subtitle {
-    font-size: 24px;
+    font-size: 22px;
     color: #FFF;
     margin-top: 10px;
     opacity: 0.9;
@@ -3326,8 +3329,8 @@ body {
 }
 
 .credits-participants {
-    min-height: 220px;
-    height: 220px;
+    min-height: 200px;
+    height: clamp(240px, 45vh, 360px);
     display: block;
     overflow: hidden;
     position: relative;
@@ -3336,21 +3339,21 @@ body {
         black 20%,
         black 80%,
         transparent 100%);
-    -webkit-mask-image: linear-gradient(to bottom, 
-        transparent 0%, 
-        black 20%, 
-        black 80%, 
+    -webkit-mask-image: linear-gradient(to bottom,
+        transparent 0%,
+        black 20%,
+        black 80%,
         transparent 100%);
 }
 
 .credits-name-container {
     position: absolute;
     width: 100%;
-    animation: scrollUp 15s linear;
+    animation: scrollUp 45s linear;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
+    gap: 20px;
 }
 
 .credits-name {
@@ -3358,7 +3361,9 @@ body {
     color: #FFF;
     opacity: 1;
     text-align: center;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0 8px;
 }
 
 .credits-footer {
