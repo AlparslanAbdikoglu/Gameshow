@@ -3761,6 +3761,32 @@ body.hot-seat-active .hot-seat-display.active {
     display: none !important;
 }
 
+/* Profile story upload */
+.customUploadButton {
+  display: inline-block;
+  background: linear-gradient(135deg, #0a1849, #0e2a72);
+  color: #ffcc00;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-top: 10px;
+}
+
+.customUploadButton:hover {
+  background: linear-gradient(135deg, #0e2a72, #153d8a);
+  color: #fff;
+}
+
+.uploadLabel {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #ddd;
+  display: block;
+  margin-bottom: 6px;
+}
+
 /* Leaderboard Overlay Styles */
 .leaderboard-overlay {
     position: fixed;
