@@ -2744,7 +2744,7 @@ function safeJsonStringify(payload) {
   return JSON.stringify(payload, (key, value) => {
     if (value && typeof value === 'object') {
       const constructorName = value.constructor && value.constructor.name;
-      if (constructorName === 'Timeout' || constructorName === 'Immediate') {
+      if (constructorName === 'Timeout' || constructorName === 'Immediate' || constructorName === 'Interval') {
         return undefined;
       }
     }
@@ -2778,6 +2778,8 @@ function broadcastState(force = false, critical = false) {
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+  delete cleanGameState.hot_seat_profile_reveal_interval;
+  delete cleanGameState.hot_seat_profile_reveal_timeout;
 
   // Convert Set to Array for JSON serialization
   if (cleanGameState.processed_mod_messages instanceof Set) {
@@ -5403,6 +5405,7 @@ function executeShowQuestionAction({ skipHotSeatProfileCheck = false } = {}) {
     // Show question after entry period
     setTimeout(() => {
       console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
+      gameState.hot_seat_pending_question_display = false;
       gameState.question_visible = true;
       broadcastState();
       maybeStartHotSeatTimer();

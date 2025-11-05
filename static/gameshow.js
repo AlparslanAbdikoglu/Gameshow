@@ -4173,6 +4173,47 @@ function escapeHtml(unsafe = '') {
         .replace(/'/g, '&#39;');
 }
 
+function buildHotSeatStoryMarkup(profileData, primaryUser) {
+    if (!profileData || typeof profileData !== 'object') {
+        return '';
+    }
+
+    const storyHtml = typeof profileData.storyHtml === 'string' ? profileData.storyHtml.trim() : '';
+    if (storyHtml) {
+        return storyHtml;
+    }
+
+    const storyText = typeof profileData.storyText === 'string' ? profileData.storyText.trim() : '';
+    if (!storyText) {
+        return '';
+    }
+
+    const displayName = (profileData.displayName || profileData.username || primaryUser || '').trim() || primaryUser || '';
+    const safeDisplayName = escapeHtml(displayName);
+
+    const paragraphBlocks = storyText
+        .split(/\r?\n{2,}/)
+        .map((block) => block
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean))
+        .filter((lines) => lines.length > 0)
+        .map((lines) => `<p>${lines.map((line) => escapeHtml(line)).join('<br>')}</p>`);
+
+    const storyBody = paragraphBlocks.join('') || `<p>${escapeHtml(storyText)}</p>`;
+
+    return `
+        <div class="hot-seat-profile-story-block hot-seat-profile-story-meta">
+            <span class="hot-seat-profile-story-label">Username:</span>
+            <span class="hot-seat-profile-story-value">${safeDisplayName}</span>
+        </div>
+        <div class="hot-seat-profile-story-block hot-seat-profile-story-text">
+            <span class="hot-seat-profile-story-label">Story:</span>
+            <div class="hot-seat-profile-story-text-body">${storyBody}</div>
+        </div>
+    `.trim();
+}
+
 function formatHotSeatSelectionMethod(method) {
     switch (method) {
         case 'join_entry':
@@ -4263,10 +4304,10 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
         blurbEl.textContent = defaultBlurb;
     }
 
-    const hasStory = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
+    const storyMarkup = buildHotSeatStoryMarkup(profileData, primaryUser);
     if (storyEl && dividerEl) {
-        if (hasStory) {
-            storyEl.innerHTML = profileData.storyHtml;
+        if (storyMarkup && storyMarkup.trim().length > 0) {
+            storyEl.innerHTML = storyMarkup;
             storyEl.classList.remove('hidden');
             dividerEl.classList.remove('hidden');
         } else {

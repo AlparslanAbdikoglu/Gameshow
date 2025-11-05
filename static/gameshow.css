@@ -3735,6 +3735,38 @@ body.hot-seat-active .hot-seat-display.active {
     gap: 12px;
 }
 
+.hot-seat-profile-story-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.hot-seat-profile-story-meta {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.hot-seat-profile-story-label {
+    font-weight: 600;
+    color: #FFD700;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+}
+
+.hot-seat-profile-story-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.hot-seat-profile-story-text-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .hot-seat-profile-story p {
     margin: 0;
 }
