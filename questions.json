@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "Who is the mascot of Coinwise?",
+    "text": "In technical analysis, what’s a “liquidity grab”?",
     "answers": [
-      "An old Wise man",
-      "A Lion",
-      "Satoshi Nakamoto",
-      "Super crypto Man"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 2,
-    "text": "Which coupon code currently gives you 30% off on Coinwise?",
-    "answers": [
-      "LionHeart",
-      "StayWise",
-      "30OFFNOW",
-      "HalloWise"
+      "A whale selling everything",
+      "A gap in chart data",
+      "A random candle spike",
+      "A short (or long) squeeze where stop-losses get triggered"
     ],
     "correct": 3
   },
   {
-    "number": 3,
-    "text": "In Coinwise vocabulary, what does Absorption mean?",
+    "number": 2,
+    "text": "What’s the primary role of VWAP in intraday trading?",
     "answers": [
-      "All market orders get automatically canceled during high volatility.",
-      "When aggressive orders hit the market but fail to move price.",
-      "The market is experiencing a data delay causing price to freeze.",
-      "Liquidity has disappeared and no participants are trading."
+      "It calculates open interest",
+      "It identifies RSI divergences",
+      "It shows the average price weighted by volume",
+      "It shows good and poor highs and lows"
     ],
-    "correct": 1
+    "correct": 2
+  },
+  {
+    "number": 3,
+    "text": "What’s a “stop hunt”?",
+    "answers": [
+      "When the market purposely moves to trigger trader stop-losses",
+      "When an exchange stops orders for maintenance",
+      "A type of futures funding event",
+      "A rare pattern on RSI"
+    ],
+    "correct": 0
   },
   {
     "number": 4,
-    "text": "Is the 80% setup indicator included in Coinwise Basic?",
+    "text": "What is the 80% setup rule based on?",
     "answers": [
-      "Yes",
-      "No",
-      "Only the 90% setup is included",
-      "There is no such indicator"
+      "My friends 80% sure what they doing",
+      "Price rotating through value once accepting back within",
+      "Profit target reached",
+      "Candle size reaching 80%"
     ],
     "correct": 1
   },
   {
     "number": 5,
-    "text": "Which tier grants access to all Coinwise training material?",
+    "text": "What happens when funding rates are deeply negative?",
     "answers": [
-      "Education+",
-      "Coinwise Basic",
-      "Coinwise Pro + Education",
-      "Coinwise Pro"
+      "The market is balanced",
+      "Shorts are paying longs, meaning selling pressure is extreme",
+      "Funding has paused",
+      "Longs are paying shorts"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 6,
+    "text": "What does Open Interest (OI) increasing while price drops often mean?",
+    "answers": [
+      "Market is consolidating",
+      "Shorts are being closed",
+      "New short positions entering the market",
+      "No one’s trading"
     ],
     "correct": 2
   },
   {
-    "number": 6,
-    "text": "Counter trader Hujhuxin Sato is a ?",
-    "answers": [
-      "Panda",
-      "Wolf",
-      "Tiger",
-      "Lion"
-    ],
-    "correct": 0
-  },
-  {
     "number": 7,
-    "text": "What does a high funding rate in perpetual futures generally indicate?",
+    "text": "Why is the 106–107K range on BTC considered a key level in market structure?",
     "answers": [
-      "No clear direction of the market.",
-      "The exchange is halting funding payments.",
-      "Shorts are paying longs, meaning bearish bias.",
-      "Longs are paying shorts, meaning bullish bias."
+      "It’s the highest open interest level ever recorded",
+      "It has acted as a critical resistance/support zone for nearly a year",
+      "It’s where all gaps get filled",
+      "It represents a Fibonacci 100% retracement"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 8,
-    "text": "What is the point of a 'Trading Journal'?",
+    "text": "What is a “pivot zone” in technical analysis?",
     "answers": [
-      "To unlock hidden chart indicators.",
-      "To track wins and losses for psychological review",
-      "To automatically calculate exchange fees.",
-      "To post it on Twitter"
+      "A random candle that reverses",
+      "A price area that often acts as both support and resistance",
+      "A single data point on the RSI",
+      "A point where open interest resets"
     ],
     "correct": 1
   },
   {
     "number": 9,
-    "text": "If price is consolidating tightly at a key level with declining volume, what does this often suggest?",
+    "text": "If a daily close happens above 103,500 (BTC) level after multiple rejections, what does it generally suggest?",
     "answers": [
-      "A breakout may be forming soon.",
-      "The market is permanently stable.",
-      "A liquidity sweep has already occurred.",
-      "No trader cares about the asset."
-    ],
-    "correct": 0
-  },
-  {
-    "number": 10,
-    "text": "How many total learning classes are currently available on Coinwise?",
-    "answers": [
-      "32",
-      "18",
-      "57",
-      "44"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 11,
-    "text": "What is the URL for the Kimba dashboard?",
-    "answers": [
-      "kingofthejungle.io",
-      "lionverse.app",
-      "PSG.live",
-      "app.kimba.tv"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 12,
-    "text": "Within the Kimba dashboard, what is the NFT collection called?",
-    "answers": [
-      "Lion Kings of Web3",
-      "The Majestic 100",
-      "Lions of Liquania",
-      "Guardians of the Savanna"
+      "The trend is weakening",
+      "The level remains insignificant",
+      "A potential shift in market bias to bullish",
+      "That trading volume is low"
     ],
     "correct": 2
   },
   {
-    "number": 13,
-    "text": "In trading, what does 'S/R Flip' refer to?",
+    "number": 10,
+    "text": "What is typically indicated when price returns into the weekly Value Area after a breakout?",
     "answers": [
-      "A trading bot entering cooldown mode.",
-      "A long-term moving average crossover.",
-      "A sudden liquidation cascade.",
-      "A support level turning into resistance or vice versa."
+      "The breakout is strengthening",
+      "The move might be losing momentum",
+      "The market is entering price discovery",
+      "A liquidity grab just occurred"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 11,
+    "text": "In Volume Profile, what does the Point of Control (POC) represent?",
+    "answers": [
+      "The level with the highest traded volume",
+      "The level with the lowest liquidity",
+      "A moving average line",
+      "The highest candle wick of the session"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 12,
+    "text": "What’s the difference between RTH and ETH gaps?",
+    "answers": [
+      "There is no difference",
+      "ETH gaps occur during high volume",
+      "RTH gaps appear only in crypto markets",
+      "RTH gaps happen during regular trading hours, ETH gaps occur overnight"
     ],
     "correct": 3
+  },
+  {
+    "number": 13,
+    "text": "What’s a “Gap Fill and Go” setup?",
+    "answers": [
+      "Price fills the gap fully, then continues in the same direction",
+      "Price never touches the gap",
+      "Price fills halfway and reverses",
+      "Gaps are ignored in this scenario"
+    ],
+    "correct": 0
   },
   {
     "number": 14,
-    "text": "What is the purpose of a 'Volume Profile' tool?",
+    "text": "What’s a “Gap Fill and Reverse”?",
     "answers": [
-      "To identify candle wick length distribution.",
-      "To measure network hash power.",
-      "To track order book refresh rate.",
-      "To show the total trading volume at specific price levels over a given time period"
+      "Market halts during fill",
+      "Gap never gets filled",
+      "Price fills the gap, rejects, and moves back opposite direction",
+      "Volume disappears completely"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 15,
-    "text": "What is the Fear & Greed Index used for?",
+    "text": "What’s one of the best ways to cope with market swings and portfolio drawdowns?",
     "answers": [
-      "To track exchange withdrawal volume only.",
-      "To gauge emotional sentiment extremes in the market.",
-      "To measure browser performance.",
-      "To analyze moving averages."
+      "Revenge trade to win it back fast",
+      "Reduce position size, review journal, and stay consistent",
+      "Watch every tick and overanalyze each move",
+      "Double down until it recovers"
     ],
     "correct": 1
   }
