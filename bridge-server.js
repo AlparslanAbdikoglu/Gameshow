@@ -5286,7 +5286,13 @@ function executeShowQuestionAction({ skipHotSeatProfileCheck = false } = {}) {
 
   // Check if this is a milestone question for automatic hot seat (only if enabled)
   const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
-  if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
+  const shouldHandleMilestoneEntry =
+    !skipHotSeatProfileCheck &&
+    gameState.hot_seat_enabled &&
+    milestoneQuestions.includes(gameState.current_question) &&
+    !gameState.hot_seat_active;
+
+  if (shouldHandleMilestoneEntry) {
     console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
 
     // Start entry period BEFORE showing the question
