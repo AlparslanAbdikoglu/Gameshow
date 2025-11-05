@@ -9301,7 +9301,7 @@ async function handleAPI(req, res, pathname) {
                       console.log(`🎭 Credits will feature ${gameState.gameshow_participants.length} participants`);
                       broadcastState();
                     }
-                  }, 15000); // 15 second delay to show winners before credits
+                  }, 30000); // 30 second delay to show winners before credits
                 } else {
                   // No prizes or already announced, go straight to credits
                   setTimeout(() => {
