@@ -87,6 +87,8 @@ function sanitizeProfileHtml(html = '') {
   return sanitized.trim();
 }
 
+const HOT_SEAT_PROFILE_REVEAL_DEFAULT_MS = 45000;
+
 function buildHotSeatProfileMap(profiles = {}) {
   const sanitizedProfiles = {};
 
@@ -215,6 +217,14 @@ let gameState = {
   hot_seat_correct: null,      // Was hot seat answer correct (true/false/null)
   hot_seat_history: [],        // Log of all hot seat sessions: [{question, user, answer, correct, timestamp}]
   hot_seat_profiles: {},       // Map of uploaded hot seat profile stories keyed by username
+  hot_seat_profile_reveal_active: false,   // Is the hot seat profile card currently being showcased
+  hot_seat_profile_reveal_duration: HOT_SEAT_PROFILE_REVEAL_DEFAULT_MS, // Duration in ms for profile spotlight
+  hot_seat_profile_reveal_remaining: 0,    // Seconds remaining in profile spotlight
+  hot_seat_profile_reveal_end_time: null,  // Timestamp when the profile spotlight ends
+  hot_seat_profile_reveal_interval: null,  // Interval for broadcasting profile countdown
+  hot_seat_profile_reveal_timeout: null,   // Timeout to end profile spotlight
+  hot_seat_pending_question_display: false, // Should the current question be displayed once spotlight ends
+  hot_seat_timer_pending: false,            // Delay starting hot seat timer until after spotlight
   hot_seat_profiles_last_update: null, // Timestamp of last profile upload for status displays
   hot_seat_timer_interval: null, // Reference to timer interval for cleanup
   // Hot Seat Entry Collection
@@ -1830,6 +1840,8 @@ wss.on('connection', (ws, req) => {
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+  delete cleanGameState.hot_seat_profile_reveal_interval;
+  delete cleanGameState.hot_seat_profile_reveal_timeout;
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -1989,6 +2001,8 @@ wss.on('connection', (ws, req) => {
           delete cleanGameState.hot_seat_timer_interval;
           delete cleanGameState.hot_seat_entry_timer_interval;
           delete cleanGameState.hot_seat_entry_lookup;
+          delete cleanGameState.hot_seat_profile_reveal_interval;
+          delete cleanGameState.hot_seat_profile_reveal_timeout;
 
           // Convert Set to Array for JSON serialization
           if (cleanGameState.processed_mod_messages instanceof Set) {
@@ -4922,6 +4936,66 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
+function clearHotSeatProfileRevealTimers() {
+  if (gameState.hot_seat_profile_reveal_interval) {
+    clearInterval(gameState.hot_seat_profile_reveal_interval);
+    gameState.hot_seat_profile_reveal_interval = null;
+  }
+
+  if (gameState.hot_seat_profile_reveal_timeout) {
+    clearTimeout(gameState.hot_seat_profile_reveal_timeout);
+    gameState.hot_seat_profile_reveal_timeout = null;
+  }
+}
+
+function maybeStartHotSeatTimer() {
+  if (!gameState.hot_seat_active) {
+    return;
+  }
+
+  if (!gameState.hot_seat_timer_pending) {
+    return;
+  }
+
+  if (gameState.hot_seat_profile_reveal_active) {
+    return;
+  }
+
+  if (!gameState.question_visible) {
+    return;
+  }
+
+  console.log('▶️ Starting hot seat timer now that profile spotlight has finished');
+  gameState.hot_seat_timer_pending = false;
+  startHotSeatTimer();
+}
+
+function completeHotSeatProfileReveal() {
+  if (!gameState.hot_seat_profile_reveal_active) {
+    return;
+  }
+
+  clearHotSeatProfileRevealTimers();
+
+  gameState.hot_seat_profile_reveal_active = false;
+  gameState.hot_seat_profile_reveal_remaining = 0;
+  gameState.hot_seat_profile_reveal_end_time = null;
+
+  broadcastToClients({
+    type: 'hot_seat_profile_reveal_complete',
+    user: gameState.hot_seat_user,
+    questionNumber: gameState.current_question + 1,
+    timestamp: Date.now()
+  });
+
+  if (gameState.hot_seat_pending_question_display) {
+    console.log('📺 Displaying question automatically now that the hot seat profile spotlight is complete');
+    executeShowQuestionAction({ skipHotSeatProfileCheck: true });
+  }
+
+  maybeStartHotSeatTimer();
+}
+
 function initializeHotSeatSession(selectedUsers, options = {}) {
   const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
 
@@ -4933,6 +5007,14 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   const selectionMethod = options.selectionMethod || 'manual';
   const primaryUser = uniqueUsers[0];
   const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
+  const providedProfileDurationMs = Number.isFinite(options.profileRevealDurationMs)
+    ? options.profileRevealDurationMs
+    : Number.isFinite(options.profileRevealDurationSeconds)
+      ? options.profileRevealDurationSeconds * 1000
+      : null;
+  const profileRevealDurationMs = Math.max(0, providedProfileDurationMs !== null
+    ? providedProfileDurationMs
+    : HOT_SEAT_PROFILE_REVEAL_DEFAULT_MS);
 
   // End any lingering entry countdown now that a session is beginning
   if (gameState.hot_seat_entry_timer_interval) {
@@ -4942,6 +5024,8 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   gameState.hot_seat_entry_active = false;
   gameState.hot_seat_entry_lookup = new Set();
 
+  clearHotSeatProfileRevealTimers();
+
   gameState.hot_seat_active = true;
   gameState.hot_seat_users = uniqueUsers;
   gameState.hot_seat_user = primaryUser;
@@ -4949,6 +5033,12 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
   gameState.hot_seat_correct = null;
+  gameState.hot_seat_timer_pending = true;
+  gameState.hot_seat_pending_question_display = true;
+  gameState.hot_seat_profile_reveal_active = true;
+  gameState.hot_seat_profile_reveal_duration = profileRevealDurationMs;
+  gameState.hot_seat_profile_reveal_remaining = Math.ceil(profileRevealDurationMs / 1000);
+  gameState.hot_seat_profile_reveal_end_time = Date.now() + profileRevealDurationMs;
 
   console.log(`🔥 HOT SEAT ACTIVATED for user: ${primaryUser} (Method: ${selectionMethod})`);
   if (uniqueUsers.length > 1) {
@@ -4979,13 +5069,54 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     });
   });
 
-  startHotSeatTimer();
+  broadcastToClients({
+    type: 'hot_seat_profile_reveal_started',
+    user: primaryUser,
+    durationMs: profileRevealDurationMs,
+    durationSeconds: Math.ceil(profileRevealDurationMs / 1000),
+    timestamp: Date.now()
+  });
+
+  clearHotSeatProfileRevealTimers();
+  gameState.hot_seat_profile_reveal_interval = setInterval(() => {
+    if (!gameState.hot_seat_profile_reveal_active) {
+      clearHotSeatProfileRevealTimers();
+      return;
+    }
+
+    const remainingMs = Math.max(0, (gameState.hot_seat_profile_reveal_end_time || Date.now()) - Date.now());
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+
+    gameState.hot_seat_profile_reveal_remaining = remainingSeconds;
+
+    broadcastToClients({
+      type: 'hot_seat_profile_countdown',
+      user: primaryUser,
+      remainingMs,
+      remainingSeconds,
+      durationMs: profileRevealDurationMs,
+      timestamp: Date.now()
+    });
+
+    if (remainingMs <= 0) {
+      if (gameState.hot_seat_profile_reveal_interval) {
+        clearInterval(gameState.hot_seat_profile_reveal_interval);
+        gameState.hot_seat_profile_reveal_interval = null;
+      }
+    }
+  }, 1000);
+
+  gameState.hot_seat_profile_reveal_timeout = setTimeout(() => {
+    completeHotSeatProfileReveal();
+  }, profileRevealDurationMs);
 
   broadcastToClients({
     type: 'hot_seat_activated',
     user: primaryUser,
     users: uniqueUsers,
     timer: timerDuration,
+    profileRevealDurationMs,
+    profileRevealDurationSeconds: Math.ceil(profileRevealDurationMs / 1000),
     questionNumber: gameState.current_question + 1,
     message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
     selectionMethod,
@@ -5082,13 +5213,15 @@ function startHotSeatTimer() {
   if (gameState.hot_seat_timer_interval) {
     clearInterval(gameState.hot_seat_timer_interval);
   }
-  
+
   // Clear any existing timer before creating new one
   if (gameState.hot_seat_timer_interval) {
     clearInterval(gameState.hot_seat_timer_interval);
     gameState.hot_seat_timer_interval = null;
   }
-  
+
+  gameState.hot_seat_timer_pending = false;
+
   gameState.hot_seat_timer_interval = setInterval(() => {
     gameState.hot_seat_timer--;
     
@@ -5130,6 +5263,79 @@ function startHotSeatTimer() {
       endHotSeat(false, true);
     }
   }, 1000);
+}
+
+function executeShowQuestionAction({ skipHotSeatProfileCheck = false } = {}) {
+  if (!skipHotSeatProfileCheck && gameState.hot_seat_active && gameState.hot_seat_profile_reveal_active) {
+    console.log('⏳ Hot seat profile spotlight active - deferring question display until spotlight ends');
+    gameState.hot_seat_pending_question_display = true;
+    return;
+  }
+
+  gameState.hot_seat_pending_question_display = false;
+  gameState.question_visible = true;
+
+  // Reset typewriter animation state for new question
+  gameState.typewriter_animation_complete = false;
+  console.log('⏳ Typewriter animation reset - Show Answers button will be disabled until typewriter completes');
+
+  // Clear any existing typewriter timeout
+  if (global.typewriterTimeout) {
+    clearTimeout(global.typewriterTimeout);
+  }
+
+  // Check if this is a milestone question for automatic hot seat (only if enabled)
+  const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
+  if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
+    console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
+
+    // Start entry period BEFORE showing the question
+    startHotSeatEntryPeriod();
+
+    // Delay showing the actual question until entry period ends
+    // The entry period will automatically draw winners when it ends
+    console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
+
+    // Hide the question temporarily
+    gameState.question_visible = false;
+
+    // Show question after entry period
+    setTimeout(() => {
+      console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
+      gameState.question_visible = true;
+      broadcastState();
+      maybeStartHotSeatTimer();
+    }, gameState.hot_seat_entry_duration + 2000); // Add 2 seconds after entry ends
+
+    return; // Exit early - question will be shown after entry period
+  }
+
+  // Server-side failsafe: auto-enable Show Answers button after 8 seconds
+  global.typewriterTimeout = setTimeout(() => {
+    if (!gameState.typewriter_animation_complete && gameState.question_visible) {
+      console.warn('⚠️ Typewriter animation timeout - auto-enabling Show Answers button as failsafe');
+      gameState.typewriter_animation_complete = true;
+      broadcastState();
+    }
+  }, 8000); // 8 second timeout - reasonable time for longest questions
+
+  // End any active poll when showing a new question
+  if (gameState.audience_poll_active) {
+    console.log('🔚 Ending active poll due to new question');
+    endAutomaticPoll();
+  }
+
+  console.log('Question shown - state updated');
+
+  // CRITICAL FIX: Broadcast the state update so OBS browser source updates immediately
+  broadcastState();
+  console.log('📡 Broadcasted question_visible state to all clients');
+
+  // Broadcast question music audio command
+  console.log('🎵 Broadcasting question music audio command');
+  broadcastToClients({ type: 'audio_command', command: 'play_question' });
+
+  maybeStartHotSeatTimer();
 }
 
 function processHotSeatAnswer(username, answer) {
@@ -5181,7 +5387,10 @@ function processHotSeatAnswer(username, answer) {
   // Set as selected answer for the game
   gameState.selected_answer = answerIndex;
   gameState.answer_locked_in = true;
-  
+
+  // Broadcast updated state so overlays reflect the locked answer
+  broadcastState();
+
   // Broadcast hot seat answer
   broadcastToClients({
     type: 'hot_seat_answered',
@@ -5197,7 +5406,7 @@ function processHotSeatAnswer(username, answer) {
 
 function endHotSeat(wasCorrect = null, timeout = false) {
   if (!gameState.hot_seat_active) return;
-  
+
   // Log the result if not already logged (timeout case logs earlier)
   if (!timeout && gameState.hot_seat_user) {
     const logEntry = {
@@ -5218,7 +5427,14 @@ function endHotSeat(wasCorrect = null, timeout = false) {
     clearInterval(gameState.hot_seat_timer_interval);
     gameState.hot_seat_timer_interval = null;
   }
-  
+
+  clearHotSeatProfileRevealTimers();
+  gameState.hot_seat_profile_reveal_active = false;
+  gameState.hot_seat_profile_reveal_remaining = 0;
+  gameState.hot_seat_profile_reveal_end_time = null;
+  gameState.hot_seat_pending_question_display = false;
+  gameState.hot_seat_timer_pending = false;
+
   // Broadcast hot seat end
   broadcastToClients({
     type: 'hot_seat_ended',
@@ -6935,6 +7151,8 @@ async function handleAPI(req, res, pathname) {
     delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
     delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
     delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+    delete cleanGameState.hot_seat_profile_reveal_interval;
+    delete cleanGameState.hot_seat_profile_reveal_timeout;
 
     // Convert Set to Array for JSON serialization
     if (cleanGameState.processed_mod_messages instanceof Set) {
@@ -8791,67 +9009,7 @@ async function handleAPI(req, res, pathname) {
             break;
             
           case 'show_question':
-            gameState.question_visible = true;
-            
-            // Reset typewriter animation state for new question
-            gameState.typewriter_animation_complete = false;
-            console.log('⏳ Typewriter animation reset - Show Answers button will be disabled until typewriter completes');
-            
-            // Clear any existing typewriter timeout
-            if (global.typewriterTimeout) {
-              clearTimeout(global.typewriterTimeout);
-            }
-            
-            // Check if this is a milestone question for automatic hot seat (only if enabled)
-            const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
-            if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
-              console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
-              
-              // Start entry period BEFORE showing the question
-              startHotSeatEntryPeriod();
-              
-              // Delay showing the actual question until entry period ends
-              // The entry period will automatically draw winners when it ends
-              console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
-              
-              // Hide the question temporarily
-              gameState.question_visible = false;
-              
-              // Show question after entry period
-              setTimeout(() => {
-                console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
-                gameState.question_visible = true;
-                broadcastState();
-              }, gameState.hot_seat_entry_duration + 2000); // Add 2 seconds after entry ends
-              
-              return; // Exit early - question will be shown after entry period
-            }
-            
-            // Server-side failsafe: auto-enable Show Answers button after 8 seconds
-            global.typewriterTimeout = setTimeout(() => {
-              if (!gameState.typewriter_animation_complete && gameState.question_visible) {
-                console.warn('⚠️ Typewriter animation timeout - auto-enabling Show Answers button as failsafe');
-                gameState.typewriter_animation_complete = true;
-                broadcastState();
-              }
-            }, 8000); // 8 second timeout - reasonable time for longest questions
-            
-            // End any active poll when showing a new question
-            if (gameState.audience_poll_active) {
-              console.log('🔚 Ending active poll due to new question');
-              endAutomaticPoll();
-            }
-            
-            console.log('Question shown - state updated');
-            
-            // CRITICAL FIX: Broadcast the state update so OBS browser source updates immediately
-            broadcastState();
-            console.log('📡 Broadcasted question_visible state to all clients');
-            
-            // Broadcast question music audio command
-            console.log('🎵 Broadcasting question music audio command');
-            broadcastToClients({ type: 'audio_command', command: 'play_question' });
-            
+            executeShowQuestionAction();
             break;
             
           case 'hide_question':
@@ -10955,10 +11113,12 @@ async function handleAPI(req, res, pathname) {
         delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
         delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
         delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+        delete cleanGameState.hot_seat_profile_reveal_interval;
+        delete cleanGameState.hot_seat_profile_reveal_timeout;
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, state: cleanGameState }));
-        
+
       } catch (error) {
         console.error('ERROR in control API:', error);
         res.writeHead(400, { 'Content-Type': 'application/json' });

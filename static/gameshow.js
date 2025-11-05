@@ -844,6 +844,18 @@ function handleWebSocketMessage(message) {
             handleHotSeatActivated(message);
             break;
 
+        case 'hot_seat_profile_reveal_started':
+            handleHotSeatProfileRevealStarted(message);
+            break;
+
+        case 'hot_seat_profile_countdown':
+            handleHotSeatProfileCountdown(message);
+            break;
+
+        case 'hot_seat_profile_reveal_complete':
+            handleHotSeatProfileRevealComplete(message);
+            break;
+
         case 'hot_seat_entry_started':
             handleHotSeatEntryStarted(message);
             break;
@@ -4149,6 +4161,8 @@ let hotSeatEntryState = {
 };
 
 let hotSeatProfileHideTimeout = null;
+let hotSeatProfileCountdownRemaining = null;
+let hotSeatProfileCountdownTotal = null;
 
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
@@ -4182,6 +4196,15 @@ function hideHotSeatProfileCard(instant = false) {
         return;
     }
 
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
+    if (countdownEl) {
+        countdownEl.classList.add('hidden');
+        countdownEl.textContent = '';
+    }
+
+    hotSeatProfileCountdownRemaining = null;
+    hotSeatProfileCountdownTotal = null;
+
     if (hotSeatProfileHideTimeout) {
         clearTimeout(hotSeatProfileHideTimeout);
         hotSeatProfileHideTimeout = null;
@@ -4204,7 +4227,7 @@ function hideHotSeatProfileCard(instant = false) {
     }, 400);
 }
 
-function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntries = [], alternateNames = [], selectionMethod = 'manual', announcement = '') {
+function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntries = [], alternateNames = [], selectionMethod = 'manual', announcement = '', options = {}) {
     const overlay = document.getElementById('hot-seat-profile-overlay');
     if (!overlay) {
         return;
@@ -4212,9 +4235,15 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     hideHotSeatProfileCard(true);
 
+    const { displayDurationMs, countdownSeconds = null } = options || {};
+    const fallbackDuration = typeof displayDurationMs === 'number' && displayDurationMs > 0
+        ? displayDurationMs
+        : 8000;
+
     const nameEl = document.getElementById('hot-seat-profile-name');
     const taglineEl = document.getElementById('hot-seat-profile-tagline');
     const blurbEl = document.getElementById('hot-seat-profile-blurb');
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
     const dividerEl = document.getElementById('hot-seat-profile-divider');
     const storyEl = document.getElementById('hot-seat-profile-story');
     const alternatesEl = document.getElementById('hot-seat-profile-alternates');
@@ -4266,6 +4295,19 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
         }
     }
 
+    if (countdownEl) {
+        const initialCountdown = typeof countdownSeconds === 'number' ? Math.max(0, countdownSeconds) : null;
+        hotSeatProfileCountdownTotal = initialCountdown;
+        hotSeatProfileCountdownRemaining = initialCountdown;
+
+        if (initialCountdown !== null) {
+            updateHotSeatProfileCountdownDisplay(initialCountdown, initialCountdown);
+        } else {
+            countdownEl.classList.add('hidden');
+            countdownEl.textContent = '';
+        }
+    }
+
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
 
@@ -4277,9 +4319,36 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
         clearTimeout(hotSeatProfileHideTimeout);
     }
 
-    hotSeatProfileHideTimeout = setTimeout(() => {
-        hideHotSeatProfileCard();
-    }, 8000);
+    if (fallbackDuration > 0) {
+        hotSeatProfileHideTimeout = setTimeout(() => {
+            hideHotSeatProfileCard();
+        }, fallbackDuration);
+    } else {
+        hotSeatProfileHideTimeout = null;
+    }
+}
+
+function updateHotSeatProfileCountdownDisplay(remainingSeconds = null, totalSeconds = null) {
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
+    if (!countdownEl) {
+        return;
+    }
+
+    if (typeof remainingSeconds === 'number') {
+        if (remainingSeconds > 0) {
+            const prefix = totalSeconds && totalSeconds >= remainingSeconds
+                ? 'Question begins in '
+                : '';
+            countdownEl.textContent = `${prefix}${remainingSeconds}s`;
+            countdownEl.classList.remove('hidden');
+        } else {
+            countdownEl.textContent = 'Question starting...';
+            countdownEl.classList.remove('hidden');
+        }
+    } else {
+        countdownEl.textContent = '';
+        countdownEl.classList.add('hidden');
+    }
 }
 
 function mergeHotSeatEntryState(partial = {}) {
@@ -4306,6 +4375,103 @@ function mergeHotSeatEntryState(partial = {}) {
     currentState.hot_seat_entry_last_join = hotSeatEntryState.lastJoin;
 
     updateInfoPanel(currentState);
+}
+
+function setHotSeatAnsweringStatus(primaryUser, participants = []) {
+    const statusEl = document.getElementById('hot-seat-status');
+    if (!statusEl) {
+        return;
+    }
+
+    if (participants.length > 1) {
+        statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
+    } else {
+        statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+    }
+
+    statusEl.style.color = '';
+}
+
+function handleHotSeatProfileRevealStarted(message) {
+    const durationSeconds = typeof message.durationSeconds === 'number'
+        ? Math.max(0, message.durationSeconds)
+        : (typeof message.durationMs === 'number' ? Math.max(0, Math.ceil(message.durationMs / 1000)) : null);
+
+    hotSeatProfileCountdownTotal = durationSeconds;
+    hotSeatProfileCountdownRemaining = durationSeconds;
+
+    updateHotSeatProfileCountdownDisplay(durationSeconds, durationSeconds);
+
+    if (!currentState || typeof currentState !== 'object') {
+        currentState = {};
+    }
+
+    currentState.hot_seat_profile_reveal_active = true;
+    currentState.hot_seat_profile_reveal_remaining = durationSeconds;
+}
+
+function handleHotSeatProfileCountdown(message) {
+    const remainingSeconds = typeof message.remainingSeconds === 'number'
+        ? Math.max(0, message.remainingSeconds)
+        : (typeof message.remainingMs === 'number' ? Math.max(0, Math.ceil(message.remainingMs / 1000)) : null);
+
+    if (remainingSeconds !== null) {
+        hotSeatProfileCountdownRemaining = remainingSeconds;
+        if (typeof message.durationMs === 'number' && !hotSeatProfileCountdownTotal) {
+            hotSeatProfileCountdownTotal = Math.max(0, Math.ceil(message.durationMs / 1000));
+        }
+
+        updateHotSeatProfileCountdownDisplay(remainingSeconds, hotSeatProfileCountdownTotal);
+
+        const statusEl = document.getElementById('hot-seat-status');
+        if (statusEl && remainingSeconds > 0) {
+            statusEl.textContent = `Profile spotlight in progress. Question begins in ${remainingSeconds}s.`;
+            statusEl.style.color = '';
+        }
+
+        if (!currentState || typeof currentState !== 'object') {
+            currentState = {};
+        }
+
+        currentState.hot_seat_profile_reveal_active = remainingSeconds > 0;
+        currentState.hot_seat_profile_reveal_remaining = remainingSeconds;
+    }
+}
+
+function handleHotSeatProfileRevealComplete(message) {
+    hotSeatProfileCountdownRemaining = 0;
+    updateHotSeatProfileCountdownDisplay(0, hotSeatProfileCountdownTotal);
+
+    if (!currentState || typeof currentState !== 'object') {
+        currentState = {};
+    }
+
+    currentState.hot_seat_profile_reveal_active = false;
+    currentState.hot_seat_profile_reveal_remaining = 0;
+
+    const primaryUser = message && message.user
+        ? message.user
+        : (currentState.hot_seat_user || 'Mystery Player');
+    const participants = Array.isArray(currentState.hot_seat_users) ? currentState.hot_seat_users : [primaryUser];
+
+    const statusEl = document.getElementById('hot-seat-status');
+    if (statusEl) {
+        statusEl.textContent = 'Question starting now!';
+        statusEl.style.color = '';
+    }
+
+    const infoDetails = document.getElementById('info-details');
+    if (infoDetails) {
+        infoDetails.textContent = 'Only the hot seat player can lock in an answer during this round.';
+    }
+
+    setTimeout(() => {
+        setHotSeatAnsweringStatus(primaryUser, participants);
+    }, 500);
+
+    setTimeout(() => {
+        hideHotSeatProfileCard();
+    }, 600);
 }
 
 function handleHotSeatEntryStarted(message) {
@@ -4399,13 +4565,29 @@ function handleHotSeatActivated(message) {
     }
 
     const alternateNames = participants.slice(1);
+    const profileRevealDurationMs = typeof message.profileRevealDurationMs === 'number'
+        ? message.profileRevealDurationMs
+        : (typeof message.profileRevealDurationSeconds === 'number'
+            ? message.profileRevealDurationSeconds * 1000
+            : null);
+    const profileRevealDurationSeconds = typeof message.profileRevealDurationSeconds === 'number'
+        ? Math.max(0, message.profileRevealDurationSeconds)
+        : (profileRevealDurationMs !== null ? Math.max(0, Math.ceil(profileRevealDurationMs / 1000)) : null);
+    const profileDisplayDurationMs = profileRevealDurationMs !== null
+        ? profileRevealDurationMs + 5000
+        : 45000;
+
     showHotSeatProfileCard(
         primaryUser,
         message.profile || null,
         Array.isArray(message.alternateProfiles) ? message.alternateProfiles : [],
         alternateNames,
         message.selectionMethod || 'manual',
-        message.message || ''
+        message.message || '',
+        {
+            displayDurationMs: profileDisplayDurationMs,
+            countdownSeconds: profileRevealDurationSeconds
+        }
     );
 
     const display = document.getElementById("hot-seat-display");
@@ -4426,11 +4608,10 @@ function handleHotSeatActivated(message) {
         timerEl.textContent = `${timerValue}s`;
         timerEl.className = "hot-seat-timer";
         statusEl.style.color = "";
-
-        if (participants.length > 1) {
-            statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
+        if (profileRevealDurationSeconds !== null && profileRevealDurationSeconds > 0) {
+            statusEl.textContent = `Profile spotlight in progress. Question begins in ${profileRevealDurationSeconds}s.`;
         } else {
-            statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+            statusEl.textContent = 'Profile spotlight in progress. Question begins soon.';
         }
     }
 
@@ -4440,12 +4621,15 @@ function handleHotSeatActivated(message) {
         infoMessage.textContent = `🔥 HOT SEAT: ${primaryUser} is live!`;
     }
     if (infoDetails) {
-        infoDetails.textContent = 'Only the hot seat player can lock in an answer during this round.';
+        infoDetails.textContent = 'Spotlight on their story. Question begins after the countdown.';
     }
 
     const bannerMessageParts = [`${primaryUser} is on the hot seat now!`];
     if (participants.length > 1) {
         bannerMessageParts.push(`Alternates: ${participants.slice(1).join(', ')}`);
+    }
+    if (profileRevealDurationSeconds !== null && profileRevealDurationSeconds > 0) {
+        bannerMessageParts.push(`Question in ${profileRevealDurationSeconds}s.`);
     }
     bannerMessageParts.push('Lions cheer them on!');
 
@@ -4476,6 +4660,8 @@ function handleHotSeatActivated(message) {
         currentState.hot_seat_user = primaryUser;
         currentState.hot_seat_users = participants;
         currentState.hot_seat_timer = timerValue;
+        currentState.hot_seat_profile_reveal_active = true;
+        currentState.hot_seat_profile_reveal_remaining = profileRevealDurationSeconds;
     }
 
     const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playLockIn === 'function')
