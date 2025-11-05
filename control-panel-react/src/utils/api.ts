@@ -186,6 +186,22 @@ export const gameApi = {
     return response.json();
   },
 
+  uploadHotSeatProfiles: async (profiles: Record<string, any>) => {
+    const response = await fetch(`${API_BASE}/control`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action: 'upload_hot_seat_profiles', profiles }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.json();
+  },
+
   resetGame: async () => {
     const response = await fetch(`${API_BASE}/control`, {
       method: 'POST',
@@ -395,20 +411,6 @@ export const gameApi = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'end_game_credits' }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return response.json();
-  },
-
-  startCreditsScroll: async () => {
-    const response = await fetch(`${API_BASE}/control`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'start_credits_scroll' }),
     });
     
     if (!response.ok) {

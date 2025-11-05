@@ -4044,15 +4044,16 @@ function showCredits(participants) {
             overlay.style.opacity = '0';
             
             // Hide completely after fade
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                overlay.style.opacity = '';
-                overlay.style.transition = '';
-                
-                // Clear the local credits state
-                if (currentState) {
-                    currentState.credits_rolling = false;
-                    currentState.credits_displayed = false;
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                    overlay.style.opacity = '';
+                    overlay.style.transition = '';
+                    overlay.classList.remove('credits-roll-active');
+
+                    // Clear the local credits state
+                    if (currentState) {
+                        currentState.credits_rolling = false;
+                        currentState.credits_displayed = false;
                 }
                 
                 // Notify server that credits are complete
@@ -4085,7 +4086,8 @@ function showCredits(participants) {
                 overlay.classList.add('hidden');
                 overlay.style.opacity = '';
                 overlay.style.transition = '';
-                
+                overlay.classList.remove('credits-roll-active');
+
                 if (currentState) {
                     currentState.credits_rolling = false;
                     currentState.credits_displayed = false;
@@ -4108,6 +4110,7 @@ function hideCredits() {
     const overlay = document.getElementById('credits-overlay');
     if (overlay) {
         overlay.classList.add('hidden');
+        overlay.classList.remove('credits-roll-active');
         console.log('🎬 Hiding credits');
     }
 }
@@ -4145,6 +4148,140 @@ let hotSeatEntryState = {
     lastJoin: null
 };
 
+let hotSeatProfileHideTimeout = null;
+
+function escapeHtml(unsafe = '') {
+    return (unsafe || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function formatHotSeatSelectionMethod(method) {
+    switch (method) {
+        case 'join_entry':
+            return 'Random draw from JOIN entries';
+        case 'participants':
+            return 'Selected from participant pool';
+        case 'recent_chat':
+            return 'Recent chat spotlight';
+        case 'poll_history':
+            return 'Selected from poll history';
+        case 'manual':
+            return 'Host selected hot seat';
+        default:
+            return 'Hot seat selection';
+    }
+}
+
+function hideHotSeatProfileCard(instant = false) {
+    const overlay = document.getElementById('hot-seat-profile-overlay');
+    if (!overlay) {
+        return;
+    }
+
+    if (hotSeatProfileHideTimeout) {
+        clearTimeout(hotSeatProfileHideTimeout);
+        hotSeatProfileHideTimeout = null;
+    }
+
+    if (overlay.classList.contains('hidden')) {
+        return;
+    }
+
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('show');
+
+    if (instant) {
+        overlay.classList.add('hidden');
+        return;
+    }
+
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 400);
+}
+
+function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntries = [], alternateNames = [], selectionMethod = 'manual', announcement = '') {
+    const overlay = document.getElementById('hot-seat-profile-overlay');
+    if (!overlay) {
+        return;
+    }
+
+    hideHotSeatProfileCard(true);
+
+    const nameEl = document.getElementById('hot-seat-profile-name');
+    const taglineEl = document.getElementById('hot-seat-profile-tagline');
+    const blurbEl = document.getElementById('hot-seat-profile-blurb');
+    const dividerEl = document.getElementById('hot-seat-profile-divider');
+    const storyEl = document.getElementById('hot-seat-profile-story');
+    const alternatesEl = document.getElementById('hot-seat-profile-alternates');
+
+    if (nameEl) {
+        nameEl.textContent = (profileData && profileData.displayName) || primaryUser;
+    }
+
+    if (taglineEl) {
+        taglineEl.textContent = formatHotSeatSelectionMethod(selectionMethod || 'manual');
+    }
+
+    if (blurbEl) {
+        const defaultBlurb = announcement && announcement.trim().length > 0
+            ? announcement
+            : `${primaryUser} has been selected for the hot seat! Cheer them on!`;
+        blurbEl.textContent = defaultBlurb;
+    }
+
+    const hasStory = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
+    if (storyEl && dividerEl) {
+        if (hasStory) {
+            storyEl.innerHTML = profileData.storyHtml;
+            storyEl.classList.remove('hidden');
+            dividerEl.classList.remove('hidden');
+        } else {
+            storyEl.innerHTML = '';
+            storyEl.classList.add('hidden');
+            dividerEl.classList.add('hidden');
+        }
+    }
+
+    if (alternatesEl) {
+        const fallbackNames = Array.isArray(alternateNames) ? alternateNames : [];
+        const uploadedNames = Array.isArray(alternateProfileEntries)
+            ? alternateProfileEntries
+                .map(entry => (entry && entry.profile && (entry.profile.displayName || entry.profile.username || entry.username)) || null)
+                .filter(Boolean)
+            : [];
+
+        const combined = (uploadedNames.length > 0 ? uploadedNames : fallbackNames).filter(Boolean);
+
+        if (combined.length > 0) {
+            alternatesEl.innerHTML = `<span class="hot-seat-profile-alt-label">Alternates:</span> ${combined.map(name => escapeHtml(name)).join(', ')}`;
+            alternatesEl.classList.remove('hidden');
+        } else {
+            alternatesEl.classList.add('hidden');
+            alternatesEl.innerHTML = '';
+        }
+    }
+
+    overlay.classList.remove('hidden');
+    overlay.setAttribute('aria-hidden', 'false');
+
+    requestAnimationFrame(() => {
+        overlay.classList.add('show');
+    });
+
+    if (hotSeatProfileHideTimeout) {
+        clearTimeout(hotSeatProfileHideTimeout);
+    }
+
+    hotSeatProfileHideTimeout = setTimeout(() => {
+        hideHotSeatProfileCard();
+    }, 8000);
+}
+
 function mergeHotSeatEntryState(partial = {}) {
     hotSeatEntryState = {
         active: partial.active !== undefined ? partial.active : hotSeatEntryState.active,
@@ -4175,6 +4312,8 @@ function handleHotSeatEntryStarted(message) {
     const durationMs = typeof message.duration === 'number' ? message.duration : 0;
     const remainingSeconds = Math.max(0, Math.ceil(durationMs / 1000));
     const entryMessage = message.message || 'Type JOIN in chat to enter the hot seat!';
+
+    hideHotSeatProfileCard(true);
 
     mergeHotSeatEntryState({
         active: true,
@@ -4258,6 +4397,16 @@ function handleHotSeatActivated(message) {
     if (participants.length > 1) {
         console.log("👥 Additional hot seat participants:", participants.slice(1).join(', '));
     }
+
+    const alternateNames = participants.slice(1);
+    showHotSeatProfileCard(
+        primaryUser,
+        message.profile || null,
+        Array.isArray(message.alternateProfiles) ? message.alternateProfiles : [],
+        alternateNames,
+        message.selectionMethod || 'manual',
+        message.message || ''
+    );
 
     const display = document.getElementById("hot-seat-display");
     const userEl = document.getElementById("hot-seat-user");
@@ -4451,6 +4600,8 @@ function handleHotSeatEnded(message) {
     document.body.classList.remove('hot-seat-active');
 
     setHotSeatBanner({ visible: false });
+
+    hideHotSeatProfileCard();
 }
 
 // Leaderboard Display Functions
@@ -4487,11 +4638,21 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     const overlay = document.getElementById('leaderboard-overlay');
     const periodBadge = document.getElementById('leaderboard-period');
     const listContainer = document.getElementById('leaderboard-list');
-    
+    const header = document.querySelector('.leaderboard-overlay-header h2');
+
     if (!overlay || !periodBadge || !listContainer) {
         console.error('❌ Leaderboard elements not found');
         return;
     }
+
+    if (header) {
+        header.textContent = '🏆 LEADERBOARD';
+        header.style.fontSize = '';
+        header.style.animation = '';
+    }
+
+    periodBadge.style.background = '';
+    periodBadge.style.animation = '';
     
     // Store current period
     currentLeaderboardPeriod = period;
@@ -4666,206 +4827,32 @@ function showEndGameLeaderboard(winners, prizeConfig) {
 // Start credits roll
 function startCreditsRoll() {
     console.log('🎬 Starting credits roll...');
-    
+
     // Hide the winners leaderboard first
     hideLeaderboard();
-    
-    // Create credits overlay if it doesn't exist
-    let creditsOverlay = document.getElementById('credits-overlay');
+
+    const creditsOverlay = document.getElementById('credits-overlay');
     if (!creditsOverlay) {
-        creditsOverlay = document.createElement('div');
-        creditsOverlay.id = 'credits-overlay';
-        creditsOverlay.className = 'credits-overlay';
-        creditsOverlay.innerHTML = `
-            <div class="credits-container">
-                <div class="credits-content" id="credits-content">
-                    <div class="credits-section">
-                        <h1 class="credits-title">🎮 KIMBILLIONAIRE 🎮</h1>
-                        <p class="credits-subtitle">Thank you for playing!</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Created By</h2>
-                        <p class="credits-name">KageWins</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Game Host</h2>
-                        <p class="credits-name">AI Roary</p>
-                        <p class="credits-role">Powered by Gemini 2.5 Pro</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Technical Development</h2>
-                        <p class="credits-name">Bridge Server System</p>
-                        <p class="credits-role">WebSocket Architecture</p>
-                        <p class="credits-name">React Control Panel</p>
-                        <p class="credits-role">Live Broadcasting Integration</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Special Thanks</h2>
-                        <p class="credits-name">Our Amazing Community</p>
-                        <p class="credits-name">All Players & Participants</p>
-                        <p class="credits-name">Twitch Chat</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Audio & Visual Effects</h2>
-                        <p class="credits-role">Applause Sound Effects</p>
-                        <p class="credits-role">Question Music</p>
-                        <p class="credits-role">Lock-In Effects</p>
-                        <p class="credits-role">Confetti Celebrations</p>
-                    </div>
-                    
-                    <div class="credits-section">
-                        <h2 class="credits-heading">Powered By</h2>
-                        <p class="credits-name">OBS Studio</p>
-                        <p class="credits-name">Node.js & React</p>
-                        <p class="credits-name">WebSocket Technology</p>
-                    </div>
-                    
-                    <div class="credits-section" style="margin-top: 100px;">
-                        <h1 class="credits-title">🏆 Congratulations Winners! 🏆</h1>
-                        <p class="credits-subtitle">See you next game!</p>
-                    </div>
-                    
-                    <div class="credits-section" style="margin-top: 200px;">
-                        <p class="credits-copyright">© 2025 Kimbillionaire Gameshow</p>
-                        <p class="credits-copyright">All Rights Reserved</p>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(creditsOverlay);
+        console.error('❌ Credits overlay not found in DOM');
+        return;
     }
-    
-    // Add CSS for credits if not already added
-    if (!document.getElementById('credits-styles')) {
-        const creditsStyles = document.createElement('style');
-        creditsStyles.id = 'credits-styles';
-        creditsStyles.textContent = `
-            .credits-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(180deg, #000428 0%, #004e92 100%);
-                z-index: 10000;
-                display: none;
-                overflow: hidden;
-            }
-            
-            .credits-container {
-                width: 100%;
-                height: 100%;
-                position: relative;
-                display: flex;
-                justify-content: center;
-                align-items: flex-end;
-            }
-            
-            .credits-content {
-                text-align: center;
-                color: white;
-                animation: creditsRoll 30s linear;
-                padding-bottom: 100vh;
-            }
-            
-            .credits-section {
-                margin-bottom: 80px;
-            }
-            
-            .credits-title {
-                font-size: 60px;
-                font-weight: bold;
-                color: #FFD700;
-                text-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-                margin-bottom: 20px;
-            }
-            
-            .credits-subtitle {
-                font-size: 28px;
-                color: #FFA500;
-                margin-bottom: 40px;
-            }
-            
-            .credits-heading {
-                font-size: 36px;
-                color: #FFD700;
-                margin-bottom: 15px;
-                text-transform: uppercase;
-                letter-spacing: 2px;
-            }
-            
-            .credits-name {
-                font-size: 24px;
-                color: #FFFFFF;
-                margin: 10px 0;
-                font-weight: 500;
-            }
-            
-            .credits-role {
-                font-size: 18px;
-                color: #B0B0B0;
-                margin: 5px 0;
-                font-style: italic;
-            }
-            
-            .credits-copyright {
-                font-size: 16px;
-                color: #808080;
-                margin: 5px 0;
-            }
-            
-            @keyframes creditsRoll {
-                0% {
-                    transform: translateY(100%);
-                }
-                100% {
-                    transform: translateY(-100%);
-                }
-            }
-            
-            @keyframes fadeInCredits {
-                0% {
-                    opacity: 0;
-                }
-                100% {
-                    opacity: 1;
-                }
-            }
-        `;
-        document.head.appendChild(creditsStyles);
+
+    const participants = currentState && Array.isArray(currentState.gameshow_participants)
+        ? currentState.gameshow_participants
+        : [];
+
+    const subtitleEl = creditsOverlay.querySelector('.credits-subtitle');
+    if (subtitleEl && currentState && currentState.prizeConfiguration && currentState.prizeConfiguration.customMessage) {
+        subtitleEl.textContent = currentState.prizeConfiguration.customMessage;
     }
-    
-    // Show credits with fade in
-    creditsOverlay.style.display = 'block';
-    creditsOverlay.style.opacity = '0';
-    creditsOverlay.style.animation = 'fadeInCredits 2s forwards';
-    
-    // Play end game music if available
-    if (window.soundSystem && window.soundSystem.playApplause) {
+
+    creditsOverlay.classList.add('credits-roll-active');
+
+    showCredits(participants);
+
+    if (window.soundSystem && typeof window.soundSystem.playApplause === 'function') {
         window.soundSystem.playApplause();
     }
-    
-    // Hide credits after animation completes (30 seconds)
-    setTimeout(() => {
-        creditsOverlay.style.animation = 'fadeInCredits 2s reverse';
-        setTimeout(() => {
-            creditsOverlay.style.display = 'none';
-            console.log('🎬 Credits roll completed');
-            
-            // Broadcast credits completed
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'credits_complete',
-                    timestamp: Date.now()
-                }));
-            }
-        }, 2000);
-    }, 32000); // 30s for roll + 2s for fade out
 }
 
 // Create massive confetti effect for winners

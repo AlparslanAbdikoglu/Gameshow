@@ -200,6 +200,118 @@
   margin-top: 16px;
 }
 
+.creditsStatusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.creditsStatusCard {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.creditsStatusLabel {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.creditsStatusValue {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffd700;
+}
+
+.creditsStatusSubtext {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.creditsStatusActive {
+  color: #ffd700;
+}
+
+.creditsStatusIdle {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.creditsButtonRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.hotSeatUpload {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hotSeatUpload label {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hotSeatUpload input[type='file'] {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 215, 0, 0.4);
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+}
+
+.hotSeatUpload input[type='file']::file-selector-button {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.hotSeatUpload input[type='file']:disabled::file-selector-button {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hotSeatUpload input[type='file']::file-selector-button:hover {
+  background: rgba(255, 215, 0, 0.25);
+}
+
+.uploadStatusRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.uploadStatus {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.uploadStatusError {
+  font-size: 13px;
+  color: #ff6b6b;
+}
+
 /* Clean Professional Button Styles */
 .primaryBtn {
   background: linear-gradient(135deg, var(--gold), #FFA500);

@@ -31,8 +31,6 @@ interface QuestionControlSectionProps {
   onHideQuestion: () => void;
   onNextQuestion: () => void;
   onPreviousQuestion: () => void;
-  onEndGameCredits?: () => void;
-  onStartCreditsScroll?: () => void;
   onStartLifelineVote?: () => void;
   onEndLifelineVoting?: () => void;
   onShowFinalLeaderboard?: () => void;
@@ -40,7 +38,7 @@ interface QuestionControlSectionProps {
   disabled?: boolean;
 }
 
-const QuestionControlSection: React.FC<QuestionControlSectionProps> = React.memo(({
+const QuestionControlSection: React.FC<QuestionControlSectionProps> = React.memo(({ 
   gameState,
   questionVisible,
   answersVisible,
@@ -54,8 +52,6 @@ const QuestionControlSection: React.FC<QuestionControlSectionProps> = React.memo
   onHideQuestion,
   onNextQuestion,
   onPreviousQuestion,
-  onEndGameCredits,
-  onStartCreditsScroll,
   onStartLifelineVote,
   onEndLifelineVoting,
   onShowFinalLeaderboard,
