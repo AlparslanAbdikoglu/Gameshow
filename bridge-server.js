@@ -87,6 +87,72 @@ function sanitizeProfileHtml(html = '') {
   return sanitized.trim();
 }
 
+function escapeProfileStoryText(value = '') {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function convertStoryTextToHtml(text = '') {
+  if (typeof text !== 'string') {
+    return '';
+  }
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const blocks = trimmed.split(/\r?\n{2,}/);
+
+  return blocks
+    .map((block) => {
+      const lines = block
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length === 0) {
+        return '';
+      }
+
+      if (lines.every((line) => /^[-*]\s+/.test(line))) {
+        const items = lines
+          .map((line) => line.replace(/^[-*]\s+/, ''))
+          .map((line) => `<li>${escapeProfileStoryText(line)}</li>`)
+          .join('');
+        return `<ul>${items}</ul>`;
+      }
+
+      const paragraph = lines.join(' ');
+      return `<p>${escapeProfileStoryText(paragraph)}</p>`;
+    })
+    .filter(Boolean)
+    .join('');
+}
+
+function extractStoryTextFromHtml(html = '') {
+  if (typeof html !== 'string') {
+    return '';
+  }
+
+  return html
+    .replace(/<\/?li>/gi, (match) => (match.startsWith('</') ? '\n' : '\n• '))
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/?p>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/\r/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 const HOT_SEAT_PROFILE_REVEAL_DEFAULT_MS = 45000;
 
 function buildHotSeatProfileMap(profiles = {}) {
@@ -114,13 +180,22 @@ function buildHotSeatProfileMap(profiles = {}) {
       return;
     }
 
+    const rawStoryHtml = typeof profile.storyHtml === 'string' ? profile.storyHtml : '';
+    const rawStoryText = typeof profile.storyText === 'string' ? profile.storyText : '';
+    const fallbackStory = typeof profile.story === 'string' ? profile.story : '';
+
+    const combinedStoryText = rawStoryText || fallbackStory || '';
+    const storyHtmlSource = rawStoryHtml || convertStoryTextToHtml(combinedStoryText);
+    const sanitizedStoryHtml = sanitizeProfileHtml(storyHtmlSource);
+    const resolvedStoryText = rawStoryText || extractStoryTextFromHtml(sanitizedStoryHtml);
+
     sanitizedProfiles[normalized] = {
       username: sourceUsername,
       displayName: typeof profile.displayName === 'string' && profile.displayName.trim()
         ? profile.displayName.trim()
         : sourceUsername,
-      storyHtml: sanitizeProfileHtml(profile.storyHtml || profile.story || ''),
-      storyText: typeof profile.storyText === 'string' ? profile.storyText.trim() : '',
+      storyHtml: sanitizedStoryHtml,
+      storyText: typeof resolvedStoryText === 'string' ? resolvedStoryText.trim() : '',
       lastUpdated: Date.now()
     };
   });
@@ -139,11 +214,18 @@ function getHotSeatProfile(username) {
     return null;
   }
 
+  const storyHtml = profile.storyHtml && profile.storyHtml.trim().length > 0
+    ? profile.storyHtml
+    : sanitizeProfileHtml(convertStoryTextToHtml(profile.storyText || ''));
+  const storyText = profile.storyText && profile.storyText.trim().length > 0
+    ? profile.storyText
+    : extractStoryTextFromHtml(storyHtml || '');
+
   return {
     username: profile.username,
     displayName: profile.displayName || profile.username,
-    storyHtml: profile.storyHtml || '',
-    storyText: profile.storyText || ''
+    storyHtml: storyHtml || '',
+    storyText: storyText || ''
   };
 }
 
@@ -2658,6 +2740,19 @@ wss.on('connection', (ws, req) => {
 let lastBroadcastTime = 0;
 const BROADCAST_THROTTLE_MS = 100; // Minimum 100ms between broadcasts
 
+function safeJsonStringify(payload) {
+  return JSON.stringify(payload, (key, value) => {
+    if (value && typeof value === 'object') {
+      const constructorName = value.constructor && value.constructor.name;
+      if (constructorName === 'Timeout' || constructorName === 'Immediate') {
+        return undefined;
+      }
+    }
+
+    return value;
+  });
+}
+
 // Broadcast state updates to all connected clients
 function broadcastState(force = false, critical = false) {
   // Throttle broadcasts to prevent browser overload (unless forced or critical)
@@ -2705,7 +2800,7 @@ function broadcastState(force = false, critical = false) {
   // Include prize amounts for money ladder
   cleanGameState.prizes = prizeAmounts;
   
-  const message = JSON.stringify({
+  const message = safeJsonStringify({
     type: 'state',
     data: cleanGameState
   });
