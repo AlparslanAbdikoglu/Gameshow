@@ -77,9 +77,13 @@ function sanitizeProfileHtml(html = '') {
 
   sanitized = sanitized.replace(/<([a-z][^>]*)>/gi, (fullTag, tagContent) => {
     let cleaned = tagContent
-      .replace(/\s+on[a-z0-9_-]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-      .replace(/\s+on[a-z0-9_-]+(?=\s|\/?>)/gi, '')
-      .replace(/\s+(?:href|src|xlink:href)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|javascript:[^\s>]+)/gi, '');
+      // Remove on* event handlers regardless of quoting style
+      .replace(/\s+on[a-z0-9_-]+(?:\s*=\s*(?:"[^"]*"|'[^']*'|`[^`]*`|[^\s>]+))?/gi, '')
+      // Remove javascript: URIs from common navigational attributes
+      .replace(/\s+(?:href|src|xlink:href)\s*=\s*(?:"\s*javascript:[^"]*"|'\s*javascript:[^']*'|`\s*javascript:[^`]*`|javascript:[^\s>]+)/gi, '');
+
+    // Collapse multiple spaces left over from removals
+    cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
 
     return `<${cleaned}>`;
   });
