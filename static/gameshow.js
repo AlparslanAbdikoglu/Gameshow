@@ -4278,10 +4278,16 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
         blurbEl.textContent = defaultBlurb;
     }
 
-    const hasStory = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
+const hasStoryHtml = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
+    const hasStoryText = Boolean(profileData && typeof profileData.storyText === 'string' && profileData.storyText.trim().length > 0);
     if (storyEl && dividerEl) {
-        if (hasStory) {
+        if (hasStoryHtml) {
             storyEl.innerHTML = profileData.storyHtml;
+            storyEl.classList.remove('hidden');
+            dividerEl.classList.remove('hidden');
+        } else if (hasStoryText) {
+            const safe = escapeHtml(profileData.storyText).replace(/\n/g, '<br>');
+            storyEl.innerHTML = safe;
             storyEl.classList.remove('hidden');
             dividerEl.classList.remove('hidden');
         } else {
@@ -4358,6 +4364,31 @@ function mergeHotSeatEntryState(partial = {}) {
     currentState.hot_seat_entry_last_join = hotSeatEntryState.lastJoin;
 
     updateInfoPanel(currentState);
+}
+
+// ===== Hot Seat UI helpers =====
+function setHotSeatBanner({ visible, mode, title, message } = {}) {
+    const banner = document.getElementById('hot-seat-banner');
+    const heading = document.getElementById('hot-seat-banner-heading');
+    const msg = document.getElementById('hot-seat-banner-message');
+    if (!banner) return;
+
+    if (visible) {
+        banner.classList.remove('hidden');
+        banner.setAttribute('aria-hidden', 'false');
+    } else {
+        banner.classList.add('hidden');
+        banner.setAttribute('aria-hidden', 'true');
+    }
+
+    if (mode === 'active') {
+        banner.classList.add('active-mode');
+    } else {
+        banner.classList.remove('active-mode');
+    }
+
+    if (heading && typeof title === 'string') heading.textContent = title;
+    if (msg && typeof message === 'string') msg.textContent = message;
 }
 
 function handleHotSeatEntryStarted(message) {
@@ -4615,6 +4646,7 @@ function handleHotSeatTimeout(message) {
 
 function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
+
 
     // Hide hot seat display
     const display = document.getElementById("hot-seat-display");
