@@ -266,6 +266,33 @@
   font-weight: 600;
 }
 
+.customUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 215, 0, 0.35);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.18), rgba(255, 140, 0, 0.22));
+  color: #ffd700;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+  width: fit-content;
+}
+
+.customUploadButton:hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.28), rgba(255, 140, 0, 0.32));
+  transform: translateY(-1px);
+}
+
+.customUploadButton[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .hotSeatUpload input[type='file'] {
   width: 100%;
   padding: 12px;
@@ -310,6 +337,37 @@
 .uploadStatusError {
   font-size: 13px;
   color: #ff6b6b;
+}
+
+.hotSeatStoryCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.hotSeatStoryLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.hotSeatStoryText {
+  flex: 1;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 13px;
+  line-height: 1.5;
+  max-height: 6.5em;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
 }
 
 /* Clean Professional Button Styles */

@@ -139,6 +139,48 @@ const convertProfileStoryToHtml = (raw: string) => {
   };
 };
 
+const stripProfileHtmlTags = (value: string) => value.replace(/<[^>]*>/g, ' ');
+const normalizeProfilePreview = (value: string) => value.replace(/\s+/g, ' ').trim();
+const truncateProfilePreview = (value: string, maxLength = 220) => {
+  const normalized = normalizeProfilePreview(value);
+  if (!normalized) {
+    return '';
+  }
+  return normalized.length > maxLength
+    ? `${normalized.slice(0, maxLength - 1).trimEnd()}…`
+    : normalized;
+};
+
+const extractProfilePreview = (profiles?: Record<string, Partial<HotSeatProfileData>>): string | null => {
+  if (!profiles) {
+    return null;
+  }
+
+  for (const entry of Object.values(profiles)) {
+    if (!entry) {
+      continue;
+    }
+
+    if (entry.storyText) {
+      const preview = truncateProfilePreview(entry.storyText);
+      if (preview) {
+        return preview;
+      }
+    }
+
+    if (entry.storyHtml) {
+      const preview = truncateProfilePreview(stripProfileHtmlTags(entry.storyHtml));
+      if (preview) {
+        return preview;
+      }
+    }
+  }
+
+  return null;
+};
+
+const HOT_SEAT_STORY_FALLBACK = 'some text!';
+
 const parseHotSeatProfilesMarkdown = (markdown: string): HotSeatProfileParseResult => {
   const lines = markdown.split(/\r?\n/);
   const profiles: Record<string, HotSeatProfileData> = {};
@@ -253,6 +295,7 @@ const KimbillionaireControlPanel: React.FC = () => {
   const [hotSeatProfileError, setHotSeatProfileError] = useState<string | null>(null);
   const [isUploadingHotSeatProfiles, setIsUploadingHotSeatProfiles] = useState(false);
   const [hotSeatProfileFileName, setHotSeatProfileFileName] = useState<string | null>(null);
+  const [hotSeatStoryPreview, setHotSeatStoryPreview] = useState<string | null>(null);
   // const [showProducerPreview, setShowProducerPreview] = useState(false); // Removed to reduce lag
   const [questions, setQuestions] = useState<Question[]>([]);
   // Removed questionsLoading state since it's not displayed in UI
@@ -321,7 +364,11 @@ const KimbillionaireControlPanel: React.FC = () => {
           setHotSeatProfileStatus(`Loaded ${profileCount} hot seat profile${profileCount === 1 ? '' : 's'}${lastUpdated ? ` · Updated ${lastUpdated}` : ''}.`);
         } else {
           setHotSeatProfileStatus(null);
+          setHotSeatStoryPreview(null);
         }
+
+        const previewFromState = extractProfilePreview(loadedProfiles as Record<string, Partial<HotSeatProfileData>>);
+        setHotSeatStoryPreview(previewFromState);
 
         // Load questions from state if available
         if (currentState.questions && currentState.questions.length > 0) {
@@ -1100,6 +1147,7 @@ const KimbillionaireControlPanel: React.FC = () => {
 
       if (profileCount === 0) {
         setHotSeatProfileError('No valid profiles were found in the uploaded markdown file.');
+        setHotSeatStoryPreview(null);
         return;
       }
 
@@ -1110,6 +1158,8 @@ const KimbillionaireControlPanel: React.FC = () => {
       setHotSeatProfilesCount(uploadedCount);
       setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name}.`);
       setHotSeatProfileFileName(file.name);
+      const previewFromUpload = extractProfilePreview(profiles);
+      setHotSeatStoryPreview(previewFromUpload ?? HOT_SEAT_STORY_FALLBACK);
 
       if (errors.length > 0) {
         const preview = errors.slice(0, 3).join('; ');
@@ -2238,7 +2288,10 @@ const KimbillionaireControlPanel: React.FC = () => {
               </label>
 
               {/* Custom-styled upload button */}
-              <label className={styles.customUploadButton}>
+              <label
+                className={styles.customUploadButton}
+                aria-disabled={isUploadingHotSeatProfiles}
+              >
                 📂 Select File
                 <input
                   id="hotSeatProfileUpload"
@@ -2260,6 +2313,16 @@ const KimbillionaireControlPanel: React.FC = () => {
                 {!isUploadingHotSeatProfiles && hotSeatProfileError && (
                   <span className={styles.uploadStatusError}>{hotSeatProfileError}</span>
                 )}
+              </div>
+
+              <div className={styles.hotSeatStoryCard} aria-live="polite">
+                <span className={styles.hotSeatStoryLabel}>User Story</span>
+                <span
+                  className={styles.hotSeatStoryText}
+                  title={hotSeatStoryPreview ?? HOT_SEAT_STORY_FALLBACK}
+                >
+                  {hotSeatStoryPreview ?? HOT_SEAT_STORY_FALLBACK}
+                </span>
               </div>
             </div>
           </GlassPanel>

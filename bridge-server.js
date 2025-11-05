@@ -225,6 +225,12 @@ let gameState = {
   hot_seat_entry_start_time: null, // Timestamp when entry collection started
   hot_seat_winner_count: 1,      // Number of hot seat winners to select
   hot_seat_entry_timer_interval: null, // Reference to entry countdown timer
+  hot_seat_profile_delay_ms: 20000, // Delay before showing question after hot seat selection
+  hot_seat_profile_delay_active: false,
+  hot_seat_question_delay_timeout: null,
+  hot_seat_between_question_delay_ms: 20000, // Delay before advancing to the next question post-selection
+  hot_seat_between_question_delay_active: false,
+  hot_seat_between_question_delay_timeout: null,
   // Lifeline states
   first_poll_winner: null,   // Track which answer won the first poll for revote system
   is_revote_active: false,   // Flag for "Take Another Vote" revote system
@@ -2740,6 +2746,18 @@ function cleanupAllTimers() {
     gameState.hot_seat_entry_timer_interval = null;
     console.log('✅ Cleared hot seat entry timer interval');
   }
+
+  if (gameState.hot_seat_question_delay_timeout) {
+    clearTimeout(gameState.hot_seat_question_delay_timeout);
+    gameState.hot_seat_question_delay_timeout = null;
+    console.log('✅ Cleared hot seat question delay timeout');
+  }
+
+  if (gameState.hot_seat_between_question_delay_timeout) {
+    clearTimeout(gameState.hot_seat_between_question_delay_timeout);
+    gameState.hot_seat_between_question_delay_timeout = null;
+    console.log('✅ Cleared hot seat between-question delay timeout');
+  }
   
   // Clear giveaway timer
   if (giveawayTimerInterval) {
@@ -4949,6 +4967,16 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
   gameState.hot_seat_correct = null;
+  gameState.hot_seat_profile_delay_active = true;
+  if (gameState.hot_seat_question_delay_timeout) {
+    clearTimeout(gameState.hot_seat_question_delay_timeout);
+    gameState.hot_seat_question_delay_timeout = null;
+  }
+  gameState.hot_seat_between_question_delay_active = true;
+  if (gameState.hot_seat_between_question_delay_timeout) {
+    clearTimeout(gameState.hot_seat_between_question_delay_timeout);
+    gameState.hot_seat_between_question_delay_timeout = null;
+  }
 
   console.log(`🔥 HOT SEAT ACTIVATED for user: ${primaryUser} (Method: ${selectionMethod})`);
   if (uniqueUsers.length > 1) {
@@ -5236,7 +5264,12 @@ function endHotSeat(wasCorrect = null, timeout = false) {
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
   gameState.hot_seat_correct = wasCorrect;
-  
+  gameState.hot_seat_profile_delay_active = false;
+  if (gameState.hot_seat_question_delay_timeout) {
+    clearTimeout(gameState.hot_seat_question_delay_timeout);
+    gameState.hot_seat_question_delay_timeout = null;
+  }
+
   console.log('🔚 Hot seat mode ended');
 }
 
@@ -8362,7 +8395,17 @@ async function handleAPI(req, res, pathname) {
             gameState.gameshow_participants = [];
             gameState.credits_rolling = false;
             gameState.credits_scrolling = false;
-            
+            gameState.hot_seat_profile_delay_active = false;
+            if (gameState.hot_seat_question_delay_timeout) {
+              clearTimeout(gameState.hot_seat_question_delay_timeout);
+              gameState.hot_seat_question_delay_timeout = null;
+            }
+            gameState.hot_seat_between_question_delay_active = false;
+            if (gameState.hot_seat_between_question_delay_timeout) {
+              clearTimeout(gameState.hot_seat_between_question_delay_timeout);
+              gameState.hot_seat_between_question_delay_timeout = null;
+            }
+
             // CRITICAL: Clear lifeline voting states for new game
             gameState.lifeline_voting_active = false;
             gameState.lifeline_voting_timer_active = false;
@@ -8427,6 +8470,16 @@ async function handleAPI(req, res, pathname) {
             // REMOVED: original_wrong_answer reset - now handled by persistent_wrong_answers array
             gameState.persistent_wrong_answers = []; // Reset persistent wrong answers for fresh game
             gameState.how_to_play_shown = false; // Reset How To Play flag for new game
+            gameState.hot_seat_profile_delay_active = false;
+            if (gameState.hot_seat_question_delay_timeout) {
+              clearTimeout(gameState.hot_seat_question_delay_timeout);
+              gameState.hot_seat_question_delay_timeout = null;
+            }
+            gameState.hot_seat_between_question_delay_active = false;
+            if (gameState.hot_seat_between_question_delay_timeout) {
+              clearTimeout(gameState.hot_seat_between_question_delay_timeout);
+              gameState.hot_seat_between_question_delay_timeout = null;
+            }
             // Reset lifeline states for fresh game
             gameState.first_poll_winner = null;
             gameState.is_revote_active = false;
@@ -8631,153 +8684,164 @@ async function handleAPI(req, res, pathname) {
             console.log('Curtains closed');
             break;
             
-         case 'next_question':
-    // CRITICAL: Check if we've reached question 15 (the final question)
-    if (gameState.current_question >= 14) {
-        console.warn(`⚠️ Cannot advance - already at question 15 (final question)`);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-            error: 'Game complete - question 15 is the final question',
-            state: 'game_complete',
-            current_question: gameState.current_question + 1
-        }));
-        return;
-    }
-    
-    // Validation: Check if answers have been revealed (prevent skipping questions)
-    if (!gameState.answers_revealed) {
-        console.warn(`⚠️ Cannot go to next question - current question answers not revealed yet`);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
-            error: 'Cannot skip question - reveal answer for current question first',
-            state: 'answers_not_revealed',
-            current_question: gameState.current_question + 1
-        }));
-        return;
-    }
-    
-    if (gameState.current_question < questions.length - 1) {
-        // Track game flow metrics
-        performanceMetrics.gameFlow.questionTransitions++;
-        
-        // LEADERBOARD: Clear current question tracking
-        currentQuestionVotes = [];
-        gameState.answers_shown_time = null;
-        
-        // FIRST: Stop all audio and clear lifeline effects BEFORE state changes
-        console.log('🔇 Stopping all audio before next question');
-        broadcastToClients({ type: 'audio_command', command: 'stop_all_audio' });
-        
-        console.log('🧹 Clearing answer highlighting and lifeline effects before next question');
-        broadcastToClients({
-            type: 'clear_lifeline_effects',
-            reason: 'next_question_pre_clear',
-            timestamp: Date.now()
-        });
-        
-        gameState.current_question++;
-        gameState.question_visible = false;
-        gameState.answers_visible = false;
-        gameState.answers_revealed = false;
-        gameState.selected_answer = null;
-        gameState.first_selected_answer = null; // Reset first selected answer for new question
-        gameState.answer_is_wrong = false;
-        gameState.answer_locked_in = false;
-        gameState.typewriter_animation_complete = false;
-        gameState.correct_answer_highlighted = false; // Reset highlighting for new question
-        gameState.persistent_wrong_answers = []; // Reset persistent wrong answers for new question
-        
-        // COMPLETE VOTING PANEL RESET for new question
-        gameState.audience_poll_active = false;
-        gameState.show_voting_activity = false;
-        gameState.show_poll_winner = null;
-        gameState.poll_winner_votes = 0;
-        gameState.poll_winner_percentage = 0;
-        gameState.poll_voters = [];
-        gameState.poll_voter_history = [];
-        gameState.poll_all_votes = [];
-        
-        // Clear question-level vote tracking for new question (prevents same answer re-voting)
-        gameState.question_voter_answers = {};
-        console.log('🗑️ Cleared question-level vote tracking for new question');
-        
-        // Reset lifeline states for new question
-        gameState.first_poll_winner = null;
-        gameState.is_revote_active = false;
-        gameState.excluded_answers = [];
-        gameState.host_selection_history = []; // Clear host selection history for new question
-        
-        // Clear any existing poll timer
-        if (pollTimer) {
-            clearTimeout(pollTimer);
-            pollTimer = null;
-        }
-        
-        // Broadcast poll ended event to all clients (including poll overlay)
-        broadcastToClients({
-            type: 'audience_poll_ended',
-            reason: 'next_question',
-            timestamp: Date.now()
-        });
-        
-        // Reset lifeline voting states for next question
-        if (gameState.lifeline_voting_active) {
-            gameState.lifeline_voting_active = false;
-            gameState.lifeline_votes = [];
-            gameState.lifeline_voter_history = [];
-            gameState.available_lifelines_for_vote = [];
-            gameState.lifeline_vote_winner = null;
-            gameState.lifeline_vote_counts = {
-                fiftyFifty: 0,
-                takeAnotherVote: 0,
-                askAMod: 0
+         case 'next_question': {
+            if (gameState.current_question >= 14) {
+              console.warn(`⚠️ Cannot advance - already at question 15 (final question)`);
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                error: 'Game complete - question 15 is the final question',
+                state: 'game_complete',
+                current_question: gameState.current_question + 1
+              }));
+              return;
+            }
+
+            if (!gameState.answers_revealed) {
+              console.warn(`⚠️ Cannot go to next question - current question answers not revealed yet`);
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                error: 'Cannot skip question - reveal answer for current question first',
+                state: 'answers_not_revealed',
+                current_question: gameState.current_question + 1
+              }));
+              return;
+            }
+
+            const advanceToNextQuestion = () => {
+              gameState.hot_seat_between_question_delay_active = false;
+              if (gameState.hot_seat_between_question_delay_timeout) {
+                clearTimeout(gameState.hot_seat_between_question_delay_timeout);
+                gameState.hot_seat_between_question_delay_timeout = null;
+              }
+
+              if (gameState.current_question < questions.length - 1) {
+                performanceMetrics.gameFlow.questionTransitions++;
+
+                currentQuestionVotes = [];
+                gameState.answers_shown_time = null;
+
+                console.log('🔇 Stopping all audio before next question');
+                broadcastToClients({ type: 'audio_command', command: 'stop_all_audio' });
+
+                console.log('🧹 Clearing answer highlighting and lifeline effects before next question');
+                broadcastToClients({
+                  type: 'clear_lifeline_effects',
+                  reason: 'next_question_pre_clear',
+                  timestamp: Date.now()
+                });
+
+                gameState.current_question++;
+                gameState.question_visible = false;
+                gameState.answers_visible = false;
+                gameState.answers_revealed = false;
+                gameState.selected_answer = null;
+                gameState.first_selected_answer = null;
+                gameState.answer_is_wrong = false;
+                gameState.answer_locked_in = false;
+                gameState.typewriter_animation_complete = false;
+                gameState.correct_answer_highlighted = false;
+                gameState.persistent_wrong_answers = [];
+
+                gameState.audience_poll_active = false;
+                gameState.show_voting_activity = false;
+                gameState.show_poll_winner = null;
+                gameState.poll_winner_votes = 0;
+                gameState.poll_winner_percentage = 0;
+                gameState.poll_voters = [];
+                gameState.poll_voter_history = [];
+                gameState.poll_all_votes = [];
+
+                gameState.question_voter_answers = {};
+                console.log('🗑️ Cleared question-level vote tracking for new question');
+
+                gameState.first_poll_winner = null;
+                gameState.is_revote_active = false;
+                gameState.excluded_answers = [];
+                gameState.host_selection_history = [];
+
+                if (pollTimer) {
+                  clearTimeout(pollTimer);
+                  pollTimer = null;
+                }
+
+                broadcastToClients({
+                  type: 'audience_poll_ended',
+                  reason: 'next_question',
+                  timestamp: Date.now()
+                });
+
+                if (gameState.lifeline_voting_active) {
+                  gameState.lifeline_voting_active = false;
+                  gameState.lifeline_votes = [];
+                  gameState.lifeline_voter_history = [];
+                  gameState.available_lifelines_for_vote = [];
+                  gameState.lifeline_vote_winner = null;
+                  gameState.lifeline_vote_counts = {
+                    fiftyFifty: 0,
+                    takeAnotherVote: 0,
+                    askAMod: 0
+                  };
+                  console.log('🗳️ Lifeline voting reset for next question');
+
+                  broadcastToClients({
+                    type: 'hide_lifeline_voting_panel',
+                    reason: 'next_question',
+                    timestamp: Date.now()
+                  });
+                }
+
+                gameState.ask_a_mod_active = false;
+                gameState.mod_responses = [];
+                gameState.ask_a_mod_start_time = null;
+                if (!(gameState.processed_mod_messages instanceof Set)) {
+                  gameState.processed_mod_messages = new Set();
+                } else {
+                  gameState.processed_mod_messages.clear();
+                }
+
+                broadcastToClients({
+                  type: 'clear_lifeline_effects',
+                  reason: 'next_question',
+                  timestamp: Date.now()
+                });
+
+                console.log('🔇 Stopping any playing lock-in audio for next question');
+                broadcastToClients({
+                  type: 'audio_command',
+                  command: 'stop_lock_audio',
+                  reason: 'next_question',
+                  timestamp: Date.now()
+                });
+
+                gameState.preparing_for_game = true;
+                console.log('📢 Setting preparing_for_game = true to show "Get ready" message between questions');
+
+                broadcastState();
+
+                console.log('🔄 Next question - all voting states completely reset');
+              }
             };
-            console.log('🗳️ Lifeline voting reset for next question');
-            
-            // Hide the lifeline voting panel
-            broadcastToClients({
-                type: 'hide_lifeline_voting_panel',
-                reason: 'next_question',
-                timestamp: Date.now()
-            });
-        }
-        
-        // Reset Ask a Mod states for next question and ensure Set integrity
-        gameState.ask_a_mod_active = false;
-        gameState.mod_responses = [];
-        gameState.ask_a_mod_start_time = null;
-        if (!(gameState.processed_mod_messages instanceof Set)) {
-            gameState.processed_mod_messages = new Set();
-        } else {
-            gameState.processed_mod_messages.clear();
-        }
-        
-        // Clear lifeline effects for new question
-        broadcastToClients({
-            type: 'clear_lifeline_effects',
-            reason: 'next_question',
-            timestamp: Date.now()
-        });
-        
-        // Stop any currently playing lock-in sound effects and reset audio for next level
-        console.log('🔇 Stopping any playing lock-in audio for next question');
-        broadcastToClients({
-            type: 'audio_command',
-            command: 'stop_lock_audio',
-            reason: 'next_question',
-            timestamp: Date.now()
-        });
-        
-        // Set preparing_for_game to true to show "Get ready for the next question..." message
-        gameState.preparing_for_game = true;
-        console.log('📢 Setting preparing_for_game = true to show "Get ready" message between questions');
-        
-        // Broadcast the updated state so the client shows the "Get ready" message
-        broadcastState();
-        
-        console.log('🔄 Next question - all voting states completely reset');
-    }
-    break;
+
+            if (gameState.hot_seat_between_question_delay_active) {
+              const delayMs = gameState.hot_seat_between_question_delay_ms || 20000;
+
+              if (!gameState.hot_seat_between_question_delay_timeout) {
+                console.log(`⏱️ Delaying next question by ${delayMs / 1000} seconds for hot seat spotlight`);
+                gameState.hot_seat_between_question_delay_timeout = setTimeout(() => {
+                  console.log('➡️ Hot seat spotlight complete - advancing to next question');
+                  advanceToNextQuestion();
+                  gameState.update_needed = true;
+                  broadcastState(false, true);
+                }, delayMs);
+              } else {
+                console.log('⏱️ Hot seat between-question delay already scheduled');
+              }
+              break;
+            }
+
+            advanceToNextQuestion();
+            break;
+          }
           case 'previous_question':
             if (gameState.current_question > 0 && !gameState.answer_locked_in) {
               gameState.current_question--;
@@ -8790,69 +8854,86 @@ async function handleAPI(req, res, pathname) {
             }
             break;
             
-          case 'show_question':
-            gameState.question_visible = true;
-            
-            // Reset typewriter animation state for new question
-            gameState.typewriter_animation_complete = false;
-            console.log('⏳ Typewriter animation reset - Show Answers button will be disabled until typewriter completes');
-            
-            // Clear any existing typewriter timeout
-            if (global.typewriterTimeout) {
-              clearTimeout(global.typewriterTimeout);
-            }
-            
-            // Check if this is a milestone question for automatic hot seat (only if enabled)
-            const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
-            if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
-              console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
-              
-              // Start entry period BEFORE showing the question
-              startHotSeatEntryPeriod();
-              
-              // Delay showing the actual question until entry period ends
-              // The entry period will automatically draw winners when it ends
-              console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
-              
-              // Hide the question temporarily
-              gameState.question_visible = false;
-              
-              // Show question after entry period
-              setTimeout(() => {
-                console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
-                gameState.question_visible = true;
-                broadcastState();
-              }, gameState.hot_seat_entry_duration + 2000); // Add 2 seconds after entry ends
-              
-              return; // Exit early - question will be shown after entry period
-            }
-            
-            // Server-side failsafe: auto-enable Show Answers button after 8 seconds
-            global.typewriterTimeout = setTimeout(() => {
-              if (!gameState.typewriter_animation_complete && gameState.question_visible) {
-                console.warn('⚠️ Typewriter animation timeout - auto-enabling Show Answers button as failsafe');
-                gameState.typewriter_animation_complete = true;
-                broadcastState();
+          case 'show_question': {
+            const performShowQuestion = () => {
+              gameState.question_visible = true;
+              gameState.typewriter_animation_complete = false;
+              console.log('⏳ Typewriter animation reset - Show Answers button will be disabled until typewriter completes');
+
+              if (global.typewriterTimeout) {
+                clearTimeout(global.typewriterTimeout);
               }
-            }, 8000); // 8 second timeout - reasonable time for longest questions
-            
-            // End any active poll when showing a new question
-            if (gameState.audience_poll_active) {
-              console.log('🔚 Ending active poll due to new question');
-              endAutomaticPoll();
+
+              const milestoneQuestions = [4, 9, 14];
+              if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
+                console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
+                startHotSeatEntryPeriod();
+                console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
+                gameState.question_visible = false;
+                setTimeout(() => {
+                  console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
+                  gameState.question_visible = true;
+                  gameState.hot_seat_profile_delay_active = false;
+                  if (gameState.hot_seat_question_delay_timeout) {
+                    clearTimeout(gameState.hot_seat_question_delay_timeout);
+                    gameState.hot_seat_question_delay_timeout = null;
+                  }
+                  broadcastState();
+                }, gameState.hot_seat_entry_duration + 2000);
+                return;
+              }
+
+              global.typewriterTimeout = setTimeout(() => {
+                if (!gameState.typewriter_animation_complete && gameState.question_visible) {
+                  console.warn('⚠️ Typewriter animation timeout - auto-enabling Show Answers button as failsafe');
+                  gameState.typewriter_animation_complete = true;
+                  broadcastState();
+                }
+              }, 8000);
+
+              if (gameState.audience_poll_active) {
+                console.log('🔚 Ending active poll due to new question');
+                endAutomaticPoll();
+              }
+
+              gameState.hot_seat_profile_delay_active = false;
+              if (gameState.hot_seat_question_delay_timeout) {
+                clearTimeout(gameState.hot_seat_question_delay_timeout);
+                gameState.hot_seat_question_delay_timeout = null;
+              }
+
+              console.log('Question shown - state updated');
+              broadcastState();
+              console.log('📡 Broadcasted question_visible state to all clients');
+
+              console.log('🎵 Broadcasting question music audio command');
+              broadcastToClients({ type: 'audio_command', command: 'play_question' });
+            };
+
+            const shouldDelayForHotSeatSpotlight = gameState.hot_seat_active && gameState.hot_seat_profile_delay_active;
+            const spotlightDelayMs = shouldDelayForHotSeatSpotlight
+              ? (gameState.hot_seat_profile_delay_ms || 20000)
+              : 0;
+
+            if (spotlightDelayMs > 0) {
+              if (gameState.hot_seat_question_delay_timeout) {
+                clearTimeout(gameState.hot_seat_question_delay_timeout);
+              }
+
+              console.log(`⏱️ Delaying question display by ${spotlightDelayMs / 1000} seconds for hot seat spotlight`);
+              gameState.question_visible = false;
+              gameState.hot_seat_question_delay_timeout = setTimeout(() => {
+                console.log('🎬 Hot seat spotlight complete - revealing question');
+                performShowQuestion();
+                gameState.update_needed = true;
+                broadcastState(false, true);
+              }, spotlightDelayMs);
+              break;
             }
-            
-            console.log('Question shown - state updated');
-            
-            // CRITICAL FIX: Broadcast the state update so OBS browser source updates immediately
-            broadcastState();
-            console.log('📡 Broadcasted question_visible state to all clients');
-            
-            // Broadcast question music audio command
-            console.log('🎵 Broadcasting question music audio command');
-            broadcastToClients({ type: 'audio_command', command: 'play_question' });
-            
+
+            performShowQuestion();
             break;
+          }
             
           case 'hide_question':
             gameState.question_visible = false;
@@ -10955,6 +11036,8 @@ async function handleAPI(req, res, pathname) {
         delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
         delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
         delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+        delete cleanGameState.hot_seat_question_delay_timeout;
+        delete cleanGameState.hot_seat_between_question_delay_timeout;
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true, state: cleanGameState }));

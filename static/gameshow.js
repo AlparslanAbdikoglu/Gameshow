@@ -4030,9 +4030,10 @@ function showCredits(participants) {
         participantsContainer.appendChild(scrollContainer);
         
         // Calculate duration based on number of participants (about 1.5 seconds per name)
-        const scrollDuration = Math.max(10, participants.length * 1.5);
+        const baseDuration = Math.max(10, participants.length * 1.5);
+        const scrollDuration = baseDuration + 30;
         scrollContainer.style.animationDuration = scrollDuration + 's';
-        
+
         console.log(`🎬 Starting credit scroll for ${participants.length} names over ${scrollDuration} seconds`);
         
         // Start fade out after scroll completes
@@ -4176,6 +4177,42 @@ function formatHotSeatSelectionMethod(method) {
     }
 }
 
+function stripHotSeatStoryHtml(html) {
+    if (typeof html !== 'string') {
+        return '';
+    }
+    return html.replace(/<[^>]+>/g, ' ');
+}
+
+function normalizeHotSeatStoryText(text) {
+    if (typeof text !== 'string') {
+        return '';
+    }
+    return text.replace(/\s+/g, ' ').trim();
+}
+
+function extractHotSeatStoryText(profileData) {
+    if (!profileData || typeof profileData !== 'object') {
+        return '';
+    }
+
+    if (profileData.storyText && typeof profileData.storyText === 'string') {
+        const normalized = normalizeHotSeatStoryText(profileData.storyText);
+        if (normalized) {
+            return normalized;
+        }
+    }
+
+    if (profileData.storyHtml && typeof profileData.storyHtml === 'string') {
+        const normalized = normalizeHotSeatStoryText(stripHotSeatStoryHtml(profileData.storyHtml));
+        if (normalized) {
+            return normalized;
+        }
+    }
+
+    return '';
+}
+
 function hideHotSeatProfileCard(instant = false) {
     const overlay = document.getElementById('hot-seat-profile-overlay');
     if (!overlay) {
@@ -4189,6 +4226,11 @@ function hideHotSeatProfileCard(instant = false) {
 
     if (overlay.classList.contains('hidden')) {
         return;
+    }
+
+    const storyCardEl = document.getElementById('hot-seat-profile-story-card');
+    if (storyCardEl) {
+        storyCardEl.classList.add('hidden');
     }
 
     overlay.setAttribute('aria-hidden', 'true');
@@ -4218,6 +4260,8 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     const dividerEl = document.getElementById('hot-seat-profile-divider');
     const storyEl = document.getElementById('hot-seat-profile-story');
     const alternatesEl = document.getElementById('hot-seat-profile-alternates');
+    const storyCardEl = document.getElementById('hot-seat-profile-story-card');
+    const storyCardTextEl = document.getElementById('hot-seat-profile-story-text');
 
     if (nameEl) {
         nameEl.textContent = (profileData && profileData.displayName) || primaryUser;
@@ -4266,6 +4310,14 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
         }
     }
 
+    if (storyCardEl && storyCardTextEl) {
+        const normalizedStory = extractHotSeatStoryText(profileData);
+        const fallbackStory = normalizedStory || 'some text!';
+        storyCardTextEl.textContent = fallbackStory;
+        storyCardTextEl.setAttribute('title', fallbackStory);
+        storyCardEl.classList.remove('hidden');
+    }
+
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
 
@@ -4279,7 +4331,7 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     hotSeatProfileHideTimeout = setTimeout(() => {
         hideHotSeatProfileCard();
-    }, 8000);
+    }, 30000);
 }
 
 function mergeHotSeatEntryState(partial = {}) {
