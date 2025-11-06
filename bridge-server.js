@@ -8866,21 +8866,25 @@ async function handleAPI(req, res, pathname) {
 
               const milestoneQuestions = [4, 9, 14];
               if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
-                console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
-                startHotSeatEntryPeriod();
-                console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
-                gameState.question_visible = false;
-                setTimeout(() => {
-                  console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
-                  gameState.question_visible = true;
-                  gameState.hot_seat_profile_delay_active = false;
-                  if (gameState.hot_seat_question_delay_timeout) {
-                    clearTimeout(gameState.hot_seat_question_delay_timeout);
-                    gameState.hot_seat_question_delay_timeout = null;
-                  }
-                  broadcastState();
-                }, gameState.hot_seat_entry_duration + 2000);
-                return;
+                if (gameState.hot_seat_active) {
+                  console.log(`🌟 Milestone question ${gameState.current_question + 1} triggered while hot seat is already active - skipping entry period restart`);
+                } else {
+                  console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
+                  startHotSeatEntryPeriod();
+                  console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
+                  gameState.question_visible = false;
+                  setTimeout(() => {
+                    console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
+                    gameState.question_visible = true;
+                    gameState.hot_seat_profile_delay_active = false;
+                    if (gameState.hot_seat_question_delay_timeout) {
+                      clearTimeout(gameState.hot_seat_question_delay_timeout);
+                      gameState.hot_seat_question_delay_timeout = null;
+                    }
+                    broadcastState();
+                  }, gameState.hot_seat_entry_duration + 2000);
+                  return;
+                }
               }
 
               global.typewriterTimeout = setTimeout(() => {
