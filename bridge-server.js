@@ -1836,6 +1836,8 @@ wss.on('connection', (ws, req) => {
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+  delete cleanGameState.hot_seat_question_delay_timeout; // Remove hot seat question delay timeout handle
+  delete cleanGameState.hot_seat_between_question_delay_timeout; // Remove hot seat between question delay timeout handle
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -2675,6 +2677,8 @@ function broadcastState(force = false, critical = false) {
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+  delete cleanGameState.hot_seat_question_delay_timeout; // Remove hot seat question delay timeout handle
+  delete cleanGameState.hot_seat_between_question_delay_timeout; // Remove hot seat between question delay timeout handle
 
   // Convert Set to Array for JSON serialization
   if (cleanGameState.processed_mod_messages instanceof Set) {
