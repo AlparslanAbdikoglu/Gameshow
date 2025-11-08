@@ -5837,6 +5837,209 @@ function broadcastLeaderboardUpdate() {
   broadcastToClients(update);
 }
 
+// Previous Winners Management Functions
+function loadPreviousWinners() {
+  try {
+    const winnersPath = path.join(__dirname, 'previous-winners.json');
+    if (!fs.existsSync(winnersPath)) {
+      // Create initial file if it doesn't exist
+      const initialData = {
+        winners: [],
+        metadata: {
+          total_games: 0,
+          last_updated: null
+        }
+      };
+      fs.writeFileSync(winnersPath, JSON.stringify(initialData, null, 2));
+      return initialData;
+    }
+    
+    const data = fs.readFileSync(winnersPath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('❌ Error loading previous winners:', error);
+    return {
+      winners: [],
+      metadata: {
+        total_games: 0,
+        last_updated: null
+      }
+    };
+  }
+}
+
+function savePreviousWinners(winnersData) {
+  try {
+    const winnersPath = path.join(__dirname, 'previous-winners.json');
+    const tempFile = path.join(__dirname, 'previous-winners.json.tmp');
+    
+    // Update metadata
+    winnersData.metadata.last_updated = new Date().toISOString();
+    winnersData.metadata.total_games = winnersData.winners.length;
+    
+    // Atomic write: write to temp file first, then rename
+    fs.writeFileSync(tempFile, JSON.stringify(winnersData, null, 2));
+    fs.renameSync(tempFile, winnersPath);
+    
+    console.log('💾 Previous winners data saved successfully');
+  } catch (error) {
+    console.error('❌ Error saving previous winners:', error);
+  }
+}
+
+function archiveWinner(username) {
+  try {
+    // Find the player in current_game leaderboard
+    const playerData = leaderboardData.current_game[username.toLowerCase()];
+    
+    if (!playerData) {
+      return {
+        success: false,
+        error: `Player ${username} not found in current game leaderboard`
+      };
+    }
+    
+    // Load current winners
+    const winnersData = loadPreviousWinners();
+    
+    // Generate unique game ID
+    const gameId = `game_${Date.now()}_${username.toLowerCase()}`;
+    
+    // Create winner entry
+    const winnerEntry = {
+      game_id: gameId,
+      date: new Date().toISOString(),
+      username: username,
+      final_points: playerData.points || 0,
+      correct_answers: playerData.correct_answers || 0,
+      total_answers: playerData.total_answers || 0,
+      accuracy: playerData.total_answers > 0 
+        ? Math.round((playerData.correct_answers / playerData.total_answers) * 100)
+        : 0,
+      best_streak: playerData.best_streak || 0,
+      fastest_correct_time: playerData.fastest_correct_time || null,
+      hot_seat_appearances: playerData.hot_seat_appearances || 0,
+      hot_seat_correct: playerData.hot_seat_correct || 0,
+      questions_completed: gameState.current_question + 1,
+      contestant_name: gameState.contestant_name || 'N/A'
+    };
+    
+    // Add to winners array (newest first)
+    winnersData.winners.unshift(winnerEntry);
+    
+    // Save winners data
+    savePreviousWinners(winnersData);
+    
+    console.log(`🏆 Archived winner: ${username} with ${winnerEntry.final_points} points`);
+    
+    return {
+      success: true,
+      winner: winnerEntry
+    };
+  } catch (error) {
+    console.error('❌ Error archiving winner:', error);
+    return {
+      success: false,
+      error: 'Failed to archive winner: ' + error.message
+    };
+  }
+}
+
+function autoArchiveTopWinner() {
+  try {
+    // Get current game stats
+    const currentGameStats = getLeaderboardStats().current_game;
+    
+    if (!currentGameStats || currentGameStats.length === 0) {
+      return {
+        success: false,
+        error: 'No players in current game to archive'
+      };
+    }
+    
+    // Get top player
+    const topPlayer = currentGameStats[0];
+    
+    // Archive the top player
+    return archiveWinner(topPlayer.username);
+  } catch (error) {
+    console.error('❌ Error auto-archiving winner:', error);
+    return {
+      success: false,
+      error: 'Failed to auto-archive winner: ' + error.message
+    };
+  }
+}
+
+function removePreviousWinner(gameId) {
+  try {
+    const winnersData = loadPreviousWinners();
+    
+    const initialLength = winnersData.winners.length;
+    winnersData.winners = winnersData.winners.filter(w => w.game_id !== gameId);
+    
+    if (winnersData.winners.length === initialLength) {
+      return {
+        success: false,
+        error: `Winner with game_id ${gameId} not found`
+      };
+    }
+    
+    savePreviousWinners(winnersData);
+    
+    console.log(`🗑️ Removed previous winner: ${gameId}`);
+    
+    return {
+      success: true
+    };
+  } catch (error) {
+    console.error('❌ Error removing previous winner:', error);
+    return {
+      success: false,
+      error: 'Failed to remove winner: ' + error.message
+    };
+  }
+}
+
+function clearPreviousWinners() {
+  const winnersData = {
+    winners: [],
+    metadata: {
+      total_games: 0,
+      last_updated: new Date().toISOString()
+    }
+  };
+  
+  savePreviousWinners(winnersData);
+  console.log('🗑️ All previous winners cleared');
+}
+
+function importPreviousWinners(importData) {
+  try {
+    const winnersData = loadPreviousWinners();
+    
+    // Merge imported winners with existing ones
+    const existingGameIds = new Set(winnersData.winners.map(w => w.game_id));
+    
+    importData.winners.forEach(winner => {
+      // Only add if game_id doesn't already exist
+      if (!existingGameIds.has(winner.game_id)) {
+        winnersData.winners.push(winner);
+      }
+    });
+    
+    // Sort by date (newest first)
+    winnersData.winners.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    savePreviousWinners(winnersData);
+    
+    console.log(`📥 Imported ${importData.winners.length} previous winners`);
+  } catch (error) {
+    console.error('❌ Error importing previous winners:', error);
+    throw error;
+  }
+}
+
 // Get formatted leaderboard statistics
 function getLeaderboardStats() {
   const ignoredUsers = getCachedIgnoredList();
@@ -11177,6 +11380,180 @@ async function handleAPI(req, res, pathname) {
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to create backup: ' + error.message }));
     }
+    return;
+  }
+  
+  // Previous Winners API endpoints
+  if (pathname === '/api/leaderboard/previous-winners') {
+    if (req.method === 'GET') {
+      try {
+        const winnersData = loadPreviousWinners();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(winnersData));
+      } catch (error) {
+        console.error('❌ Error fetching previous winners:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to load previous winners' }));
+      }
+      return;
+    }
+  }
+  
+  if (pathname === '/api/leaderboard/previous-winners/archive' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const data = JSON.parse(body);
+        const username = data.username;
+        
+        if (!username) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Username is required' }));
+          return;
+        }
+        
+        // Archive the winner
+        const result = archiveWinner(username);
+        
+        if (result.success) {
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({
+            success: true,
+            message: `${username} archived as winner`,
+            winner: result.winner,
+            winnersData: loadPreviousWinners()
+          }));
+        } else {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: result.error }));
+        }
+      } catch (error) {
+        console.error('❌ Archive winner API error:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid request data' }));
+      }
+    });
+    return;
+  }
+  
+  if (pathname === '/api/leaderboard/previous-winners/auto-archive' && req.method === 'POST') {
+    try {
+      // Auto-archive top 1 player from current game
+      const result = autoArchiveTopWinner();
+      
+      if (result.success) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: result.message,
+          winner: result.winner,
+          winnersData: loadPreviousWinners()
+        }));
+      } else {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: result.error }));
+      }
+    } catch (error) {
+      console.error('❌ Auto-archive winner API error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to auto-archive winner' }));
+    }
+    return;
+  }
+  
+  if (pathname.startsWith('/api/leaderboard/previous-winners/') && req.method === 'DELETE') {
+    const gameId = pathname.split('/').pop();
+    
+    try {
+      const result = removePreviousWinner(gameId);
+      
+      if (result.success) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: `Winner entry ${gameId} removed`,
+          winnersData: loadPreviousWinners()
+        }));
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: result.error }));
+      }
+    } catch (error) {
+      console.error('❌ Remove winner API error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to remove winner' }));
+    }
+    return;
+  }
+  
+  if (pathname === '/api/leaderboard/previous-winners/clear' && req.method === 'POST') {
+    try {
+      clearPreviousWinners();
+      
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'All previous winners cleared',
+        winnersData: loadPreviousWinners()
+      }));
+    } catch (error) {
+      console.error('❌ Clear winners API error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to clear winners' }));
+    }
+    return;
+  }
+  
+  if (pathname === '/api/leaderboard/previous-winners/export' && req.method === 'GET') {
+    try {
+      const winnersData = loadPreviousWinners();
+      const exportData = {
+        timestamp: Date.now(),
+        date: new Date().toISOString(),
+        ...winnersData
+      };
+      
+      res.writeHead(200, { 
+        'Content-Type': 'application/json',
+        'Content-Disposition': 'attachment; filename="previous-winners-export.json"'
+      });
+      res.end(JSON.stringify(exportData, null, 2));
+    } catch (error) {
+      console.error('❌ Export winners API error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to export winners' }));
+    }
+    return;
+  }
+  
+  if (pathname === '/api/leaderboard/previous-winners/import' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', () => {
+      try {
+        const importData = JSON.parse(body);
+        
+        if (!importData.winners || !Array.isArray(importData.winners)) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid import data structure' }));
+          return;
+        }
+        
+        importPreviousWinners(importData);
+        
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: true,
+          message: 'Previous winners imported successfully',
+          winnersData: loadPreviousWinners()
+        }));
+      } catch (error) {
+        console.error('❌ Import winners API error:', error);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid import data' }));
+      }
+    });
     return;
   }
   

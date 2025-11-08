@@ -371,3 +371,118 @@
 .leaderboard-content::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 215, 0, 0.5);
 }
+
+/* Previous Winners Styles */
+.empty-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+}
+
+.empty-leaderboard p {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 16px;
+  margin: 0;
+}
+
+.winners-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.winners-stats {
+  display: flex;
+  gap: 20px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  flex-wrap: wrap;
+}
+
+.winners-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.archive-btn {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba(76, 175, 80, 0.5);
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.archive-btn:hover:not(:disabled) {
+  background: rgba(76, 175, 80, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.archive-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.previous-winners-table {
+  font-size: 13px;
+}
+
+.previous-winners-table td {
+  padding: 8px 6px;
+}
+
+.previous-winners-table .username {
+  font-weight: 600;
+  color: #ffd700;
+}
+
+.remove-btn {
+  padding: 4px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(244, 67, 54, 0.5);
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: rgba(244, 67, 54, 0.2);
+  transform: scale(1.1);
+}
+
+.remove-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.username-input {
+  width: 100%;
+  padding: 10px;
+  margin: 15px 0;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 14px;
+}
+
+.username-input:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}

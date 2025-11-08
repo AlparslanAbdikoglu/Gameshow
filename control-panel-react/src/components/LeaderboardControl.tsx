@@ -17,6 +17,30 @@ interface LeaderboardUser {
   average_response_time?: number;
 }
 
+interface PreviousWinner {
+  game_id: string;
+  date: string;
+  username: string;
+  final_points: number;
+  correct_answers: number;
+  total_answers: number;
+  accuracy: number;
+  best_streak: number;
+  fastest_correct_time: number | null;
+  hot_seat_appearances: number;
+  hot_seat_correct: number;
+  questions_completed: number;
+  contestant_name: string;
+}
+
+interface PreviousWinnersData {
+  winners: PreviousWinner[];
+  metadata: {
+    total_games: number;
+    last_updated: string | null;
+  };
+}
+
 interface LeaderboardData {
   current_game: LeaderboardUser[];
   daily: LeaderboardUser[];
@@ -46,13 +70,16 @@ interface LeaderboardSettings {
 
 const LeaderboardControl: React.FC = () => {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardData | null>(null);
-  const [selectedPeriod, setSelectedPeriod] = useState<keyof LeaderboardData>('current_game');
+  const [selectedPeriod, setSelectedPeriod] = useState<keyof LeaderboardData | 'previous_winners'>('current_game');
   const [settings, setSettings] = useState<LeaderboardSettings | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [resetPeriod, setResetPeriod] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const [previousWinners, setPreviousWinners] = useState<PreviousWinnersData | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [selectedUsername, setSelectedUsername] = useState<string>('');
 
   // Fetch leaderboard data
   const fetchLeaderboard = useCallback(async () => {
@@ -73,6 +100,17 @@ const LeaderboardControl: React.FC = () => {
       setSettings(data);
     } catch (error) {
       console.error('Error fetching settings:', error);
+    }
+  }, []);
+
+  // Fetch previous winners
+  const fetchPreviousWinners = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:8081/api/leaderboard/previous-winners');
+      const data = await response.json();
+      setPreviousWinners(data);
+    } catch (error) {
+      console.error('Error fetching previous winners:', error);
     }
   }, []);
 
@@ -117,7 +155,8 @@ const LeaderboardControl: React.FC = () => {
   useEffect(() => {
     fetchLeaderboard();
     fetchSettings();
-  }, [fetchLeaderboard, fetchSettings]);
+    fetchPreviousWinners();
+  }, [fetchLeaderboard, fetchSettings, fetchPreviousWinners]);
 
   // Reset leaderboard
   const handleReset = async (period: string) => {
@@ -210,6 +249,127 @@ const LeaderboardControl: React.FC = () => {
     setLoading(false);
   };
 
+  // Archive winner
+  const handleArchiveWinner = async () => {
+    if (!selectedUsername) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8081/api/leaderboard/previous-winners/archive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: selectedUsername })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPreviousWinners(data.winnersData);
+        setShowArchiveModal(false);
+        setSelectedUsername('');
+        alert(`✅ ${selectedUsername} archived as winner!`);
+      } else {
+        const error = await response.json();
+        alert(`❌ Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error archiving winner:', error);
+      alert('❌ Failed to archive winner');
+    }
+    setLoading(false);
+  };
+
+  // Auto-archive top winner
+  const handleAutoArchive = async () => {
+    if (!confirm('Archive the top player from current game?')) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:8081/api/leaderboard/previous-winners/auto-archive', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPreviousWinners(data.winnersData);
+        alert(`✅ ${data.winner.username} archived as winner!`);
+      } else {
+        const error = await response.json();
+        alert(`❌ Error: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Error auto-archiving winner:', error);
+      alert('❌ Failed to auto-archive winner');
+    }
+    setLoading(false);
+  };
+
+  // Remove previous winner
+  const handleRemoveWinner = async (gameId: string) => {
+    if (!confirm('Remove this winner entry?')) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`http://localhost:8081/api/leaderboard/previous-winners/${gameId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPreviousWinners(data.winnersData);
+      }
+    } catch (error) {
+      console.error('Error removing winner:', error);
+    }
+    setLoading(false);
+  };
+
+  // Export previous winners
+  const handleExportWinners = async () => {
+    try {
+      const response = await fetch('http://localhost:8081/api/leaderboard/previous-winners/export');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `previous-winners-${new Date().toISOString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting previous winners:', error);
+    }
+  };
+
+  // Import previous winners
+  const handleImportWinners = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const importData = JSON.parse(e.target?.result as string);
+        
+        const response = await fetch('http://localhost:8081/api/leaderboard/previous-winners/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(importData)
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setPreviousWinners(data.winnersData);
+          alert('✅ Previous winners imported successfully!');
+        }
+      } catch (error) {
+        console.error('Error importing previous winners:', error);
+        alert('❌ Failed to import previous winners');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Format time since last reset
   const formatTimeSince = (timestamp: number) => {
     const diff = Date.now() - timestamp;
@@ -219,6 +379,89 @@ const LeaderboardControl: React.FC = () => {
     if (days > 0) return `${days} day${days > 1 ? 's' : ''} ago`;
     if (hours > 0) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
     return 'Recently';
+  };
+
+  const renderPreviousWinners = () => {
+    if (!previousWinners || previousWinners.winners.length === 0) {
+      return (
+        <div className="empty-leaderboard">
+          <p>No previous winners yet</p>
+          <button onClick={handleAutoArchive} disabled={loading} className="archive-btn">
+            🏆 Archive Top Player
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="winners-header">
+          <div className="winners-stats">
+            <span>🎮 Total Games: {previousWinners.metadata.total_games}</span>
+            {previousWinners.metadata.last_updated && (
+              <span>📅 Last Updated: {new Date(previousWinners.metadata.last_updated).toLocaleDateString()}</span>
+            )}
+          </div>
+          <div className="winners-actions">
+            <button onClick={handleAutoArchive} disabled={loading} className="archive-btn">
+              🏆 Archive Top Player
+            </button>
+            <button onClick={() => setShowArchiveModal(true)} disabled={loading} className="archive-btn">
+              ➕ Archive Custom Player
+            </button>
+            <button onClick={handleExportWinners} className="export-btn">
+              📥 Export
+            </button>
+            <label className="import-btn">
+              📤 Import
+              <input type="file" accept=".json" onChange={handleImportWinners} style={{ display: 'none' }} />
+            </label>
+          </div>
+        </div>
+        <table className="leaderboard-table previous-winners-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Winner</th>
+              <th>Contestant</th>
+              <th>Points</th>
+              <th>Correct</th>
+              <th>Accuracy</th>
+              <th>Streak</th>
+              <th>Questions</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {previousWinners.winners.map((winner, index) => (
+              <tr key={winner.game_id}>
+                <td>{new Date(winner.date).toLocaleDateString()}</td>
+                <td className="username">
+                  {index === 0 && '🆕 '}
+                  {winner.username}
+                </td>
+                <td>{winner.contestant_name}</td>
+                <td className="points">{winner.final_points}</td>
+                <td className="correct">{winner.correct_answers}/{winner.total_answers}</td>
+                <td>{winner.accuracy}%</td>
+                <td className="streak">{winner.best_streak}</td>
+                <td>{winner.questions_completed}</td>
+                <td>
+                  <button 
+                    onClick={() => handleRemoveWinner(winner.game_id)}
+                    className="remove-btn"
+                    disabled={loading}
+                    title="Remove this winner"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   const renderLeaderboard = (users: LeaderboardUser[]) => {
@@ -515,31 +758,43 @@ const LeaderboardControl: React.FC = () => {
         >
           All Time
         </button>
+        <button
+          className={selectedPeriod === 'previous_winners' ? 'active' : ''}
+          onClick={() => setSelectedPeriod('previous_winners')}
+        >
+          🏆 Previous Winners
+        </button>
       </div>
 
       <div className="leaderboard-content">
-        {leaderboardData && renderLeaderboard(leaderboardData[selectedPeriod] as LeaderboardUser[])}
+        {selectedPeriod === 'previous_winners' ? (
+          renderPreviousWinners()
+        ) : (
+          leaderboardData && renderLeaderboard(leaderboardData[selectedPeriod] as LeaderboardUser[])
+        )}
       </div>
 
-      <div className="leaderboard-footer">
-        <div className="reset-info">
-          {leaderboardData?.last_reset && selectedPeriod !== 'current_game' && selectedPeriod !== 'all_time' && (
-            <span>
-              Last reset: {formatTimeSince(leaderboardData.last_reset[selectedPeriod as keyof typeof leaderboardData.last_reset])}
-            </span>
-          )}
+      {selectedPeriod !== 'previous_winners' && (
+        <div className="leaderboard-footer">
+          <div className="reset-info">
+            {leaderboardData?.last_reset && selectedPeriod !== 'current_game' && selectedPeriod !== 'all_time' && (
+              <span>
+                Last reset: {formatTimeSince(leaderboardData.last_reset[selectedPeriod as keyof typeof leaderboardData.last_reset])}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => {
+              setResetPeriod(selectedPeriod);
+              setShowConfirmReset(true);
+            }}
+            className="reset-btn"
+            disabled={loading}
+          >
+            Reset {selectedPeriod.replace('_', ' ')}
+          </button>
         </div>
-        <button
-          onClick={() => {
-            setResetPeriod(selectedPeriod);
-            setShowConfirmReset(true);
-          }}
-          className="reset-btn"
-          disabled={loading}
-        >
-          Reset {selectedPeriod.replace('_', ' ')}
-        </button>
-      </div>
+      )}
 
       {showConfirmReset && (
         <div className="confirm-modal">
@@ -557,6 +812,36 @@ const LeaderboardControl: React.FC = () => {
                 disabled={loading}
               >
                 {loading ? 'Resetting...' : 'Confirm Reset'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showArchiveModal && (
+        <div className="confirm-modal">
+          <div className="modal-content">
+            <h3>🏆 Archive Winner</h3>
+            <p>Enter the username to archive as winner:</p>
+            <input
+              type="text"
+              value={selectedUsername}
+              onChange={(e) => setSelectedUsername(e.target.value)}
+              placeholder="Username"
+              className="username-input"
+              autoFocus
+            />
+            <div className="modal-actions">
+              <button onClick={() => {
+                setShowArchiveModal(false);
+                setSelectedUsername('');
+              }}>Cancel</button>
+              <button 
+                onClick={handleArchiveWinner} 
+                className="confirm-btn"
+                disabled={loading || !selectedUsername}
+              >
+                {loading ? 'Archiving...' : 'Archive Winner'}
               </button>
             </div>
           </div>
