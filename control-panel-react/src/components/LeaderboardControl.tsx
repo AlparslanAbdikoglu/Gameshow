@@ -280,7 +280,7 @@ const LeaderboardControl: React.FC = () => {
 
   // Auto-archive top winner
   const handleAutoArchive = async () => {
-    if (!confirm('Archive the top player from current game?')) return;
+    if (!window.confirm('Archive the top player from current game?')) return;
     
     setLoading(true);
     try {
@@ -305,7 +305,7 @@ const LeaderboardControl: React.FC = () => {
 
   // Remove previous winner
   const handleRemoveWinner = async (gameId: string) => {
-    if (!confirm('Remove this winner entry?')) return;
+    if (!window.confirm('Remove this winner entry?')) return;
     
     setLoading(true);
     try {
