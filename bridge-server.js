@@ -65,7 +65,16 @@ function trackVoteProcessing(processingTime, rejected = false, duplicate = false
 }
 
 function normalizeUsername(username) {
-  return typeof username === 'string' ? username.trim().toLowerCase() : '';
+  if (typeof username !== 'string') {
+    return '';
+  }
+
+  const trimmed = username.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  return trimmed.replace(/^@+/, '').toLowerCase();
 }
 
 function sanitizeProfileHtml(html = '') {
@@ -112,11 +121,13 @@ function buildHotSeatProfileMap(profiles = {}) {
       return;
     }
 
+    const cleanedUsername = sourceUsername.replace(/^@+/, '') || sourceUsername;
+
     sanitizedProfiles[normalized] = {
-      username: sourceUsername,
+      username: cleanedUsername,
       displayName: typeof profile.displayName === 'string' && profile.displayName.trim()
         ? profile.displayName.trim()
-        : sourceUsername,
+        : cleanedUsername,
       storyHtml: sanitizeProfileHtml(profile.storyHtml || profile.story || ''),
       storyText: typeof profile.storyText === 'string' ? profile.storyText.trim() : '',
       lastUpdated: Date.now()
@@ -138,8 +149,8 @@ function getHotSeatProfile(username) {
   }
 
   return {
-    username: profile.username,
-    displayName: profile.displayName || profile.username,
+    username: profile.username || username.replace(/^@+/, ''),
+    displayName: profile.displayName || profile.username || username,
     storyHtml: profile.storyHtml || '',
     storyText: profile.storyText || ''
   };
