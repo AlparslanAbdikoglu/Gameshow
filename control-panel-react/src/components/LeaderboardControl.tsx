@@ -423,7 +423,6 @@ const LeaderboardControl: React.FC = () => {
             <tr>
               <th>Date</th>
               <th>Winner</th>
-              <th>Contestant</th>
               <th>Points</th>
               <th>Correct</th>
               <th>Accuracy</th>
@@ -440,7 +439,6 @@ const LeaderboardControl: React.FC = () => {
                   {index === 0 && '🆕 '}
                   {winner.username}
                 </td>
-                <td>{winner.contestant_name}</td>
                 <td className="points">{winner.final_points}</td>
                 <td className="correct">{winner.correct_answers}/{winner.total_answers}</td>
                 <td>{winner.accuracy}%</td>
