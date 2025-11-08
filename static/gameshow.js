@@ -4030,7 +4030,7 @@ function showCredits(participants) {
         participantsContainer.appendChild(scrollContainer);
         
         // Calculate duration based on number of participants (about 1.5 seconds per name)
-        const scrollDuration = Math.max(10, participants.length * 1.5);
+        const scrollDuration = Math.max(20, participants.length * 2.4);
         scrollContainer.style.animationDuration = scrollDuration + 's';
         
         console.log(`🎬 Starting credit scroll for ${participants.length} names over ${scrollDuration} seconds`);
@@ -4159,6 +4159,11 @@ function escapeHtml(unsafe = '') {
         .replace(/'/g, '&#39;');
 }
 
+function buildHotSeatFallbackStory(playerName = 'This contestant') {
+    const safeName = escapeHtml(playerName && playerName.length > 0 ? playerName : 'This contestant');
+    return `<p>${safeName} is ready for the spotlight. Upload a hot seat story to share their background.</p>`;
+}
+
 function formatHotSeatSelectionMethod(method) {
     switch (method) {
         case 'join_entry':
@@ -4236,15 +4241,10 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     const hasStory = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
     if (storyEl && dividerEl) {
-        if (hasStory) {
-            storyEl.innerHTML = profileData.storyHtml;
-            storyEl.classList.remove('hidden');
-            dividerEl.classList.remove('hidden');
-        } else {
-            storyEl.innerHTML = '';
-            storyEl.classList.add('hidden');
-            dividerEl.classList.add('hidden');
-        }
+        const fallbackStory = buildHotSeatFallbackStory((profileData && profileData.displayName) || primaryUser);
+        storyEl.innerHTML = hasStory ? profileData.storyHtml : fallbackStory;
+        storyEl.classList.remove('hidden');
+        dividerEl.classList.remove('hidden');
     }
 
     if (alternatesEl) {
@@ -4279,7 +4279,7 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     hotSeatProfileHideTimeout = setTimeout(() => {
         hideHotSeatProfileCard();
-    }, 8000);
+    }, 30000);
 }
 
 function mergeHotSeatEntryState(partial = {}) {

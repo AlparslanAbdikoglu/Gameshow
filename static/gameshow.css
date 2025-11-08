@@ -3261,7 +3261,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
+    padding: 32px;
     box-sizing: border-box;
 }
 
@@ -3274,9 +3274,9 @@ body {
 
 .credits-content {
     width: 100%;
-    max-width: 770px;
+    max-width: 720px;
     text-align: center;
-    padding: 32px 40px;
+    padding: 28px 32px;
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.4), rgba(0, 20, 60, 0.65));
     backdrop-filter: blur(24px);
     border-radius: 24px;
@@ -3285,10 +3285,10 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 24px;
+    gap: 18px;
     box-sizing: border-box;
-    max-height: calc(100vh - 120px);
-    overflow: hidden
+    max-height: calc(100vh - 80px);
+    overflow: hidden;
 }
 
 #credits-overlay.credits-roll-active .credits-content {
@@ -3300,7 +3300,7 @@ body {
 }
 
 .credits-title {
-    font-size: 44px;
+    font-size: 40px;
     font-weight: bold;
     color: #FFD700;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
@@ -3309,19 +3309,19 @@ body {
 }
 
 .credits-subtitle {
-    font-size: 22px;
+    font-size: 20px;
     color: #FFF;
     margin-top: 10px;
     opacity: 0.9;
 }
 
 .credits-section {
-    margin: 12px 0;
+    margin: 10px 0;
     width: 100%;
 }
 
 .credits-section-title {
-    font-size: 28px;
+    font-size: 26px;
     color: rgba(255, 215, 0, 0.9);
     margin-bottom: 20px;
     text-transform: uppercase;
@@ -3329,11 +3329,12 @@ body {
 }
 
 .credits-participants {
-    min-height: 200px;
-    height: clamp(240px, 45vh, 360px);
+    min-height: 180px;
+    height: clamp(220px, 42vh, 320px);
     display: block;
     overflow: hidden;
     position: relative;
+    padding: 8px 0;
     mask-image: linear-gradient(to bottom,
         transparent 0%,
         black 20%,
@@ -3349,15 +3350,15 @@ body {
 .credits-name-container {
     position: absolute;
     width: 100%;
-    animation: scrollUp 45s linear;
+    animation: scrollUp 60s linear;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
 }
 
 .credits-name {
-    font-size: 20px;
+    font-size: 18px;
     color: #FFF;
     opacity: 1;
     text-align: center;
@@ -3367,11 +3368,11 @@ body {
 }
 
 .credits-footer {
-    margin-top: 20px;
+    margin-top: 16px;
 }
 
 .credits-message {
-    font-size: 22px;
+    font-size: 20px;
     color: rgba(255, 215, 0, 0.9);
     font-style: italic;
 }
@@ -3401,10 +3402,10 @@ body {
 
 @keyframes scrollUp {
     0% {
-        transform: translateY(200px);
+        transform: translateY(160px);
     }
     100% {
-        transform: translateY(calc(-100% - 200px));
+        transform: translateY(calc(-100% - 180px));
     }
 }
 /* Hot Seat Display Styles */

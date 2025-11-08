@@ -253,6 +253,7 @@ const KimbillionaireControlPanel: React.FC = () => {
   const [hotSeatProfileError, setHotSeatProfileError] = useState<string | null>(null);
   const [isUploadingHotSeatProfiles, setIsUploadingHotSeatProfiles] = useState(false);
   const [hotSeatProfileFileName, setHotSeatProfileFileName] = useState<string | null>(null);
+  const [hotSeatProfilesMap, setHotSeatProfilesMap] = useState<Record<string, HotSeatProfileData>>({});
   // const [showProducerPreview, setShowProducerPreview] = useState(false); // Removed to reduce lag
   const [questions, setQuestions] = useState<Question[]>([]);
   // Removed questionsLoading state since it's not displayed in UI
@@ -310,6 +311,7 @@ const KimbillionaireControlPanel: React.FC = () => {
 
         const loadedProfiles = currentState.hot_seat_profiles || {};
         const profileCount = Object.keys(loadedProfiles).length;
+        setHotSeatProfilesMap(loadedProfiles);
         setHotSeatProfilesCount(profileCount);
         setHotSeatProfileError(null);
         setHotSeatProfileFileName(null);
@@ -335,6 +337,80 @@ const KimbillionaireControlPanel: React.FC = () => {
     };
     loadInitialGameState();
   }, []); // Only run once on mount
+
+  useEffect(() => {
+    const profiles = gameState.hot_seat_profiles || {};
+    setHotSeatProfilesMap(profiles);
+
+    const count = Object.keys(profiles).length;
+    setHotSeatProfilesCount(count);
+
+    if (!isUploadingHotSeatProfiles) {
+      if (count > 0) {
+        const lastUpdated = gameState.hot_seat_profiles_last_update
+          ? new Date(gameState.hot_seat_profiles_last_update).toLocaleTimeString()
+          : null;
+        setHotSeatProfileStatus(`Loaded ${count} hot seat profile${count === 1 ? '' : 's'}${lastUpdated ? ` · Updated ${lastUpdated}` : ''}.`);
+      } else {
+        setHotSeatProfileStatus(null);
+      }
+    }
+  }, [gameState.hot_seat_profiles, gameState.hot_seat_profiles_last_update, isUploadingHotSeatProfiles]);
+
+  const hotSeatPreviewDetails = useMemo(() => {
+    const profiles = hotSeatProfilesMap || {};
+    const allProfiles = Object.values(profiles);
+    const activeUserRaw = (gameState.hot_seat_user || '').trim();
+    const normalizedActive = activeUserRaw.toLowerCase();
+    const activeProfile = normalizedActive ? profiles[normalizedActive] : undefined;
+    const isActive = Boolean(gameState.hot_seat_active && activeUserRaw.length > 0);
+
+    let fallbackProfile: HotSeatProfileData | null = null;
+    if (allProfiles.length > 0) {
+      fallbackProfile = allProfiles
+        .slice()
+        .sort((a, b) => {
+          const aName = (a.displayName || a.username || '').toLowerCase();
+          const bName = (b.displayName || b.username || '').toLowerCase();
+          return aName.localeCompare(bName);
+        })[0];
+    }
+
+    let displayName = 'Hot Seat Spotlight';
+    if (isActive) {
+      displayName = activeProfile?.displayName || activeProfile?.username || activeUserRaw || displayName;
+    } else if (fallbackProfile) {
+      displayName = fallbackProfile.displayName || fallbackProfile.username || displayName;
+    } else if (activeUserRaw) {
+      displayName = activeUserRaw;
+    }
+
+    let storyHtml = '';
+    if (isActive && activeProfile && typeof activeProfile.storyHtml === 'string' && activeProfile.storyHtml.trim().length > 0) {
+      storyHtml = activeProfile.storyHtml;
+    } else if (!isActive && fallbackProfile && typeof fallbackProfile.storyHtml === 'string' && fallbackProfile.storyHtml.trim().length > 0) {
+      storyHtml = fallbackProfile.storyHtml;
+    }
+
+    const fallbackStoryHtml = `<p>${escapeProfileHtml(displayName)} is ready for the spotlight. Upload a hot seat story to share their background.</p>`;
+
+    const alternates = isActive && Array.isArray(gameState.hot_seat_users)
+      ? gameState.hot_seat_users.slice(1)
+      : [];
+
+    return {
+      badge: isActive ? 'Hot Seat Active' : 'Hot Seat Spotlight',
+      name: displayName,
+      tagline: isActive ? 'Currently in the hot seat' : (fallbackProfile ? 'Uploaded story preview' : 'Ready for the spotlight'),
+      blurb: isActive
+        ? `${displayName} is answering from the hot seat right now.`
+        : (fallbackProfile
+          ? `Previewing the story that will appear when ${displayName} is selected.`
+          : 'Upload a markdown file to spotlight your contestants here.'),
+      storyHtml: storyHtml && storyHtml.trim().length > 0 ? storyHtml : fallbackStoryHtml,
+      alternates
+    };
+  }, [gameState.hot_seat_active, gameState.hot_seat_user, gameState.hot_seat_users, hotSeatProfilesMap]);
 
   // Load Roary status on mount
   useEffect(() => {
@@ -1107,6 +1183,7 @@ const KimbillionaireControlPanel: React.FC = () => {
       const response = await gameApi.uploadHotSeatProfiles(profiles);
       const uploadedCount = typeof response?.count === 'number' ? response.count : profileCount;
 
+      setHotSeatProfilesMap(profiles);
       setHotSeatProfilesCount(uploadedCount);
       setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name}.`);
       setHotSeatProfileFileName(file.name);
@@ -2259,6 +2336,26 @@ const KimbillionaireControlPanel: React.FC = () => {
                 )}
                 {!isUploadingHotSeatProfiles && hotSeatProfileError && (
                   <span className={styles.uploadStatusError}>{hotSeatProfileError}</span>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.hotSeatPreviewWrapper}>
+              <span className={styles.hotSeatPreviewTitle}>Hot Seat Story Preview</span>
+              <div className={styles.hotSeatPreviewCard}>
+                <span className={styles.hotSeatPreviewBadge}>{hotSeatPreviewDetails.badge}</span>
+                <span className={styles.hotSeatPreviewName}>{hotSeatPreviewDetails.name}</span>
+                <span className={styles.hotSeatPreviewTagline}>{hotSeatPreviewDetails.tagline}</span>
+                <div className={styles.hotSeatPreviewBlurb}>{hotSeatPreviewDetails.blurb}</div>
+                <div className={styles.hotSeatPreviewDivider} />
+                <div
+                  className={styles.hotSeatPreviewStory}
+                  dangerouslySetInnerHTML={{ __html: hotSeatPreviewDetails.storyHtml }}
+                />
+                {hotSeatPreviewDetails.alternates.length > 0 && (
+                  <div className={styles.hotSeatPreviewAlternates}>
+                    Alternates: {hotSeatPreviewDetails.alternates.join(', ')}
+                  </div>
                 )}
               </div>
             </div>

@@ -217,6 +217,7 @@ let gameState = {
   hot_seat_profiles: {},       // Map of uploaded hot seat profile stories keyed by username
   hot_seat_profiles_last_update: null, // Timestamp of last profile upload for status displays
   hot_seat_timer_interval: null, // Reference to timer interval for cleanup
+  hot_seat_spotlight_until: null, // Timestamp enforcing spotlight hold before advancing
   // Hot Seat Entry Collection
   hot_seat_entry_active: false,  // Is entry collection period active
   hot_seat_entries: [],          // Array of usernames who typed "JOIN"
@@ -4949,11 +4950,13 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
   gameState.hot_seat_correct = null;
+  gameState.hot_seat_spotlight_until = Date.now() + 20000;
 
   console.log(`🔥 HOT SEAT ACTIVATED for user: ${primaryUser} (Method: ${selectionMethod})`);
   if (uniqueUsers.length > 1) {
     console.log(`👥 Additional hot seat participants: ${uniqueUsers.slice(1).join(', ')}`);
   }
+  console.log('⏱️ Enforcing 20 second spotlight hold before next question can start');
   console.log(`⏱️ ${primaryUser} has ${timerDuration} seconds to submit their answer`);
 
   const primaryProfile = getHotSeatProfile(primaryUser);
@@ -6476,6 +6479,7 @@ function resetGameStateWithCleanup() {
     clearInterval(gameState.hot_seat_entry_timer_interval);
     gameState.hot_seat_entry_timer_interval = null;
   }
+  gameState.hot_seat_spotlight_until = null;
   if (giveawayTimerInterval) {
     clearInterval(giveawayTimerInterval);
     giveawayTimerInterval = null;
@@ -8648,14 +8652,32 @@ async function handleAPI(req, res, pathname) {
     if (!gameState.answers_revealed) {
         console.warn(`⚠️ Cannot go to next question - current question answers not revealed yet`);
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
+        res.end(JSON.stringify({
             error: 'Cannot skip question - reveal answer for current question first',
             state: 'answers_not_revealed',
             current_question: gameState.current_question + 1
         }));
         return;
     }
-    
+
+    if (gameState.hot_seat_spotlight_until) {
+        const now = Date.now();
+        if (now < gameState.hot_seat_spotlight_until) {
+            const remainingSeconds = Math.ceil((gameState.hot_seat_spotlight_until - now) / 1000);
+            console.warn(`⚠️ Cannot advance - hot seat spotlight hold has ${remainingSeconds} second(s) remaining`);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                error: 'Hot seat spotlight delay active',
+                state: 'hot_seat_spotlight',
+                remaining_seconds: remainingSeconds
+            }));
+            return;
+        }
+
+        console.log('✅ Hot seat spotlight delay satisfied - resuming question flow');
+        gameState.hot_seat_spotlight_until = null;
+    }
+
     if (gameState.current_question < questions.length - 1) {
         // Track game flow metrics
         performanceMetrics.gameFlow.questionTransitions++;
