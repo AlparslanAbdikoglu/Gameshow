@@ -77,8 +77,9 @@ const useKeybinds = (handlers: Record<string, () => void>, dependencies: any[] =
 interface HotSeatProfileData {
   username: string;
   displayName: string;
-  storyHtml: string;
-  storyText: string;
+  storyHtml?: string;
+  storyText?: string;
+  lastUpdated?: number;
 }
 
 interface HotSeatProfileParseResult {

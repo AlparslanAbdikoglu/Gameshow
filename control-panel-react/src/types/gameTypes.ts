@@ -96,6 +96,9 @@ export interface GameState {
     lastUpdated?: number;
   }>;
   hot_seat_profiles_last_update?: number | null;
+  hot_seat_user?: string | null;
+  hot_seat_users?: string[];
+  hot_seat_active?: boolean;
   hot_seat_spotlight_until?: number | null;
   prizeConfiguration?: {
     enabled?: boolean;
