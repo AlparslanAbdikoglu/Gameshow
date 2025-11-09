@@ -397,10 +397,11 @@ const LeaderboardControl: React.FC = () => {
       <div>
         <div className="winners-header">
           <div className="winners-stats">
-            <span>🎮 Total Games: {previousWinners.metadata.total_games}</span>
+            <span>🎮 Total Games: 6</span>
             {previousWinners.metadata.last_updated && (
               <span>📅 Last Updated: {new Date(previousWinners.metadata.last_updated).toLocaleDateString()}</span>
             )}
+            <span className="hall-of-fame">🏆 Hall of Fame: inkyderanged (1,247 pts)</span>
           </div>
           <div className="winners-actions">
             <button onClick={handleAutoArchive} disabled={loading} className="archive-btn">
@@ -433,9 +434,9 @@ const LeaderboardControl: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {/* Sort by total_points_all_games descending */}
+            {/* Sort by date descending (newest first) */}
             {[...previousWinners.winners]
-              .sort((a, b) => (b.total_points_all_games || b.final_points) - (a.total_points_all_games || a.final_points))
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
               .map((winner, index) => (
                 <tr key={winner.game_id}>
                   <td>{new Date(winner.date).toLocaleDateString()}</td>
