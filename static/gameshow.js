@@ -883,7 +883,11 @@ function handleWebSocketMessage(message) {
         case 'show_leaderboard':
             showLeaderboard(message.period || 'current_game', message.data);
             break;
-            
+
+        case 'show_previous_winners':
+            showPreviousWinners(message.data);
+            break;
+
         case 'hide_leaderboard':
             hideLeaderboard();
             break;
@@ -4607,6 +4611,7 @@ function handleHotSeatEnded(message) {
 // Leaderboard Display Functions
 let currentLeaderboardData = null;
 let currentLeaderboardPeriod = 'current_game';
+let currentPreviousWinnersData = null;
 
 function handleLeaderboardUpdate(message) {
     console.log("📊 Leaderboard update received:", message);
@@ -4639,10 +4644,15 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     const periodBadge = document.getElementById('leaderboard-period');
     const listContainer = document.getElementById('leaderboard-list');
     const header = document.querySelector('.leaderboard-overlay-header h2');
+    const previousWinnersOverlay = document.getElementById('previous-winners-overlay');
 
     if (!overlay || !periodBadge || !listContainer) {
         console.error('❌ Leaderboard elements not found');
         return;
+    }
+
+    if (previousWinnersOverlay && !previousWinnersOverlay.classList.contains('hidden')) {
+        hideOverlayElement(previousWinnersOverlay);
     }
 
     if (header) {
@@ -4710,39 +4720,266 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     }
 }
 
+function hideOverlayElement(overlay) {
+    if (!overlay) {
+        return;
+    }
+
+    overlay.style.transition = 'opacity 0.5s ease-in, transform 0.5s ease-in';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'translateX(100%)';
+
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.style.display = 'none';
+        overlay.style.transform = '';
+        overlay.style.transition = '';
+    }, 500);
+}
+
 function hideLeaderboard() {
     console.log("👻 Hiding leaderboard");
-    
-    const overlay = document.getElementById('leaderboard-overlay');
-    if (overlay) {
-        // Animate out smoothly
-        overlay.style.transition = 'opacity 0.5s ease-in, transform 0.5s ease-in';
-        overlay.style.opacity = '0';
-        overlay.style.transform = 'translateX(100%)';
-        
-        // Hide completely after animation
-        setTimeout(() => {
-            overlay.classList.add('hidden');
-            overlay.style.display = 'none';
-            // Reset transform for next show
-            overlay.style.transform = '';
-            overlay.style.transition = '';
-        }, 500);
+
+    const overlays = [
+        document.getElementById('leaderboard-overlay'),
+        document.getElementById('previous-winners-overlay')
+    ];
+
+    overlays.forEach((overlay) => {
+        if (overlay && !overlay.classList.contains('hidden')) {
+            hideOverlayElement(overlay);
+        }
+    });
+}
+
+function normalizePreviousWinnersData(rawData) {
+    if (!rawData) {
+        return { winners: [], metadata: null };
     }
+
+    if (Array.isArray(rawData)) {
+        return { winners: rawData, metadata: null };
+    }
+
+    const winners = Array.isArray(rawData.winners) ? rawData.winners : [];
+    const metadata = rawData.metadata || null;
+
+    return { winners, metadata };
+}
+
+function showPreviousWinners(winnersData = null) {
+    console.log("🏆 Showing previous winners overlay");
+
+    const overlay = document.getElementById('previous-winners-overlay');
+    const listContainer = document.getElementById('previous-winners-list');
+    const totalEl = document.getElementById('previous-winners-total');
+    const leaderboardOverlay = document.getElementById('leaderboard-overlay');
+
+    if (!overlay || !listContainer) {
+        console.error('❌ Previous winners elements not found');
+        return;
+    }
+
+    if (leaderboardOverlay && !leaderboardOverlay.classList.contains('hidden')) {
+        hideOverlayElement(leaderboardOverlay);
+    }
+
+    overlay.style.display = 'block';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'translateX(100%)';
+    overlay.classList.remove('hidden');
+
+    const applyData = (rawData) => {
+        const normalized = normalizePreviousWinnersData(rawData);
+        currentPreviousWinnersData = normalized;
+        renderPreviousWinnersEntries(normalized.winners, normalized.metadata);
+    };
+
+    if (winnersData) {
+        applyData(winnersData);
+    } else if (currentPreviousWinnersData) {
+        renderPreviousWinnersEntries(
+            currentPreviousWinnersData.winners,
+            currentPreviousWinnersData.metadata
+        );
+    } else {
+        fetch('/api/leaderboard/previous-winners')
+            .then(response => response.json())
+            .then(data => {
+                applyData(data);
+            })
+            .catch(error => {
+                console.error('❌ Error fetching previous winners:', error);
+                listContainer.style.opacity = '1';
+                listContainer.innerHTML = '<div class="leaderboard-empty">Unable to load previous winners</div>';
+                if (totalEl) {
+                    totalEl.textContent = '—';
+                }
+            });
+    }
+
+    requestAnimationFrame(() => {
+        overlay.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+        overlay.style.opacity = '1';
+        overlay.style.transform = 'translateX(0)';
+    });
+
+    if (typeof soundSystem !== 'undefined' && soundSystem && soundSystem.playApplause) {
+        soundSystem.playApplause();
+    }
+}
+
+function renderPreviousWinnersEntries(winners, metadata = null) {
+    const listContainer = document.getElementById('previous-winners-list');
+    const totalWinnersEl = document.getElementById('previous-winners-total');
+
+    if (!listContainer) {
+        console.error('❌ Previous winners list container not found');
+        return;
+    }
+
+    const winnersArray = Array.isArray(winners) ? winners : [];
+
+    if (winnersArray.length === 0) {
+        listContainer.style.opacity = '0.5';
+        setTimeout(() => {
+            listContainer.innerHTML = '<div class="leaderboard-empty">No previous winners yet</div>';
+            listContainer.style.opacity = '1';
+        }, 150);
+
+        if (totalWinnersEl) {
+            if (metadata && typeof metadata.total_games === 'number') {
+                const totalGames = metadata.total_games;
+                totalWinnersEl.textContent = `${totalGames} Game${totalGames !== 1 ? 's' : ''}`;
+            } else {
+                totalWinnersEl.textContent = '0 Winners';
+            }
+        }
+        return;
+    }
+
+    const sortedWinners = [...winnersArray].sort((a, b) => {
+        const dateA = a && a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b && b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+    });
+
+    const tempContainer = document.createElement('div');
+
+    sortedWinners.forEach((winner, index) => {
+        const entry = document.createElement('div');
+        entry.className = 'leaderboard-entry previous-winner-entry';
+
+        if (index < 3) {
+            entry.classList.add(`rank-${index + 1}`);
+        }
+
+        const finalPointsValue = Number.isFinite(Number(winner?.final_points))
+            ? Number(winner.final_points)
+            : Number(winner?.points) || 0;
+        const totalPointsValue = Number.isFinite(Number(winner?.total_points_all_games))
+            ? Number(winner.total_points_all_games)
+            : finalPointsValue;
+
+        const statsParts = [];
+
+        if (winner?.date) {
+            try {
+                statsParts.push(new Date(winner.date).toLocaleDateString());
+            } catch (e) {
+                statsParts.push(winner.date);
+            }
+        }
+
+        if (typeof winner?.correct_answers === 'number' && typeof winner?.total_answers === 'number') {
+            statsParts.push(`✓${winner.correct_answers}/${winner.total_answers}`);
+        } else if (typeof winner?.correct_answers === 'number') {
+            statsParts.push(`✓${winner.correct_answers}`);
+        }
+
+        if (typeof winner?.accuracy === 'number') {
+            statsParts.push(`${winner.accuracy}% accuracy`);
+        }
+
+        if (typeof winner?.questions_completed === 'number' && winner.questions_completed > 0) {
+            statsParts.push(`${winner.questions_completed} questions`);
+        }
+
+        if (typeof winner?.hot_seat_correct === 'number' && winner.hot_seat_correct > 0) {
+            const winsLabel = winner.hot_seat_correct === 1 ? 'win' : 'wins';
+            statsParts.push(`🔥 ${winner.hot_seat_correct} hot seat ${winsLabel}`);
+        } else if (typeof winner?.hot_seat_appearances === 'number' && winner.hot_seat_appearances > 0) {
+            const appLabel = winner.hot_seat_appearances === 1 ? 'appearance' : 'appearances';
+            statsParts.push(`🔥 ${winner.hot_seat_appearances} hot seat ${appLabel}`);
+        }
+
+        if (Number.isFinite(totalPointsValue) && totalPointsValue > finalPointsValue) {
+            statsParts.push(`${totalPointsValue.toLocaleString()} total pts`);
+        }
+
+        const rankDisplay = index === 0
+            ? '🥇'
+            : index === 1
+                ? '🥈'
+                : index === 2
+                    ? '🥉'
+                    : `#${index + 1}`;
+
+        const safeUsername = winner?.username || 'Unknown Player';
+
+        entry.innerHTML = `
+            <div class="leaderboard-rank">${rankDisplay}</div>
+            <div class="leaderboard-info">
+                <div class="leaderboard-username">${safeUsername}</div>
+                <div class="leaderboard-stats">${statsParts.join(' • ')}</div>
+            </div>
+            <div class="leaderboard-points">${Number.isFinite(finalPointsValue) ? finalPointsValue.toLocaleString() : '0'} pts</div>
+        `;
+
+        tempContainer.appendChild(entry);
+    });
+
+    listContainer.style.opacity = '0.5';
+    setTimeout(() => {
+        listContainer.innerHTML = '';
+        while (tempContainer.firstChild) {
+            listContainer.appendChild(tempContainer.firstChild);
+        }
+        listContainer.style.opacity = '1';
+    }, 150);
+
+    if (totalWinnersEl) {
+        const winnerCount = sortedWinners.length;
+        const labelParts = [`${winnerCount} Winner${winnerCount !== 1 ? 's' : ''}`];
+
+        if (metadata && typeof metadata.total_games === 'number') {
+            const totalGames = metadata.total_games;
+            labelParts.push(`${totalGames} Game${totalGames !== 1 ? 's' : ''}`);
+        }
+
+        totalWinnersEl.textContent = labelParts.join(' • ');
+    }
+
+    console.log(`✅ Rendered ${sortedWinners.length} previous winners`);
 }
 
 // Show end-game leaderboard with winners
 function showEndGameLeaderboard(winners, prizeConfig) {
     console.log("🏆 Showing end-game winners leaderboard");
-    
+
     const overlay = document.getElementById('leaderboard-overlay');
     const periodBadge = document.getElementById('leaderboard-period');
     const listContainer = document.getElementById('leaderboard-list');
     const header = document.querySelector('.leaderboard-overlay-header h2');
-    
+    const previousWinnersOverlay = document.getElementById('previous-winners-overlay');
+
     if (!overlay || !periodBadge || !listContainer) {
         console.error('❌ Leaderboard elements not found');
         return;
+    }
+
+    if (previousWinnersOverlay && !previousWinnersOverlay.classList.contains('hidden')) {
+        hideOverlayElement(previousWinnersOverlay);
     }
     
     // Update header for winners
