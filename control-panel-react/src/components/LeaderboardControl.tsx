@@ -30,7 +30,7 @@ interface PreviousWinner {
   hot_seat_appearances: number;
   hot_seat_correct: number;
   questions_completed: number;
-  contestant_name: string;
+  total_points_all_games?: number;
 }
 
 interface PreviousWinnersData {
@@ -423,7 +423,8 @@ const LeaderboardControl: React.FC = () => {
             <tr>
               <th>Date</th>
               <th>Winner</th>
-              <th>Points</th>
+              <th>Game Points</th>
+              <th>Total Points</th>
               <th>Correct</th>
               <th>Accuracy</th>
               <th>Streak</th>
@@ -432,30 +433,35 @@ const LeaderboardControl: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {previousWinners.winners.map((winner, index) => (
-              <tr key={winner.game_id}>
-                <td>{new Date(winner.date).toLocaleDateString()}</td>
-                <td className="username">
-                  {index === 0 && '🆕 '}
-                  {winner.username}
-                </td>
-                <td className="points">{winner.final_points}</td>
-                <td className="correct">{winner.correct_answers}/{winner.total_answers}</td>
-                <td>{winner.accuracy}%</td>
-                <td className="streak">{winner.best_streak}</td>
-                <td>{winner.questions_completed}</td>
-                <td>
-                  <button 
-                    onClick={() => handleRemoveWinner(winner.game_id)}
-                    className="remove-btn"
-                    disabled={loading}
-                    title="Remove this winner"
-                  >
-                    🗑️
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {/* Sort by total_points_all_games descending */}
+            {[...previousWinners.winners]
+              .sort((a, b) => (b.total_points_all_games || b.final_points) - (a.total_points_all_games || a.final_points))
+              .map((winner, index) => (
+                <tr key={winner.game_id}>
+                  <td>{new Date(winner.date).toLocaleDateString()}</td>
+                  <td className="username">
+                    {index === 0 && '👑 '}
+                    {winner.username}
+                    {winner.hot_seat_appearances > 0 && ' 🔥'}
+                  </td>
+                  <td className="points">{winner.final_points}</td>
+                  <td className="total-points">{winner.total_points_all_games || winner.final_points}</td>
+                  <td className="correct">{winner.correct_answers}/{winner.total_answers}</td>
+                  <td>{winner.accuracy}%</td>
+                  <td className="streak">{winner.best_streak}</td>
+                  <td>{winner.questions_completed}</td>
+                  <td>
+                    <button 
+                      onClick={() => handleRemoveWinner(winner.game_id)}
+                      className="remove-btn"
+                      disabled={loading}
+                      title="Remove this winner"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>

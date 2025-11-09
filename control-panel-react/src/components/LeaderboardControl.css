@@ -486,3 +486,9 @@
   border-color: rgba(255, 215, 0, 0.6);
   box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
 }
+
+.total-points {
+  font-weight: bold;
+  color: #00ff88;
+  font-size: 15px;
+}
