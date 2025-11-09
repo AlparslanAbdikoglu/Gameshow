@@ -564,19 +564,20 @@ const LeaderboardControl: React.FC = () => {
         <div className="header-actions">
           <div style={{ display: 'flex', gap: '6px' }}>
             <button 
-              onClick={() => {
-                // Send command to show leaderboard in browser source
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                  ws.send(JSON.stringify({
-                    type: 'broadcast',
-                    message: {
-                      type: 'show_leaderboard',
-                      period: selectedPeriod
-                    }
-                  }));
-                  console.log('📺 Show leaderboard in browser source:', selectedPeriod);
-                }
-              }}
+  onClick={() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'broadcast',
+        message: {
+          type: selectedPeriod === 'previous_winners'
+            ? 'show_previous_winners'
+            : 'show_leaderboard',
+          period: selectedPeriod
+        }
+      }));
+      console.log('📺 Show in browser source:', selectedPeriod);
+    }
+  }}
               className="show-btn"
               style={{ background: 'linear-gradient(135deg, #4CAF50, #45a049)' }}
             >
@@ -772,7 +773,7 @@ const LeaderboardControl: React.FC = () => {
       </div>
 
       <div className="leaderboard-content">
-        {selectedPeriod === 'previous_winners' ? (
+       {selectedPeriod === 'previous_winners' ? (
           renderPreviousWinners()
         ) : (
           leaderboardData && renderLeaderboard(leaderboardData[selectedPeriod] as LeaderboardUser[])

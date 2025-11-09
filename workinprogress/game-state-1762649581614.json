@@ -1,6 +1,6 @@
 {
   "gameState": {
-    "current_question": 1,
+    "current_question": 0,
     "score": 0,
     "game_active": true,
     "lifelines_used": [],
@@ -24,7 +24,7 @@
     "show_voting_activity": false,
     "curtains_closed": false,
     "show_welcome": false,
-    "preparing_for_game": true,
+    "preparing_for_game": false,
     "fade_out_ready_text": false,
     "lastActionTime": 0,
     "processingAction": false,
@@ -57,7 +57,7 @@
     "answerHistory": [
       {
         "questionIndex": 0,
-        "result": "correct"
+        "result": null
       },
       {
         "questionIndex": 1,
@@ -197,9 +197,10 @@
     "giveaway_winners": [],
     "giveaway_closed": false,
     "giveaway_show_voters": {},
-    "leaderboard_visible": true,
-    "leaderboard_period": "current_game",
-    "answers_shown_time": null
+    "leaderboard_visible": false,
+    "leaderboard_period": "all_time",
+    "answers_shown_time": 1762647635060,
+    "giveaway_timer_active": false
   },
   "leaderboardData": {
     "current_game": {},
@@ -5935,7 +5936,7 @@
         "games_played": 0,
         "total_votes": 5,
         "correct_votes": 5,
-        "total_points": 183,
+        "total_points": 184,
         "accuracy_percentage": 100,
         "average_response_time": 91366,
         "achievements": [],
@@ -5946,7 +5947,7 @@
         "daily_best_streak": 0,
         "weekly_best_streak": 0,
         "monthly_best_streak": 0,
-        "last_active": 1762637559816
+        "last_active": 1762647629887
       },
       "fezulek": {
         "games_played": 0,
@@ -12004,7 +12005,7 @@
         "games_played": 0,
         "total_votes": 0,
         "correct_votes": 0,
-        "total_points": 106,
+        "total_points": 107,
         "accuracy_percentage": 0,
         "average_response_time": 0,
         "achievements": [],
@@ -12015,7 +12016,7 @@
         "daily_best_streak": 0,
         "weekly_best_streak": 0,
         "monthly_best_streak": 0,
-        "last_active": 1762383731288
+        "last_active": 1762648537517
       },
       "net_runners": {
         "games_played": 0,
@@ -13549,7 +13550,7 @@
         "games_played": 0,
         "total_votes": 0,
         "correct_votes": 0,
-        "total_points": 108,
+        "total_points": 109,
         "accuracy_percentage": 0,
         "average_response_time": 0,
         "achievements": [],
@@ -13557,7 +13558,7 @@
         "hot_seat_appearances": 0,
         "hot_seat_correct": 0,
         "best_streak": 0,
-        "last_active": 1762383731288,
+        "last_active": 1762648537517,
         "weekly_best_streak": 0
       },
       "TestChatUser": {
@@ -16144,7 +16145,7 @@
         "games_played": 0,
         "total_votes": 5,
         "correct_votes": 5,
-        "total_points": 184,
+        "total_points": 185,
         "accuracy_percentage": 100,
         "average_response_time": 91366,
         "achievements": [],
@@ -16152,7 +16153,7 @@
         "hot_seat_appearances": 5,
         "hot_seat_correct": 1,
         "best_streak": 5,
-        "last_active": 1762637559816,
+        "last_active": 1762647629887,
         "weekly_best_streak": 0
       },
       "rowntrippa": {
@@ -27852,7 +27853,7 @@
         "games_played": 0,
         "total_votes": 0,
         "correct_votes": 0,
-        "total_points": 108,
+        "total_points": 109,
         "accuracy_percentage": 0,
         "average_response_time": 0,
         "achievements": [],
@@ -27860,7 +27861,7 @@
         "hot_seat_appearances": 0,
         "hot_seat_correct": 0,
         "best_streak": 0,
-        "last_active": 1762383731288,
+        "last_active": 1762648537517,
         "monthly_best_streak": 0
       },
       "TestChatUser": {
@@ -30447,7 +30448,7 @@
         "games_played": 0,
         "total_votes": 5,
         "correct_votes": 5,
-        "total_points": 184,
+        "total_points": 185,
         "accuracy_percentage": 100,
         "average_response_time": 91366,
         "achievements": [],
@@ -30455,7 +30456,7 @@
         "hot_seat_appearances": 5,
         "hot_seat_correct": 1,
         "best_streak": 5,
-        "last_active": 1762637559816,
+        "last_active": 1762647629887,
         "monthly_best_streak": 0
       },
       "rowntrippa": {
@@ -42153,7 +42154,7 @@
         "games_played": 0,
         "total_votes": 0,
         "correct_votes": 0,
-        "total_points": 108,
+        "total_points": 109,
         "accuracy_percentage": 0,
         "average_response_time": 0,
         "achievements": [],
@@ -42161,7 +42162,7 @@
         "hot_seat_appearances": 0,
         "hot_seat_correct": 0,
         "best_streak": 0,
-        "last_active": 1762383731288
+        "last_active": 1762648537517
       },
       "TestChatUser": {
         "games_played": 0,
@@ -44575,7 +44576,7 @@
         "games_played": 0,
         "total_votes": 5,
         "correct_votes": 5,
-        "total_points": 184,
+        "total_points": 185,
         "accuracy_percentage": 100,
         "average_response_time": 91366,
         "achievements": [],
@@ -44583,7 +44584,7 @@
         "hot_seat_appearances": 5,
         "hot_seat_correct": 1,
         "best_streak": 5,
-        "last_active": 1762637559816
+        "last_active": 1762647629887
       },
       "rowntrippa": {
         "games_played": 0,
@@ -56051,14 +56052,14 @@
       "chat_participation_cooldown": 1000
     }
   },
-  "timestamp": 1762646753134,
+  "timestamp": 1762649581601,
   "serverHealth": {
     "startTime": 1762641771648,
     "crashCount": 0,
     "lastCrash": null,
     "memoryWarnings": 0,
-    "connectionCount": 6,
-    "lastHeartbeat": 1762646649259
+    "connectionCount": 7,
+    "lastHeartbeat": 1762649581601
   },
   "version": "3.0.0"
 }
