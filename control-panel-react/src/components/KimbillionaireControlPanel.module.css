@@ -312,6 +312,95 @@
   color: #ff6b6b;
 }
 
+.hotSeatPreviewWrapper {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hotSeatPreviewTitle {
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.hotSeatPreviewCard {
+  background: linear-gradient(135deg, rgba(0, 43, 92, 0.55), rgba(0, 20, 60, 0.75));
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.35);
+}
+
+.hotSeatPreviewBadge {
+  font-size: 13px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #ffe082;
+  font-weight: 600;
+}
+
+.hotSeatPreviewName {
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffd700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.hotSeatPreviewTagline {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.hotSeatPreviewBlurb {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.5;
+}
+
+.hotSeatPreviewDivider {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.5), transparent);
+}
+
+.hotSeatPreviewStory {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hotSeatPreviewStory p {
+  margin: 0;
+}
+
+.hotSeatPreviewStory ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.hotSeatPreviewStory li {
+  margin-bottom: 6px;
+}
+
+.hotSeatPreviewAlternates {
+  margin-top: 4px;
+  font-size: 13px;
+  color: rgba(255, 215, 0, 0.85);
+  letter-spacing: 0.5px;
+}
+
 /* Clean Professional Button Styles */
 .primaryBtn {
   background: linear-gradient(135deg, var(--gold), #FFA500);

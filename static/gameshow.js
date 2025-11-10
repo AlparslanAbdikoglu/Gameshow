@@ -4046,7 +4046,7 @@ function showCredits(participants) {
         participantsContainer.appendChild(scrollContainer);
         
         // Calculate duration based on number of participants (about 1.5 seconds per name)
-        const scrollDuration = Math.max(10, participants.length * 1.5);
+        const scrollDuration = Math.max(20, participants.length * 2.4);
         scrollContainer.style.animationDuration = scrollDuration + 's';
         
         console.log(`🎬 Starting credit scroll for ${participants.length} names over ${scrollDuration} seconds`);
@@ -4166,6 +4166,19 @@ let hotSeatEntryState = {
 
 let hotSeatProfileHideTimeout = null;
 
+function normalizeHotSeatUsername(username) {
+    if (typeof username !== 'string') {
+        return '';
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    return trimmed.replace(/^@+/, '').toLowerCase();
+}
+
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
         .replace(/&/g, '&amp;')
@@ -4173,6 +4186,43 @@ function escapeHtml(unsafe = '') {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function buildHotSeatFallbackStory(playerName = 'This contestant') {
+    const safeName = escapeHtml(playerName && playerName.length > 0 ? playerName : 'This contestant');
+    return `<p>${safeName} is ready for the spotlight. Upload a hot seat story to share their background.</p>`;
+}
+
+function getHotSeatProfileFromState(username) {
+    if (!username || !currentState || typeof currentState !== 'object') {
+        return null;
+    }
+
+    const profiles = currentState.hot_seat_profiles;
+    if (!profiles || typeof profiles !== 'object') {
+        return null;
+    }
+
+    const normalized = normalizeHotSeatUsername(username);
+    if (!normalized || !profiles[normalized]) {
+        return null;
+    }
+
+    const profile = profiles[normalized];
+    const usernameDisplay = typeof profile.username === 'string' && profile.username.trim().length > 0
+        ? profile.username.trim()
+        : username.replace(/^@+/, '').trim();
+
+    const displayName = typeof profile.displayName === 'string' && profile.displayName.trim().length > 0
+        ? profile.displayName.trim()
+        : usernameDisplay;
+
+    return {
+        username: usernameDisplay,
+        displayName,
+        storyHtml: typeof profile.storyHtml === 'string' ? profile.storyHtml : '',
+        storyText: typeof profile.storyText === 'string' ? profile.storyText : ''
+    };
 }
 
 function formatHotSeatSelectionMethod(method) {
@@ -4252,15 +4302,10 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     const hasStory = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
     if (storyEl && dividerEl) {
-        if (hasStory) {
-            storyEl.innerHTML = profileData.storyHtml;
-            storyEl.classList.remove('hidden');
-            dividerEl.classList.remove('hidden');
-        } else {
-            storyEl.innerHTML = '';
-            storyEl.classList.add('hidden');
-            dividerEl.classList.add('hidden');
-        }
+        const fallbackStory = buildHotSeatFallbackStory((profileData && profileData.displayName) || primaryUser);
+        storyEl.innerHTML = hasStory ? profileData.storyHtml : fallbackStory;
+        storyEl.classList.remove('hidden');
+        dividerEl.classList.remove('hidden');
     }
 
     if (alternatesEl) {
@@ -4295,7 +4340,7 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     hotSeatProfileHideTimeout = setTimeout(() => {
         hideHotSeatProfileCard();
-    }, 8000);
+    }, 30000);
 }
 
 function mergeHotSeatEntryState(partial = {}) {
@@ -4415,10 +4460,31 @@ function handleHotSeatActivated(message) {
     }
 
     const alternateNames = participants.slice(1);
+
+    const profileFromMessage = message && typeof message.profile === 'object' ? message.profile : null;
+    const fallbackProfile = profileFromMessage && profileFromMessage.storyHtml
+        ? profileFromMessage
+        : getHotSeatProfileFromState(primaryUser) || profileFromMessage;
+
+    const messageAlternateProfiles = Array.isArray(message.alternateProfiles) ? message.alternateProfiles : [];
+    const fallbackAlternateProfiles = alternateNames
+        .map((username) => {
+            const profile = getHotSeatProfileFromState(username);
+            if (!profile || !profile.storyHtml) {
+                return null;
+            }
+
+            return {
+                username: profile.username,
+                profile
+            };
+        })
+        .filter(Boolean);
+
     showHotSeatProfileCard(
         primaryUser,
-        message.profile || null,
-        Array.isArray(message.alternateProfiles) ? message.alternateProfiles : [],
+        fallbackProfile || null,
+        messageAlternateProfiles.length > 0 ? messageAlternateProfiles : fallbackAlternateProfiles,
         alternateNames,
         message.selectionMethod || 'manual',
         message.message || ''
