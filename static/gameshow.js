@@ -4679,8 +4679,13 @@ function aggregatePreviousWinners(winners) {
             return;
         }
 
-        const username = entry.username;
-        const existing = aggregated.get(username) || {
+        const username = typeof entry.username === 'string' ? entry.username.trim() : '';
+        if (!username) {
+            return;
+        }
+
+        const lookupKey = username.toLowerCase();
+        const existing = aggregated.get(lookupKey) || {
             username,
             wins: 0,
             sumPoints: 0,
@@ -4782,7 +4787,11 @@ function aggregatePreviousWinners(winners) {
             }
         }
 
-        aggregated.set(username, existing);
+        if (!existing.username) {
+            existing.username = username;
+        }
+
+        aggregated.set(lookupKey, existing);
     });
 
     return Array.from(aggregated.values()).map(entry => {

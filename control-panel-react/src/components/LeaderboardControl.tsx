@@ -90,9 +90,14 @@ export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedP
       return;
     }
 
-    const username = winner.username;
-    if (!aggregated.has(username)) {
-      aggregated.set(username, {
+    const username = winner.username.trim();
+    if (!username) {
+      return;
+    }
+
+    const lookupKey = username.toLowerCase();
+    if (!aggregated.has(lookupKey)) {
+      aggregated.set(lookupKey, {
         username,
         wins: 0,
         totalPoints: 0,
@@ -112,7 +117,11 @@ export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedP
       });
     }
 
-    const record = aggregated.get(username)!;
+    const record = aggregated.get(lookupKey)!;
+
+    if (!record.username) {
+      record.username = username;
+    }
 
     record.wins += 1;
     record.sumPoints += safeNumber((winner as { final_points?: number }).final_points ?? (winner as { total_points?: number }).total_points ?? 0);
