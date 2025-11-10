@@ -23,7 +23,17 @@ describe('KimbillionaireControlPanel - Critical Path Tests', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
+    (window as any).AudioContext = jest.fn().mockImplementation(() => ({
+      createOscillator: jest.fn(),
+      createGain: jest.fn(),
+      destination: {},
+      currentTime: 0,
+      resume: jest.fn(),
+      close: jest.fn()
+    }));
+    (window as any).webkitAudioContext = (window as any).AudioContext;
+
     // Setup default API mocks
     mockGameApi.gameApi = {
       getState: jest.fn().mockResolvedValue(mockGameState),
@@ -56,12 +66,27 @@ describe('KimbillionaireControlPanel - Critical Path Tests', () => {
     } as any;
 
     // Mock WebSocket
-    global.WebSocket = jest.fn().mockImplementation(() => ({
-      onopen: jest.fn(),
-      onmessage: jest.fn(),
-      onerror: jest.fn(),
-      close: jest.fn()
-    })) as any;
+    global.WebSocket = jest.fn().mockImplementation(() => {
+      const listeners: Record<string, Set<(event: any) => void>> = {};
+
+      return {
+        onopen: jest.fn(),
+        onmessage: jest.fn(),
+        onerror: jest.fn(),
+        close: jest.fn(),
+        send: jest.fn(),
+        readyState: 0,
+        addEventListener: jest.fn((type: string, handler: (event: any) => void) => {
+          if (!listeners[type]) {
+            listeners[type] = new Set();
+          }
+          listeners[type].add(handler);
+        }),
+        removeEventListener: jest.fn((type: string, handler: (event: any) => void) => {
+          listeners[type]?.delete(handler);
+        })
+      };
+    }) as any;
   });
 
   describe('Critical Path 1: Game Setup and Start', () => {

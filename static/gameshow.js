@@ -119,6 +119,13 @@ let dataLoaded = false;  // Track if questions and prizes are loaded
 let queuedStateUpdates = [];  // Queue for state updates that arrive before data loads
 let countdownInterval = null;
 
+// Previous winners data cache
+let previousWinnersData = null;
+let previousWinnersLastFetched = 0;
+let previousWinnersFetchPromise = null;
+let isShowingPreviousWinners = false;
+const PREVIOUS_WINNERS_CACHE_MS = 60 * 1000;
+
 // Initialize the gameshow when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🎮 Initializing Kimbillionaire gameshow...');
@@ -191,7 +198,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // Connect to WebSocket
     connectWebSocket();
-    
+
+    // Prime previous winners cache (non-blocking)
+    loadPreviousWinners().catch(error => {
+        console.warn('⚠️ Unable to preload previous winners:', error);
+    });
+
     // FORCE QUESTION AREA TO BE VISIBLE AND SHOW WELCOME MESSAGE
     // This needs to happen BEFORE updateDisplay to ensure it's not overridden
     console.log('🎮 Forcing welcome message on initialization');
@@ -883,7 +895,11 @@ function handleWebSocketMessage(message) {
         case 'show_leaderboard':
             showLeaderboard(message.period || 'current_game', message.data);
             break;
-            
+
+        case 'show_previous_winners':
+            showPreviousWinners();
+            break;
+
         case 'hide_leaderboard':
             hideLeaderboard();
             break;
@@ -4605,6 +4621,629 @@ function handleHotSeatEnded(message) {
 }
 
 // Leaderboard Display Functions
+
+async function loadPreviousWinners(force = false) {
+    const now = Date.now();
+
+    if (!force && previousWinnersData && (now - previousWinnersLastFetched) < PREVIOUS_WINNERS_CACHE_MS) {
+        return previousWinnersData;
+    }
+
+    if (!force && previousWinnersFetchPromise) {
+        return previousWinnersFetchPromise;
+    }
+
+    const fetchPromise = fetch('/api/leaderboard/previous-winners')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            previousWinnersData = data;
+            previousWinnersLastFetched = Date.now();
+
+            if (isShowingPreviousWinners) {
+                renderPreviousWinnersEntries(previousWinnersData);
+            }
+
+            return data;
+        })
+        .catch(error => {
+            console.error('❌ Error loading previous winners:', error);
+
+            if (previousWinnersData) {
+                return previousWinnersData;
+            }
+
+            throw error;
+        })
+        .finally(() => {
+            previousWinnersFetchPromise = null;
+        });
+
+    previousWinnersFetchPromise = fetchPromise;
+    return fetchPromise;
+}
+
+function aggregatePreviousWinners(winners) {
+    if (!Array.isArray(winners)) {
+        return [];
+    }
+
+    const aggregated = new Map();
+
+    winners.forEach(entry => {
+        if (!entry || !entry.username) {
+            return;
+        }
+
+        const username = entry.username;
+        const existing = aggregated.get(username) || {
+            username,
+            wins: 0,
+            sumPoints: 0,
+            totalCorrect: 0,
+            totalVotes: 0,
+            bestStreak: 0,
+            hotSeatAppearances: 0,
+            hotSeatCorrect: 0,
+            lastWinDate: null,
+            allTimePoints: 0,
+            allTimeCorrect: 0,
+            allTimeVotes: 0,
+            allTimeBestStreak: 0,
+            allTimeHotSeatAppearances: 0,
+            allTimeHotSeatCorrect: 0
+        };
+
+        const perGamePoints = Number(entry.final_points ?? entry.total_points ?? entry.points ?? 0);
+        const correct = Number(entry.correct_answers ?? entry.correct ?? entry.correct_answers_count ?? 0);
+        const votes = Number(
+            entry.total_votes ??
+            entry.totalVotes ??
+            entry.total_answers ??
+            entry.totalAnswers ??
+            entry.votes ??
+            0
+        );
+        const streak = Number(entry.best_streak ?? entry.bestStreak ?? entry.longest_streak ?? 0);
+        const hotSeat = Number(entry.hot_seat_appearances ?? entry.hotSeatAppearances ?? 0);
+        const hotSeatCorrect = Number(entry.hot_seat_correct ?? entry.hotSeatCorrect ?? 0);
+        const winDate = entry.date ? new Date(entry.date) : null;
+
+        const allTimePointsCandidate = Number(
+            entry.total_points_all_games ??
+            entry.all_time_points ??
+            entry.allTimePoints ??
+            entry.points_all_time ??
+            0
+        );
+        const allTimeCorrectCandidate = Number(
+            entry.total_correct_all_games ??
+            entry.correct_all_time ??
+            entry.correct_votes_all_time ??
+            entry.correctAnswersAllTime ??
+            0
+        );
+        const allTimeVotesCandidate = Number(
+            entry.total_votes_all_games ??
+            entry.votes_all_time ??
+            entry.totalAnswersAllTime ??
+            0
+        );
+        const allTimeBestStreakCandidate = Number(
+            entry.best_streak_all_time ??
+            entry.all_time_best_streak ??
+            0
+        );
+        const allTimeHotSeatCandidate = Number(
+            entry.hot_seat_appearances_all_time ??
+            entry.hotSeatAppearancesAllTime ??
+            0
+        );
+        const allTimeHotSeatCorrectCandidate = Number(
+            entry.hot_seat_correct_all_time ??
+            entry.hotSeatCorrectAllTime ??
+            0
+        );
+
+        existing.wins += 1;
+        existing.sumPoints += Number.isFinite(perGamePoints) ? perGamePoints : 0;
+        existing.totalCorrect += Number.isFinite(correct) ? correct : 0;
+        existing.totalVotes += Number.isFinite(votes) ? votes : 0;
+        existing.bestStreak = Math.max(existing.bestStreak, Number.isFinite(streak) ? streak : 0);
+        existing.hotSeatAppearances += Number.isFinite(hotSeat) ? hotSeat : 0;
+        existing.hotSeatCorrect += Number.isFinite(hotSeatCorrect) ? hotSeatCorrect : 0;
+
+        if (Number.isFinite(allTimePointsCandidate) && allTimePointsCandidate > existing.allTimePoints) {
+            existing.allTimePoints = allTimePointsCandidate;
+        }
+        if (Number.isFinite(allTimeCorrectCandidate) && allTimeCorrectCandidate > existing.allTimeCorrect) {
+            existing.allTimeCorrect = allTimeCorrectCandidate;
+        }
+        if (Number.isFinite(allTimeVotesCandidate) && allTimeVotesCandidate > existing.allTimeVotes) {
+            existing.allTimeVotes = allTimeVotesCandidate;
+        }
+        if (Number.isFinite(allTimeBestStreakCandidate) && allTimeBestStreakCandidate > existing.allTimeBestStreak) {
+            existing.allTimeBestStreak = allTimeBestStreakCandidate;
+        }
+        if (Number.isFinite(allTimeHotSeatCandidate) && allTimeHotSeatCandidate > existing.allTimeHotSeatAppearances) {
+            existing.allTimeHotSeatAppearances = allTimeHotSeatCandidate;
+        }
+        if (Number.isFinite(allTimeHotSeatCorrectCandidate) && allTimeHotSeatCorrectCandidate > existing.allTimeHotSeatCorrect) {
+            existing.allTimeHotSeatCorrect = allTimeHotSeatCorrectCandidate;
+        }
+
+        if (winDate && !Number.isNaN(winDate.getTime())) {
+            if (!existing.lastWinDate || winDate > existing.lastWinDate) {
+                existing.lastWinDate = winDate;
+            }
+        }
+
+        aggregated.set(username, existing);
+    });
+
+    return Array.from(aggregated.values()).map(entry => ({
+        username: entry.username,
+        wins: entry.wins,
+        totalPoints: Math.max(entry.sumPoints, entry.allTimePoints),
+        totalCorrect: Math.max(entry.totalCorrect, entry.allTimeCorrect),
+        totalVotes: Math.max(entry.totalVotes, entry.allTimeVotes),
+        bestStreak: Math.max(entry.bestStreak, entry.allTimeBestStreak),
+        hotSeatAppearances: Math.max(entry.hotSeatAppearances, entry.allTimeHotSeatAppearances),
+        hotSeatCorrect: Math.max(entry.hotSeatCorrect, entry.allTimeHotSeatCorrect),
+        lastWinDate: entry.lastWinDate
+    }));
+}
+
+function sortAggregatedPreviousWinners(entries) {
+    if (!Array.isArray(entries)) {
+        return [];
+    }
+
+    return [...entries].sort((a, b) => {
+        if (b.totalPoints !== a.totalPoints) {
+            return b.totalPoints - a.totalPoints;
+        }
+
+        if (b.totalCorrect !== a.totalCorrect) {
+            return b.totalCorrect - a.totalCorrect;
+        }
+
+        const aTime = a.lastWinDate instanceof Date && !Number.isNaN(a.lastWinDate.getTime()) ? a.lastWinDate.getTime() : 0;
+        const bTime = b.lastWinDate instanceof Date && !Number.isNaN(b.lastWinDate.getTime()) ? b.lastWinDate.getTime() : 0;
+
+        return bTime - aTime;
+    });
+}
+
+function getAllTimeLeaderboardEntries() {
+    if (!currentLeaderboardData) {
+        return [];
+    }
+
+    const raw = currentLeaderboardData.all_time || currentLeaderboardData.allTime;
+    if (!raw) {
+        return [];
+    }
+
+    if (Array.isArray(raw)) {
+        return raw;
+    }
+
+    if (typeof raw === 'object') {
+        return Object.values(raw);
+    }
+
+    return [];
+}
+
+function mergeAggregatedPreviousWinnersWithAllTime(entries) {
+    if (!Array.isArray(entries) || entries.length === 0) {
+        return entries || [];
+    }
+
+    const allTimeEntries = getAllTimeLeaderboardEntries();
+    if (allTimeEntries.length === 0) {
+        return entries;
+    }
+
+    const index = new Map();
+    allTimeEntries.forEach(entry => {
+        if (entry && entry.username) {
+            index.set(String(entry.username).trim().toLowerCase(), entry);
+        }
+    });
+
+    return entries.map(winner => {
+        const key = String(winner.username).trim().toLowerCase();
+        const match = index.get(key);
+        if (!match) {
+            return winner;
+        }
+
+        const updated = { ...winner };
+
+        const points = Number(match.points ?? match.total_points ?? match.score ?? match.totalPoints ?? 0);
+        if (Number.isFinite(points) && points > 0) {
+            updated.totalPoints = Math.max(updated.totalPoints, points);
+        }
+
+        const correct = Number(
+            match.correct_answers ??
+            match.correct_votes ??
+            match.correct ??
+            match.total_correct ??
+            0
+        );
+        if (Number.isFinite(correct) && correct > 0) {
+            updated.totalCorrect = Math.max(updated.totalCorrect, correct);
+        }
+
+        const votes = Number(match.total_votes ?? match.votes ?? match.total ?? 0);
+        if (Number.isFinite(votes) && votes > 0) {
+            updated.totalVotes = Math.max(updated.totalVotes, votes);
+        }
+
+        const streak = Number(
+            match.best_streak ??
+            match.bestStreak ??
+            match.current_streak ??
+            match.longest_streak ??
+            0
+        );
+        if (Number.isFinite(streak) && streak > updated.bestStreak) {
+            updated.bestStreak = streak;
+        }
+
+        const hotSeatAppearances = Number(match.hot_seat_appearances ?? match.hotSeatAppearances ?? 0);
+        if (Number.isFinite(hotSeatAppearances) && hotSeatAppearances > updated.hotSeatAppearances) {
+            updated.hotSeatAppearances = hotSeatAppearances;
+        }
+
+        const hotSeatCorrect = Number(match.hot_seat_correct ?? match.hotSeatCorrect ?? 0);
+        if (Number.isFinite(hotSeatCorrect) && hotSeatCorrect > updated.hotSeatCorrect) {
+            updated.hotSeatCorrect = hotSeatCorrect;
+        }
+
+        return updated;
+    });
+}
+
+async function ensureLeaderboardDataLoaded() {
+    if (currentLeaderboardData) {
+        return currentLeaderboardData;
+    }
+
+    try {
+        const response = await fetch('/api/leaderboard');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        currentLeaderboardData = data;
+        return data;
+    } catch (error) {
+        console.error('❌ Error loading leaderboard data for previous winners overlay:', error);
+        return null;
+    }
+}
+
+function formatWinnerDate(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+        return 'N/A';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    }).format(date);
+}
+
+function formatUpdatedLabel(timestamp) {
+    if (!timestamp) {
+        return null;
+    }
+
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    const diff = Date.now() - date.getTime();
+    const hour = 60 * 60 * 1000;
+    const day = 24 * hour;
+
+    if (diff < hour) {
+        return 'Updated moments ago';
+    }
+
+    if (diff < day) {
+        const hours = Math.floor(diff / hour);
+        return `Updated ${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
+
+    return `Updated ${new Intl.DateTimeFormat(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    }).format(date)}`;
+}
+
+function createPreviousWinnersHeader() {
+    const headerRow = document.createElement('div');
+    headerRow.className = 'previous-winners-row previous-winners-header';
+
+    const columns = [
+        { label: '#', className: 'rank' },
+        { label: 'Champion', className: 'champion' },
+        { label: 'Points', className: 'points' },
+        { label: 'Correct', className: 'correct' },
+        { label: 'Votes', className: 'votes' },
+        { label: 'Streak', className: 'streak' },
+        { label: 'Hot Seat', className: 'hot-seat' }
+    ];
+
+    columns.forEach(column => {
+        const col = document.createElement('div');
+        col.className = `previous-winners-col ${column.className}`;
+        col.textContent = column.label;
+        headerRow.appendChild(col);
+    });
+
+    return headerRow;
+}
+
+function renderPreviousWinnersEntries(data) {
+    const overlay = document.getElementById('previous-winners-overlay');
+    const listContainer = document.getElementById('previous-winners-list');
+    const totalEl = document.getElementById('previous-winners-total');
+    const metaEl = document.getElementById('previous-winners-meta');
+    const noteEl = document.getElementById('previous-winners-note');
+
+    if (!overlay || !listContainer) {
+        console.error('❌ Previous winners overlay elements not found');
+        return;
+    }
+
+    const aggregated = aggregatePreviousWinners(data && data.winners ? data.winners : []);
+    const enriched = mergeAggregatedPreviousWinnersWithAllTime(aggregated);
+    const sorted = sortAggregatedPreviousWinners(enriched);
+
+    if (metaEl) {
+        const summaryParts = [];
+
+        summaryParts.push(`${sorted.length} Champion${sorted.length === 1 ? '' : 's'}`);
+
+        const totalGames = data && data.metadata && typeof data.metadata.total_games === 'number'
+            ? data.metadata.total_games
+            : null;
+
+        if (totalGames !== null) {
+            summaryParts.push(`${totalGames} Recorded Game${totalGames === 1 ? '' : 's'}`);
+        }
+
+        const updatedLabel = data && data.metadata ? formatUpdatedLabel(data.metadata.last_updated) : null;
+        if (updatedLabel) {
+            summaryParts.push(updatedLabel);
+        }
+
+        metaEl.textContent = summaryParts.join(' • ');
+    }
+
+    if (noteEl) {
+        if (data && data.metadata && data.metadata.note) {
+            noteEl.textContent = data.metadata.note;
+            noteEl.style.display = '';
+        } else {
+            noteEl.textContent = '';
+            noteEl.style.display = 'none';
+        }
+    }
+
+    if (sorted.length === 0) {
+        listContainer.innerHTML = '<div class="leaderboard-empty">No recorded winners yet</div>';
+        listContainer.style.opacity = '1';
+        if (totalEl) {
+            totalEl.textContent = '0 Winners';
+        }
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    fragment.appendChild(createPreviousWinnersHeader());
+
+    sorted.forEach((winner, index) => {
+        const row = document.createElement('div');
+        row.className = 'previous-winners-row';
+
+        if (index < 3) {
+            row.classList.add(`rank-${index + 1}`);
+        }
+
+        const rankCol = document.createElement('div');
+        rankCol.className = 'previous-winners-col rank';
+        if (index === 0) {
+            rankCol.textContent = '🥇';
+        } else if (index === 1) {
+            rankCol.textContent = '🥈';
+        } else if (index === 2) {
+            rankCol.textContent = '🥉';
+        } else {
+            rankCol.textContent = `#${index + 1}`;
+        }
+
+        const championCol = document.createElement('div');
+        championCol.className = 'previous-winners-col champion';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'previous-winner-name';
+        nameEl.textContent = winner.username;
+
+        const metaRow = document.createElement('div');
+        metaRow.className = 'previous-winner-meta';
+
+        const winsPill = document.createElement('span');
+        winsPill.className = 'wins-pill';
+        winsPill.textContent = `${winner.wins} win${winner.wins === 1 ? '' : 's'}`;
+
+        const lastWin = document.createElement('span');
+        lastWin.textContent = `Last win: ${formatWinnerDate(winner.lastWinDate)}`;
+
+        metaRow.appendChild(winsPill);
+        metaRow.appendChild(lastWin);
+
+        championCol.appendChild(nameEl);
+        championCol.appendChild(metaRow);
+
+        const pointsCol = document.createElement('div');
+        pointsCol.className = 'previous-winners-col points';
+        pointsCol.textContent = winner.totalPoints.toLocaleString();
+
+        const correctCol = document.createElement('div');
+        correctCol.className = 'previous-winners-col correct';
+        correctCol.textContent = winner.totalCorrect.toLocaleString();
+
+        const votesCol = document.createElement('div');
+        votesCol.className = 'previous-winners-col votes';
+        votesCol.textContent = winner.totalVotes.toLocaleString();
+
+        const streakCol = document.createElement('div');
+        streakCol.className = 'previous-winners-col streak';
+        streakCol.textContent = winner.bestStreak.toLocaleString();
+
+        const hotSeatCol = document.createElement('div');
+        hotSeatCol.className = 'previous-winners-col hot-seat';
+        if (winner.hotSeatAppearances > 0) {
+            const hotSeatBadge = document.createElement('span');
+            hotSeatBadge.className = 'hot-seat-badge';
+            hotSeatBadge.textContent = `🔥 ${winner.hotSeatAppearances}${winner.hotSeatCorrect > 0 ? ` (${winner.hotSeatCorrect} ✓)` : ''}`;
+            hotSeatCol.appendChild(hotSeatBadge);
+        } else {
+            hotSeatCol.textContent = '0';
+        }
+
+        row.appendChild(rankCol);
+        row.appendChild(championCol);
+        row.appendChild(pointsCol);
+        row.appendChild(correctCol);
+        row.appendChild(votesCol);
+        row.appendChild(streakCol);
+        row.appendChild(hotSeatCol);
+
+        fragment.appendChild(row);
+    });
+
+    listContainer.style.opacity = '0.5';
+    setTimeout(() => {
+        listContainer.innerHTML = '';
+        listContainer.appendChild(fragment);
+        listContainer.style.opacity = '1';
+    }, 150);
+
+    if (totalEl) {
+        totalEl.textContent = `${sorted.length} Champion${sorted.length === 1 ? '' : 's'}`;
+    }
+}
+
+function hideLeaderboardOverlay({ immediate = false } = {}) {
+    const overlay = document.getElementById('leaderboard-overlay');
+    if (!overlay) {
+        return;
+    }
+
+    if (immediate) {
+        overlay.classList.add('hidden');
+        overlay.style.display = 'none';
+        overlay.style.opacity = '';
+        overlay.style.transform = '';
+        overlay.style.transition = '';
+        return;
+    }
+
+    overlay.style.transition = 'opacity 0.5s ease-in, transform 0.5s ease-in';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'translateX(100%)';
+
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.style.display = 'none';
+        overlay.style.transform = '';
+        overlay.style.transition = '';
+    }, 500);
+}
+
+function hidePreviousWinners({ immediate = false } = {}) {
+    const overlay = document.getElementById('previous-winners-overlay');
+    isShowingPreviousWinners = false;
+
+    if (!overlay) {
+        return;
+    }
+
+    if (immediate) {
+        overlay.classList.add('hidden');
+        overlay.style.display = 'none';
+        overlay.style.opacity = '';
+        overlay.style.transform = '';
+        overlay.style.transition = '';
+        return;
+    }
+
+    overlay.style.transition = 'opacity 0.4s ease-in, transform 0.4s ease-in';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'translateY(40px)';
+
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+        overlay.style.display = 'none';
+        overlay.style.transform = '';
+        overlay.style.transition = '';
+    }, 400);
+}
+
+async function showPreviousWinners() {
+    console.log('🏆 Showing previous winners leaderboard');
+    isShowingPreviousWinners = true;
+
+    hideLeaderboardOverlay({ immediate: true });
+
+    const overlay = document.getElementById('previous-winners-overlay');
+    if (!overlay) {
+        console.error('❌ Previous winners overlay not found in DOM');
+        return;
+    }
+
+    try {
+        await ensureLeaderboardDataLoaded();
+        const data = await loadPreviousWinners(true);
+        if (data) {
+            renderPreviousWinnersEntries(data);
+        }
+    } catch (error) {
+        console.error('❌ Unable to render previous winners:', error);
+        renderPreviousWinnersEntries({ winners: [], metadata: {} });
+    }
+
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'translateY(40px)';
+    overlay.classList.remove('hidden');
+
+    requestAnimationFrame(() => {
+        overlay.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+        overlay.style.opacity = '1';
+        overlay.style.transform = 'translateY(0)';
+    });
+
+    if (typeof soundSystem !== 'undefined' && soundSystem && typeof soundSystem.playApplause === 'function') {
+        soundSystem.playApplause();
+    }
+}
 let currentLeaderboardData = null;
 let currentLeaderboardPeriod = 'current_game';
 
@@ -4639,6 +5278,9 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     const periodBadge = document.getElementById('leaderboard-period');
     const listContainer = document.getElementById('leaderboard-list');
     const header = document.querySelector('.leaderboard-overlay-header h2');
+
+    isShowingPreviousWinners = false;
+    hidePreviousWinners({ immediate: true });
 
     if (!overlay || !periodBadge || !listContainer) {
         console.error('❌ Leaderboard elements not found');
@@ -4712,23 +5354,9 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
 
 function hideLeaderboard() {
     console.log("👻 Hiding leaderboard");
-    
-    const overlay = document.getElementById('leaderboard-overlay');
-    if (overlay) {
-        // Animate out smoothly
-        overlay.style.transition = 'opacity 0.5s ease-in, transform 0.5s ease-in';
-        overlay.style.opacity = '0';
-        overlay.style.transform = 'translateX(100%)';
-        
-        // Hide completely after animation
-        setTimeout(() => {
-            overlay.classList.add('hidden');
-            overlay.style.display = 'none';
-            // Reset transform for next show
-            overlay.style.transform = '';
-            overlay.style.transition = '';
-        }, 500);
-    }
+
+    hideLeaderboardOverlay();
+    hidePreviousWinners();
 }
 
 // Show end-game leaderboard with winners

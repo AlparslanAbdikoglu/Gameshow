@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './LeaderboardControl.css';
 import IgnoredUsersDropdown from './IgnoredUsersDropdown';
 
@@ -31,6 +31,7 @@ interface PreviousWinner {
   hot_seat_correct: number;
   questions_completed: number;
   total_points_all_games?: number;
+  total_votes?: number;
 }
 
 interface PreviousWinnersData {
@@ -38,8 +39,245 @@ interface PreviousWinnersData {
   metadata: {
     total_games: number;
     last_updated: string | null;
+    note?: string;
   };
 }
+
+interface AggregatedPreviousWinner {
+  username: string;
+  wins: number;
+  totalPoints: number;
+  totalCorrect: number;
+  totalVotes: number;
+  bestStreak: number;
+  hotSeatAppearances: number;
+  hotSeatCorrect: number;
+  lastWinDate: Date | null;
+}
+
+const safeNumber = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (value === null || value === undefined) {
+    return 0;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+type InternalAggregatedWinner = AggregatedPreviousWinner & {
+  sumPoints: number;
+  allTimePoints: number;
+  allTimeCorrect: number;
+  allTimeVotes: number;
+  allTimeBestStreak: number;
+  allTimeHotSeatAppearances: number;
+  allTimeHotSeatCorrect: number;
+};
+
+export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedPreviousWinner[] => {
+  if (!Array.isArray(winners)) {
+    return [];
+  }
+
+  const aggregated = new Map<string, InternalAggregatedWinner>();
+
+  winners.forEach((winner) => {
+    if (!winner || !winner.username) {
+      return;
+    }
+
+    const username = winner.username;
+    if (!aggregated.has(username)) {
+      aggregated.set(username, {
+        username,
+        wins: 0,
+        totalPoints: 0,
+        totalCorrect: 0,
+        totalVotes: 0,
+        bestStreak: 0,
+        hotSeatAppearances: 0,
+        hotSeatCorrect: 0,
+        lastWinDate: null,
+        sumPoints: 0,
+        allTimePoints: 0,
+        allTimeCorrect: 0,
+        allTimeVotes: 0,
+        allTimeBestStreak: 0,
+        allTimeHotSeatAppearances: 0,
+        allTimeHotSeatCorrect: 0
+      });
+    }
+
+    const record = aggregated.get(username)!;
+
+    record.wins += 1;
+    record.sumPoints += safeNumber((winner as { final_points?: number }).final_points ?? (winner as { total_points?: number }).total_points ?? 0);
+    record.totalCorrect += safeNumber(winner.correct_answers);
+
+    const votesSource = (winner as { total_votes?: number; votes?: number }).total_votes
+      ?? (winner as { votes?: number }).votes
+      ?? winner.total_answers;
+    record.totalVotes += safeNumber(votesSource);
+
+    record.bestStreak = Math.max(record.bestStreak, safeNumber(winner.best_streak));
+    record.hotSeatAppearances += safeNumber(winner.hot_seat_appearances);
+    record.hotSeatCorrect += safeNumber(winner.hot_seat_correct);
+
+    const allTimePointsCandidate = safeNumber(
+      (winner as { total_points_all_games?: number }).total_points_all_games
+        ?? (winner as { all_time_points?: number }).all_time_points
+        ?? (winner as { points_all_time?: number }).points_all_time
+    );
+    if (allTimePointsCandidate > record.allTimePoints) {
+      record.allTimePoints = allTimePointsCandidate;
+    }
+
+    const allTimeCorrectCandidate = safeNumber(
+      (winner as { total_correct_all_games?: number }).total_correct_all_games
+        ?? (winner as { correct_all_time?: number }).correct_all_time
+        ?? (winner as { correct_votes_all_time?: number }).correct_votes_all_time
+    );
+    if (allTimeCorrectCandidate > record.allTimeCorrect) {
+      record.allTimeCorrect = allTimeCorrectCandidate;
+    }
+
+    const allTimeVotesCandidate = safeNumber(
+      (winner as { total_votes_all_games?: number }).total_votes_all_games
+        ?? (winner as { votes_all_time?: number }).votes_all_time
+    );
+    if (allTimeVotesCandidate > record.allTimeVotes) {
+      record.allTimeVotes = allTimeVotesCandidate;
+    }
+
+    const allTimeBestStreakCandidate = safeNumber(
+      (winner as { best_streak_all_time?: number }).best_streak_all_time
+        ?? (winner as { all_time_best_streak?: number }).all_time_best_streak
+    );
+    if (allTimeBestStreakCandidate > record.allTimeBestStreak) {
+      record.allTimeBestStreak = allTimeBestStreakCandidate;
+    }
+
+    const allTimeHotSeatCandidate = safeNumber((winner as { hot_seat_appearances_all_time?: number }).hot_seat_appearances_all_time);
+    if (allTimeHotSeatCandidate > record.allTimeHotSeatAppearances) {
+      record.allTimeHotSeatAppearances = allTimeHotSeatCandidate;
+    }
+
+    const allTimeHotSeatCorrectCandidate = safeNumber((winner as { hot_seat_correct_all_time?: number }).hot_seat_correct_all_time);
+    if (allTimeHotSeatCorrectCandidate > record.allTimeHotSeatCorrect) {
+      record.allTimeHotSeatCorrect = allTimeHotSeatCorrectCandidate;
+    }
+
+    if (winner.date) {
+      const winDate = new Date(winner.date);
+      if (!Number.isNaN(winDate.getTime())) {
+        if (!record.lastWinDate || winDate > record.lastWinDate) {
+          record.lastWinDate = winDate;
+        }
+      }
+    }
+  });
+
+  return Array.from(aggregated.values()).map((record) => ({
+    username: record.username,
+    wins: record.wins,
+    totalPoints: Math.max(record.sumPoints, record.allTimePoints),
+    totalCorrect: Math.max(record.totalCorrect, record.allTimeCorrect),
+    totalVotes: Math.max(record.totalVotes, record.allTimeVotes),
+    bestStreak: Math.max(record.bestStreak, record.allTimeBestStreak),
+    hotSeatAppearances: Math.max(record.hotSeatAppearances, record.allTimeHotSeatAppearances),
+    hotSeatCorrect: Math.max(record.hotSeatCorrect, record.allTimeHotSeatCorrect),
+    lastWinDate: record.lastWinDate
+  }));
+};
+
+export const mergeAggregatedPreviousWinnersWithAllTime = (
+  winners: AggregatedPreviousWinner[],
+  allTimeUsers?: LeaderboardUser[]
+): AggregatedPreviousWinner[] => {
+  if (!Array.isArray(winners) || winners.length === 0 || !allTimeUsers || allTimeUsers.length === 0) {
+    return winners;
+  }
+
+  const lookup = new Map<string, LeaderboardUser>();
+  allTimeUsers.forEach((user) => {
+    if (user && user.username) {
+      lookup.set(user.username.trim().toLowerCase(), user);
+    }
+  });
+
+  return winners.map((winner) => {
+    const match = lookup.get(winner.username.trim().toLowerCase());
+    if (!match) {
+      return winner;
+    }
+
+    const enriched = { ...winner };
+
+    const points = safeNumber((match as { points?: number }).points ?? (match as { total_points?: number }).total_points);
+    if (points > 0) {
+      enriched.totalPoints = Math.max(enriched.totalPoints, points);
+    }
+
+    const correct = safeNumber(
+      (match as { correct_answers?: number }).correct_answers
+        ?? (match as { correct_votes?: number }).correct_votes
+        ?? (match as { correct?: number }).correct
+    );
+    if (correct > 0) {
+      enriched.totalCorrect = Math.max(enriched.totalCorrect, correct);
+    }
+
+    const votes = safeNumber((match as { total_votes?: number }).total_votes ?? (match as { votes?: number }).votes);
+    if (votes > 0) {
+      enriched.totalVotes = Math.max(enriched.totalVotes, votes);
+    }
+
+    const streak = safeNumber(
+      (match as { best_streak?: number }).best_streak
+        ?? (match as { bestStreak?: number }).bestStreak
+        ?? (match as { current_streak?: number }).current_streak
+    );
+    if (streak > enriched.bestStreak) {
+      enriched.bestStreak = streak;
+    }
+
+    const hotSeatAppearances = safeNumber((match as { hot_seat_appearances?: number }).hot_seat_appearances);
+    if (hotSeatAppearances > enriched.hotSeatAppearances) {
+      enriched.hotSeatAppearances = hotSeatAppearances;
+    }
+
+    const hotSeatCorrect = safeNumber((match as { hot_seat_correct?: number }).hot_seat_correct);
+    if (hotSeatCorrect > enriched.hotSeatCorrect) {
+      enriched.hotSeatCorrect = hotSeatCorrect;
+    }
+
+    return enriched;
+  });
+};
+
+export const sortAggregatedPreviousWinners = (winners: AggregatedPreviousWinner[]): AggregatedPreviousWinner[] => {
+  if (!Array.isArray(winners)) {
+    return [];
+  }
+
+  return [...winners].sort((a, b) => {
+    if (b.totalPoints !== a.totalPoints) {
+      return b.totalPoints - a.totalPoints;
+    }
+
+    if (b.totalCorrect !== a.totalCorrect) {
+      return b.totalCorrect - a.totalCorrect;
+    }
+
+    const aTime = a.lastWinDate?.getTime() ?? 0;
+    const bTime = b.lastWinDate?.getTime() ?? 0;
+    return bTime - aTime;
+  });
+};
 
 interface LeaderboardData {
   current_game: LeaderboardUser[];
@@ -80,6 +318,45 @@ const LeaderboardControl: React.FC = () => {
   const [previousWinners, setPreviousWinners] = useState<PreviousWinnersData | null>(null);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string>('');
+
+  const aggregatedPreviousWinners = useMemo(() => {
+    const aggregated = aggregatePreviousWinners(previousWinners?.winners || []);
+    const withAllTime = mergeAggregatedPreviousWinnersWithAllTime(aggregated, leaderboardData?.all_time);
+    return sortAggregatedPreviousWinners(withAllTime);
+  }, [previousWinners, leaderboardData]);
+
+  const previousWinnersSummary = useMemo(() => {
+    if (!previousWinners) {
+      return {
+        totalGames: 0,
+        lastUpdated: null as Date | null,
+        note: '',
+        uniqueGames: 0
+      };
+    }
+
+    const winners = previousWinners.winners || [];
+    const uniqueGames = winners.reduce((set, winner) => {
+      if (winner.game_id) {
+        set.add(winner.game_id);
+      } else if (winner.username || winner.date) {
+        set.add(`${winner.username}-${winner.date}`);
+      }
+      return set;
+    }, new Set<string>());
+
+    const totalGames = previousWinners.metadata?.total_games ?? uniqueGames.size;
+    const lastUpdated = previousWinners.metadata?.last_updated
+      ? new Date(previousWinners.metadata.last_updated)
+      : null;
+
+    return {
+      totalGames,
+      lastUpdated,
+      note: previousWinners.metadata?.note || '',
+      uniqueGames: uniqueGames.size
+    };
+  }, [previousWinners]);
 
   // Fetch leaderboard data
   const fetchLeaderboard = useCallback(async () => {
@@ -157,6 +434,12 @@ const LeaderboardControl: React.FC = () => {
     fetchSettings();
     fetchPreviousWinners();
   }, [fetchLeaderboard, fetchSettings, fetchPreviousWinners]);
+
+  useEffect(() => {
+    if (selectedPeriod === 'previous_winners') {
+      fetchPreviousWinners();
+    }
+  }, [selectedPeriod, fetchPreviousWinners]);
 
   // Reset leaderboard
   const handleReset = async (period: string) => {
@@ -306,7 +589,7 @@ const LeaderboardControl: React.FC = () => {
   // Remove previous winner
   const handleRemoveWinner = async (gameId: string) => {
     if (!window.confirm('Remove this winner entry?')) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch(`http://localhost:8081/api/leaderboard/previous-winners/${gameId}`, {
@@ -321,6 +604,22 @@ const LeaderboardControl: React.FC = () => {
       console.error('Error removing winner:', error);
     }
     setLoading(false);
+  };
+
+  const handleRemoveLatestWinner = (username: string) => {
+    if (!previousWinners || !previousWinners.winners.length) {
+      return;
+    }
+
+    const latestEntry = [...previousWinners.winners]
+      .filter((winner) => winner.username === username)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+
+    if (latestEntry) {
+      handleRemoveWinner(latestEntry.game_id);
+    } else {
+      alert('❌ No recorded entry found for this winner.');
+    }
   };
 
   // Export previous winners
@@ -382,7 +681,7 @@ const LeaderboardControl: React.FC = () => {
   };
 
   const renderPreviousWinners = () => {
-    if (!previousWinners || previousWinners.winners.length === 0) {
+    if (!previousWinners || aggregatedPreviousWinners.length === 0) {
       return (
         <div className="empty-leaderboard">
           <p>No previous winners yet</p>
@@ -393,15 +692,25 @@ const LeaderboardControl: React.FC = () => {
       );
     }
 
+    const hallOfFame = aggregatedPreviousWinners[0];
+
     return (
       <div>
         <div className="winners-header">
           <div className="winners-stats">
-            <span>🎮 Total Games: 6</span>
-            {previousWinners.metadata.last_updated && (
-              <span>📅 Last Updated: {new Date(previousWinners.metadata.last_updated).toLocaleDateString()}</span>
+            <span>
+              🎮 Total Games: {previousWinnersSummary.totalGames || previousWinnersSummary.uniqueGames || aggregatedPreviousWinners.length}
+            </span>
+            {previousWinnersSummary.lastUpdated && (
+              <span>
+                📅 Last Updated: {previousWinnersSummary.lastUpdated.toLocaleString()}
+              </span>
             )}
-            <span className="hall-of-fame">🏆 Hall of Fame: inkyderanged (1,247 pts)</span>
+            {hallOfFame && (
+              <span className="hall-of-fame">
+                🏆 Hall of Fame: {hallOfFame.username} ({hallOfFame.totalPoints.toLocaleString()} pts)
+              </span>
+            )}
           </div>
           <div className="winners-actions">
             <button onClick={handleAutoArchive} disabled={loading} className="archive-btn">
@@ -419,50 +728,67 @@ const LeaderboardControl: React.FC = () => {
             </label>
           </div>
         </div>
+        {previousWinnersSummary.note && (
+          <p className="winners-note">{previousWinnersSummary.note}</p>
+        )}
         <table className="leaderboard-table previous-winners-table">
           <thead>
             <tr>
-              <th>Date</th>
+              <th>Rank</th>
               <th>Winner</th>
-              <th>Game Points</th>
-              <th>Total Points</th>
+              <th>Wins</th>
+              <th>Points</th>
               <th>Correct</th>
-              <th>Accuracy</th>
-              <th>Streak</th>
-              <th>Questions</th>
+              <th>Votes</th>
+              <th>Best Streak</th>
+              <th>Hot Seat</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {/* Sort by date descending (newest first) */}
-            {[...previousWinners.winners]
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map((winner, index) => (
-                <tr key={winner.game_id}>
-                  <td>{new Date(winner.date).toLocaleDateString()}</td>
-                  <td className="username">
-                    {index === 0 && '👑 '}
-                    {winner.username}
-                    {winner.hot_seat_appearances > 0 && ' 🔥'}
-                  </td>
-                  <td className="points">{winner.final_points}</td>
-                  <td className="total-points">{winner.total_points_all_games || winner.final_points}</td>
-                  <td className="correct">{winner.correct_answers}/{winner.total_answers}</td>
-                  <td>{winner.accuracy}%</td>
-                  <td className="streak">{winner.best_streak}</td>
-                  <td>{winner.questions_completed}</td>
-                  <td>
-                    <button 
-                      onClick={() => handleRemoveWinner(winner.game_id)}
-                      className="remove-btn"
-                      disabled={loading}
-                      title="Remove this winner"
-                    >
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            {aggregatedPreviousWinners.map((winner, index) => (
+              <tr
+                key={winner.username}
+                className={index < 3 ? `rank-${index + 1}` : ''}
+                title={winner.lastWinDate ? `Last win: ${winner.lastWinDate.toLocaleString()}` : undefined}
+              >
+                <td className="rank">
+                  {index === 0 && '🥇'}
+                  {index === 1 && '🥈'}
+                  {index === 2 && '🥉'}
+                  {index > 2 && index + 1}
+                </td>
+                <td className="username">
+                  {index === 0 && '👑 '}
+                  {winner.username}
+                  {winner.wins > 1 && <span className="wins-badge">{winner.wins}×</span>}
+                  {winner.hotSeatAppearances > 0 && (
+                    <span className="hot-seat-icon" title={`${winner.hotSeatAppearances} hot seat appearance${winner.hotSeatAppearances === 1 ? '' : 's'}`}>
+                      🔥
+                    </span>
+                  )}
+                </td>
+                <td>{winner.wins}</td>
+                <td className="points">{winner.totalPoints.toLocaleString()}</td>
+                <td className="correct">{winner.totalCorrect.toLocaleString()}</td>
+                <td className="votes">{winner.totalVotes.toLocaleString()}</td>
+                <td className="streak">{winner.bestStreak.toLocaleString()}</td>
+                <td className="hot-seat">
+                  {winner.hotSeatAppearances}
+                  {winner.hotSeatCorrect > 0 ? ` (${winner.hotSeatCorrect} ✓)` : ''}
+                </td>
+                <td>
+                  <button
+                    onClick={() => handleRemoveLatestWinner(winner.username)}
+                    className="remove-btn"
+                    disabled={loading}
+                    title="Remove most recent win entry"
+                  >
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -602,7 +928,13 @@ const LeaderboardControl: React.FC = () => {
               👻 Hide
             </button>
           </div>
-          <button onClick={fetchLeaderboard} className="refresh-btn">
+          <button
+            onClick={() => {
+              fetchLeaderboard();
+              fetchPreviousWinners();
+            }}
+            className="refresh-btn"
+          >
             🔄 Refresh
           </button>
           <button onClick={() => setShowSettings(!showSettings)} className="settings-btn">
@@ -773,11 +1105,11 @@ const LeaderboardControl: React.FC = () => {
       </div>
 
       <div className="leaderboard-content">
-       {selectedPeriod === 'previous_winners' ? (
-          renderPreviousWinners()
-        ) : (
-          leaderboardData && renderLeaderboard(leaderboardData[selectedPeriod] as LeaderboardUser[])
-        )}
+        {selectedPeriod === 'previous_winners'
+          ? renderPreviousWinners()
+          : leaderboardData
+            ? renderLeaderboard(leaderboardData[selectedPeriod] as LeaderboardUser[])
+            : <div className="empty-leaderboard">Loading leaderboard…</div>}
       </div>
 
       {selectedPeriod !== 'previous_winners' && (
