@@ -68,12 +68,22 @@ const safeNumber = (value: unknown): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+type InternalAggregatedWinner = AggregatedPreviousWinner & {
+  sumPoints: number;
+  allTimePoints: number;
+  allTimeCorrect: number;
+  allTimeVotes: number;
+  allTimeBestStreak: number;
+  allTimeHotSeatAppearances: number;
+  allTimeHotSeatCorrect: number;
+};
+
 export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedPreviousWinner[] => {
   if (!Array.isArray(winners)) {
     return [];
   }
 
-  const aggregated = new Map<string, AggregatedPreviousWinner>();
+  const aggregated = new Map<string, InternalAggregatedWinner>();
 
   winners.forEach((winner) => {
     if (!winner || !winner.username) {
@@ -91,14 +101,21 @@ export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedP
         bestStreak: 0,
         hotSeatAppearances: 0,
         hotSeatCorrect: 0,
-        lastWinDate: null
+        lastWinDate: null,
+        sumPoints: 0,
+        allTimePoints: 0,
+        allTimeCorrect: 0,
+        allTimeVotes: 0,
+        allTimeBestStreak: 0,
+        allTimeHotSeatAppearances: 0,
+        allTimeHotSeatCorrect: 0
       });
     }
 
     const record = aggregated.get(username)!;
 
     record.wins += 1;
-    record.totalPoints += safeNumber(winner.final_points ?? winner.total_points_all_games);
+    record.sumPoints += safeNumber((winner as { final_points?: number }).final_points ?? (winner as { total_points?: number }).total_points ?? 0);
     record.totalCorrect += safeNumber(winner.correct_answers);
 
     const votesSource = (winner as { total_votes?: number; votes?: number }).total_votes
@@ -110,6 +127,50 @@ export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedP
     record.hotSeatAppearances += safeNumber(winner.hot_seat_appearances);
     record.hotSeatCorrect += safeNumber(winner.hot_seat_correct);
 
+    const allTimePointsCandidate = safeNumber(
+      (winner as { total_points_all_games?: number }).total_points_all_games
+        ?? (winner as { all_time_points?: number }).all_time_points
+        ?? (winner as { points_all_time?: number }).points_all_time
+    );
+    if (allTimePointsCandidate > record.allTimePoints) {
+      record.allTimePoints = allTimePointsCandidate;
+    }
+
+    const allTimeCorrectCandidate = safeNumber(
+      (winner as { total_correct_all_games?: number }).total_correct_all_games
+        ?? (winner as { correct_all_time?: number }).correct_all_time
+        ?? (winner as { correct_votes_all_time?: number }).correct_votes_all_time
+    );
+    if (allTimeCorrectCandidate > record.allTimeCorrect) {
+      record.allTimeCorrect = allTimeCorrectCandidate;
+    }
+
+    const allTimeVotesCandidate = safeNumber(
+      (winner as { total_votes_all_games?: number }).total_votes_all_games
+        ?? (winner as { votes_all_time?: number }).votes_all_time
+    );
+    if (allTimeVotesCandidate > record.allTimeVotes) {
+      record.allTimeVotes = allTimeVotesCandidate;
+    }
+
+    const allTimeBestStreakCandidate = safeNumber(
+      (winner as { best_streak_all_time?: number }).best_streak_all_time
+        ?? (winner as { all_time_best_streak?: number }).all_time_best_streak
+    );
+    if (allTimeBestStreakCandidate > record.allTimeBestStreak) {
+      record.allTimeBestStreak = allTimeBestStreakCandidate;
+    }
+
+    const allTimeHotSeatCandidate = safeNumber((winner as { hot_seat_appearances_all_time?: number }).hot_seat_appearances_all_time);
+    if (allTimeHotSeatCandidate > record.allTimeHotSeatAppearances) {
+      record.allTimeHotSeatAppearances = allTimeHotSeatCandidate;
+    }
+
+    const allTimeHotSeatCorrectCandidate = safeNumber((winner as { hot_seat_correct_all_time?: number }).hot_seat_correct_all_time);
+    if (allTimeHotSeatCorrectCandidate > record.allTimeHotSeatCorrect) {
+      record.allTimeHotSeatCorrect = allTimeHotSeatCorrectCandidate;
+    }
+
     if (winner.date) {
       const winDate = new Date(winner.date);
       if (!Number.isNaN(winDate.getTime())) {
@@ -120,7 +181,90 @@ export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedP
     }
   });
 
-  return Array.from(aggregated.values()).sort((a, b) => {
+  return Array.from(aggregated.values()).map((record) => ({
+    username: record.username,
+    wins: record.wins,
+    totalPoints: Math.max(record.sumPoints, record.allTimePoints),
+    totalCorrect: Math.max(record.totalCorrect, record.allTimeCorrect),
+    totalVotes: Math.max(record.totalVotes, record.allTimeVotes),
+    bestStreak: Math.max(record.bestStreak, record.allTimeBestStreak),
+    hotSeatAppearances: Math.max(record.hotSeatAppearances, record.allTimeHotSeatAppearances),
+    hotSeatCorrect: Math.max(record.hotSeatCorrect, record.allTimeHotSeatCorrect),
+    lastWinDate: record.lastWinDate
+  }));
+};
+
+export const mergeAggregatedPreviousWinnersWithAllTime = (
+  winners: AggregatedPreviousWinner[],
+  allTimeUsers?: LeaderboardUser[]
+): AggregatedPreviousWinner[] => {
+  if (!Array.isArray(winners) || winners.length === 0 || !allTimeUsers || allTimeUsers.length === 0) {
+    return winners;
+  }
+
+  const lookup = new Map<string, LeaderboardUser>();
+  allTimeUsers.forEach((user) => {
+    if (user && user.username) {
+      lookup.set(user.username.trim().toLowerCase(), user);
+    }
+  });
+
+  return winners.map((winner) => {
+    const match = lookup.get(winner.username.trim().toLowerCase());
+    if (!match) {
+      return winner;
+    }
+
+    const enriched = { ...winner };
+
+    const points = safeNumber((match as { points?: number }).points ?? (match as { total_points?: number }).total_points);
+    if (points > 0) {
+      enriched.totalPoints = Math.max(enriched.totalPoints, points);
+    }
+
+    const correct = safeNumber(
+      (match as { correct_answers?: number }).correct_answers
+        ?? (match as { correct_votes?: number }).correct_votes
+        ?? (match as { correct?: number }).correct
+    );
+    if (correct > 0) {
+      enriched.totalCorrect = Math.max(enriched.totalCorrect, correct);
+    }
+
+    const votes = safeNumber((match as { total_votes?: number }).total_votes ?? (match as { votes?: number }).votes);
+    if (votes > 0) {
+      enriched.totalVotes = Math.max(enriched.totalVotes, votes);
+    }
+
+    const streak = safeNumber(
+      (match as { best_streak?: number }).best_streak
+        ?? (match as { bestStreak?: number }).bestStreak
+        ?? (match as { current_streak?: number }).current_streak
+    );
+    if (streak > enriched.bestStreak) {
+      enriched.bestStreak = streak;
+    }
+
+    const hotSeatAppearances = safeNumber((match as { hot_seat_appearances?: number }).hot_seat_appearances);
+    if (hotSeatAppearances > enriched.hotSeatAppearances) {
+      enriched.hotSeatAppearances = hotSeatAppearances;
+    }
+
+    const hotSeatCorrect = safeNumber((match as { hot_seat_correct?: number }).hot_seat_correct);
+    if (hotSeatCorrect > enriched.hotSeatCorrect) {
+      enriched.hotSeatCorrect = hotSeatCorrect;
+    }
+
+    return enriched;
+  });
+};
+
+export const sortAggregatedPreviousWinners = (winners: AggregatedPreviousWinner[]): AggregatedPreviousWinner[] => {
+  if (!Array.isArray(winners)) {
+    return [];
+  }
+
+  return [...winners].sort((a, b) => {
     if (b.totalPoints !== a.totalPoints) {
       return b.totalPoints - a.totalPoints;
     }
@@ -129,8 +273,8 @@ export const aggregatePreviousWinners = (winners: PreviousWinner[]): AggregatedP
       return b.totalCorrect - a.totalCorrect;
     }
 
-    const aTime = a.lastWinDate ? a.lastWinDate.getTime() : 0;
-    const bTime = b.lastWinDate ? b.lastWinDate.getTime() : 0;
+    const aTime = a.lastWinDate?.getTime() ?? 0;
+    const bTime = b.lastWinDate?.getTime() ?? 0;
     return bTime - aTime;
   });
 };
@@ -175,10 +319,11 @@ const LeaderboardControl: React.FC = () => {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string>('');
 
-  const aggregatedPreviousWinners = useMemo(
-    () => aggregatePreviousWinners(previousWinners?.winners || []),
-    [previousWinners]
-  );
+  const aggregatedPreviousWinners = useMemo(() => {
+    const aggregated = aggregatePreviousWinners(previousWinners?.winners || []);
+    const withAllTime = mergeAggregatedPreviousWinnersWithAllTime(aggregated, leaderboardData?.all_time);
+    return sortAggregatedPreviousWinners(withAllTime);
+  }, [previousWinners, leaderboardData]);
 
   const previousWinnersSummary = useMemo(() => {
     if (!previousWinners) {

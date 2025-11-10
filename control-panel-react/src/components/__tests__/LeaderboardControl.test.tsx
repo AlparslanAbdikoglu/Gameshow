@@ -1,7 +1,11 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import LeaderboardControl, { aggregatePreviousWinners } from '../LeaderboardControl';
+import LeaderboardControl, {
+  aggregatePreviousWinners,
+  mergeAggregatedPreviousWinnersWithAllTime,
+  sortAggregatedPreviousWinners
+} from '../LeaderboardControl';
 
 const originalFetch = global.fetch;
 const originalWebSocket = global.WebSocket;
@@ -22,7 +26,26 @@ describe('LeaderboardControl - Previous Winners integration', () => {
     daily: [],
     weekly: [],
     monthly: [],
-    all_time: [],
+    all_time: [
+      {
+        username: 'ChampionA',
+        points: 1331,
+        correct_answers: 105,
+        total_votes: 129,
+        best_streak: 12,
+        hot_seat_appearances: 0,
+        hot_seat_correct: 0
+      },
+      {
+        username: 'ContenderB',
+        points: 1101,
+        correct_answers: 81,
+        total_votes: 95,
+        best_streak: 15,
+        hot_seat_appearances: 0,
+        hot_seat_correct: 0
+      }
+    ],
     last_reset: {
       daily: Date.now(),
       weekly: Date.now(),
@@ -147,16 +170,18 @@ describe('LeaderboardControl - Previous Winners integration', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Previous Winners/i }));
 
-    const [championCell] = await screen.findAllByText(/ChampionA/);
+    const championCell = await screen.findByRole('cell', { name: /ChampionA/i });
 
     const championRow = championCell.closest('tr');
     expect(championRow).not.toBeNull();
     const rowUtils = within(championRow as HTMLTableRowElement);
 
     expect(rowUtils.getByText('2×')).toBeInTheDocument();
-    expect(rowUtils.getByText('350')).toBeInTheDocument();
-    expect(rowUtils.getByText('22')).toBeInTheDocument();
-    expect(rowUtils.getByText('27')).toBeInTheDocument();
+    expect(
+      rowUtils.getByText((_, node) => node?.textContent?.replace(/\D/g, '') === '1331')
+    ).toBeInTheDocument();
+    expect(rowUtils.getByText('105')).toBeInTheDocument();
+    expect(rowUtils.getByText('129')).toBeInTheDocument();
     expect(rowUtils.getByText(/1 \(1 ✓\)/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Current Game/i }));
@@ -183,5 +208,19 @@ describe('LeaderboardControl - Previous Winners integration', () => {
     expect(contender).toBeDefined();
     expect(contender?.wins).toBe(1);
     expect(contender?.totalPoints).toBe(175);
+  });
+
+  test('mergeAggregatedPreviousWinnersWithAllTime overlays all-time stats', () => {
+    const aggregated = aggregatePreviousWinners(mockPreviousWinnersResponse.winners);
+    const merged = mergeAggregatedPreviousWinnersWithAllTime(aggregated, mockLeaderboardResponse.all_time);
+    const sorted = sortAggregatedPreviousWinners(merged);
+    const champion = sorted[0];
+
+    expect(champion.username).toBe('ChampionA');
+    expect(champion.totalPoints).toBe(1331);
+    expect(champion.totalCorrect).toBe(105);
+    expect(champion.totalVotes).toBe(129);
+    expect(champion.bestStreak).toBe(12);
+    expect(champion.hotSeatAppearances).toBe(1);
   });
 });
