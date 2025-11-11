@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "In technical analysis, what’s a “liquidity grab”?",
+    "text": "What does 'SFP' stand for in trading?",
     "answers": [
-      "A whale selling everything",
-      "A gap in chart data",
-      "A random candle spike",
-      "A short (or long) squeeze where stop-losses get triggered"
+      "Support Flip Pattern",
+      "Swing Failure Pattern",
+      "Short Float Pressure",
+      "Simple Fibonacci Projection"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 2,
+    "text": "What is the main purpose of Fibonacci retracements in trading?",
+    "answers": [
+      "To calculate total traded volume",
+      "To measure time between candles",
+      "To determine volatility across sessions",
+      "To identify potential areas for entries and targets during pullbacks"
     ],
     "correct": 3
   },
   {
-    "number": 2,
-    "text": "What’s the primary role of VWAP in intraday trading?",
+    "number": 3,
+    "text": "What was the first stock exchange in the world?",
     "answers": [
-      "It calculates open interest",
-      "It identifies RSI divergences",
-      "It shows the average price weighted by volume",
-      "It shows good and poor highs and lows"
+      "New York Stock Exchange",
+      "London Stock Exchange",
+      "Amsterdam Stock Exchange",
+      "Tokyo Stock Exchange"
     ],
     "correct": 2
   },
   {
-    "number": 3,
-    "text": "What’s a “stop hunt”?",
-    "answers": [
-      "When the market purposely moves to trigger trader stop-losses",
-      "When an exchange stops orders for maintenance",
-      "A type of futures funding event",
-      "A rare pattern on RSI"
-    ],
-    "correct": 0
-  },
-  {
     "number": 4,
-    "text": "What is the 80% setup rule based on?",
+    "text": "What is the primary purpose of a stock exchange?",
     "answers": [
-      "My friends 80% sure what they doing",
-      "Price rotating through value once accepting back within",
-      "Profit target reached",
-      "Candle size reaching 80%"
+      "To lend money to banks",
+      "To facilitate the buying and selling of securities",
+      "To regulate interest rates",
+      "To provide loans to companies"
     ],
     "correct": 1
   },
   {
     "number": 5,
-    "text": "What happens when funding rates are deeply negative?",
+    "text": "Which book is considered the bible of value investing?",
     "answers": [
-      "The market is balanced",
-      "Shorts are paying longs, meaning selling pressure is extreme",
-      "Funding has paused",
-      "Longs are paying shorts"
+      "The Intelligent Investor",
+      "Rich Dad Poor Dad",
+      "One Up on Wall Street",
+      "Think and Grow Rich"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 6,
-    "text": "What does Open Interest (OI) increasing while price drops often mean?",
+    "text": "Which of the following is NOT one of the commonly used Fibonacci levels?",
     "answers": [
-      "Market is consolidating",
-      "Shorts are being closed",
-      "New short positions entering the market",
-      "No one’s trading"
+      "23.6%",
+      "38.2%",
+      "72.4%",
+      "61.8%"
     ],
     "correct": 2
   },
   {
     "number": 7,
-    "text": "Why is the 106–107K range on BTC considered a key level in market structure?",
+    "text": "What does IPO stand for in the stock market?",
     "answers": [
-      "It’s the highest open interest level ever recorded",
-      "It has acted as a critical resistance/support zone for nearly a year",
-      "It’s where all gaps get filled",
-      "It represents a Fibonacci 100% retracement"
+      "International Price Offering",
+      "Initial Public Offering",
+      "Investment Portfolio Option",
+      "Internal Profit Objective"
     ],
     "correct": 1
   },
   {
     "number": 8,
-    "text": "What is a “pivot zone” in technical analysis?",
+    "text": "Which famous investor is known as the Oracle of Omaha?",
     "answers": [
-      "A random candle that reverses",
-      "A price area that often acts as both support and resistance",
-      "A single data point on the RSI",
-      "A point where open interest resets"
+      "Warren Buffett",
+      "George Soros",
+      "Carl Icahn",
+      "Peter Lynch"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 9,
-    "text": "If a daily close happens above 103,500 (BTC) level after multiple rejections, what does it generally suggest?",
+    "text": "What year did the Wall Street Crash occur?",
     "answers": [
-      "The trend is weakening",
-      "The level remains insignificant",
-      "A potential shift in market bias to bullish",
-      "That trading volume is low"
+      "1929",
+      "1933",
+      "1941",
+      "1914"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 10,
-    "text": "What is typically indicated when price returns into the weekly Value Area after a breakout?",
+    "text": "What is the primary purpose of a stock exchange?",
     "answers": [
-      "The breakout is strengthening",
-      "The move might be losing momentum",
-      "The market is entering price discovery",
-      "A liquidity grab just occurred"
+      "To lend money to banks",
+      "To facilitate the buying and selling of securities",
+      "To regulate interest rates",
+      "To provide loans to companies"
     ],
     "correct": 1
   },
   {
     "number": 11,
-    "text": "In Volume Profile, what does the Point of Control (POC) represent?",
+    "text": "Which book is considered the bible of value investing?",
     "answers": [
-      "The level with the highest traded volume",
-      "The level with the lowest liquidity",
-      "A moving average line",
-      "The highest candle wick of the session"
+      "The Intelligent Investor",
+      "Rich Dad Poor Dad",
+      "One Up on Wall Street",
+      "Think and Grow Rich"
     ],
     "correct": 0
   },
   {
     "number": 12,
-    "text": "What’s the difference between RTH and ETH gaps?",
+    "text": "What does IPO stand for in the stock market?",
     "answers": [
-      "There is no difference",
-      "ETH gaps occur during high volume",
-      "RTH gaps appear only in crypto markets",
-      "RTH gaps happen during regular trading hours, ETH gaps occur overnight"
+      "International Price Offering",
+      "Initial Public Offering",
+      "Investment Portfolio Option",
+      "Internal Profit Objective"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 13,
-    "text": "What’s a “Gap Fill and Go” setup?",
+    "text": "What is the primary purpose of a stock exchange?",
     "answers": [
-      "Price fills the gap fully, then continues in the same direction",
-      "Price never touches the gap",
-      "Price fills halfway and reverses",
-      "Gaps are ignored in this scenario"
+      "To lend money to banks",
+      "To facilitate the buying and selling of securities",
+      "To regulate interest rates",
+      "To provide loans to companies"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 14,
+    "text": "Which book is considered the bible of value investing?",
+    "answers": [
+      "The Intelligent Investor",
+      "Rich Dad Poor Dad",
+      "One Up on Wall Street",
+      "Think and Grow Rich"
     ],
     "correct": 0
   },
   {
-    "number": 14,
-    "text": "What’s a “Gap Fill and Reverse”?",
-    "answers": [
-      "Market halts during fill",
-      "Gap never gets filled",
-      "Price fills the gap, rejects, and moves back opposite direction",
-      "Volume disappears completely"
-    ],
-    "correct": 2
-  },
-  {
     "number": 15,
-    "text": "What’s one of the best ways to cope with market swings and portfolio drawdowns?",
+    "text": "How many mods are in Kimba gang? Based on Discord role",
     "answers": [
-      "Revenge trade to win it back fast",
-      "Reduce position size, review journal, and stay consistent",
-      "Watch every tick and overanalyze each move",
-      "Double down until it recovers"
+      "1",
+      "5",
+      "3",
+      "4"
     ],
     "correct": 1
   }

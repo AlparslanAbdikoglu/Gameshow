@@ -1,167 +1,167 @@
 [
   {
-    "text": "What is the capital of France?",
+    "number": 1,
+    "text": "What does 'SFP' stand for in trading?",
     "answers": [
-      "London",
-      "Berlin",
-      "Paris",
-      "Madrid"
+      "Support Flip Pattern",
+      "Swing Failure Pattern",
+      "Short Float Pressure",
+      "Simple Fibonacci Projection"
     ],
-    "correct": 2,
-    "number": 1
+    "correct": 1
   },
   {
-    "text": "Which planet is known as the Red Planet?",
+    "number": 2,
+    "text": "What is the main purpose of Fibonacci retracements in trading?",
     "answers": [
-      "Venus",
-      "Mars",
-      "Jupiter",
-      "Saturn"
+      "To calculate total traded volume",
+      "To measure time between candles",
+      "To determine volatility across sessions",
+      "To identify potential areas for entries and targets during pullbacks"
     ],
-    "correct": 1,
-    "number": 2
+    "correct": 3
   },
   {
-    "text": "Who painted the Mona Lisa?",
+    "number": 3,
+    "text": "What was the first stock exchange in the world?",
     "answers": [
-      "Van Gogh",
-      "Picasso",
-      "Da Vinci",
-      "Monet"
+      "New York Stock Exchange",
+      "London Stock Exchange",
+      "Amsterdam Stock Exchange",
+      "Tokyo Stock Exchange"
     ],
-    "correct": 2,
-    "number": 3
+    "correct": 2
   },
   {
-    "text": "What is the largest mammal in the world?",
+    "number": 4,
+    "text": "What is the primary purpose of a stock exchange?",
     "answers": [
-      "African Elephant",
-      "Blue Whale",
-      "Giraffe",
-      "Polar Bear"
+      "To lend money to banks",
+      "To facilitate the buying and selling of securities",
+      "To regulate interest rates",
+      "To provide loans to companies"
     ],
-    "correct": 1,
-    "number": 4
+    "correct": 1
   },
   {
-    "text": "In which year did World War II end?",
+    "number": 5,
+    "text": "Which book is considered the bible of value investing?",
     "answers": [
-      "1944",
-      "1945",
-      "1946",
-      "1947"
+      "The Intelligent Investor",
+      "Rich Dad Poor Dad",
+      "One Up on Wall Street",
+      "Think and Grow Rich"
     ],
-    "correct": 1,
-    "number": 5
+    "correct": 0
   },
   {
-    "text": "What is the chemical symbol for gold?",
+    "number": 6,
+    "text": "Which of the following is NOT one of the commonly used Fibonacci levels?",
     "answers": [
-      "Go",
-      "Gd",
-      "Au",
-      "Ag"
+      "23.6%",
+      "38.2%",
+      "72.4%",
+      "61.8%"
     ],
-    "correct": 2,
-    "number": 6
+    "correct": 2
   },
   {
-    "text": "Which Shakespeare play features the characters Romeo and Juliet?",
+    "number": 7,
+    "text": "What does IPO stand for in the stock market?",
     "answers": [
-      "Hamlet",
-      "Macbeth",
-      "Romeo and Juliet",
-      "Othello"
+      "International Price Offering",
+      "Initial Public Offering",
+      "Investment Portfolio Option",
+      "Internal Profit Objective"
     ],
-    "correct": 2,
-    "number": 7
+    "correct": 1
   },
   {
-    "text": "What is the smallest country in the world?",
+    "number": 8,
+    "text": "Which famous investor is known as the Oracle of Omaha?",
     "answers": [
-      "Monaco",
-      "San Marino",
-      "Vatican City",
-      "Liechtenstein"
+      "Warren Buffett",
+      "George Soros",
+      "Carl Icahn",
+      "Peter Lynch"
     ],
-    "correct": 2,
-    "number": 8
+    "correct": 0
   },
   {
-    "text": "Who developed the theory of relativity?",
+    "number": 9,
+    "text": "What year did the Wall Street Crash occur?",
     "answers": [
-      "Isaac Newton",
-      "Albert Einstein",
-      "Galileo Galilei",
-      "Stephen Hawking"
+      "1929",
+      "1933",
+      "1941",
+      "1914"
     ],
-    "correct": 1,
-    "number": 9
+    "correct": 0
   },
   {
-    "text": "What is the hardest natural substance on Earth?",
+    "number": 10,
+    "text": "What is the primary purpose of a stock exchange?",
     "answers": [
-      "Gold",
-      "Iron",
-      "Diamond",
-      "Platinum"
+      "To lend money to banks",
+      "To facilitate the buying and selling of securities",
+      "To regulate interest rates",
+      "To provide loans to companies"
     ],
-    "correct": 2,
-    "number": 10
+    "correct": 1
   },
   {
-    "text": "Which ocean is the largest?",
+    "number": 11,
+    "text": "Which book is considered the bible of value investing?",
     "answers": [
-      "Atlantic Ocean",
-      "Indian Ocean",
-      "Arctic Ocean",
-      "Pacific Ocean"
+      "The Intelligent Investor",
+      "Rich Dad Poor Dad",
+      "One Up on Wall Street",
+      "Think and Grow Rich"
     ],
-    "correct": 3,
-    "number": 11
+    "correct": 0
   },
   {
-    "text": "Who wrote the novel '1984'?",
+    "number": 12,
+    "text": "What does IPO stand for in the stock market?",
     "answers": [
-      "George Orwell",
-      "Aldous Huxley",
-      "Ray Bradbury",
-      "H.G. Wells"
+      "International Price Offering",
+      "Initial Public Offering",
+      "Investment Portfolio Option",
+      "Internal Profit Objective"
     ],
-    "correct": 0,
-    "number": 12
+    "correct": 1
   },
   {
-    "text": "What is the speed of light in a vacuum?",
+    "number": 13,
+    "text": "What is the primary purpose of a stock exchange?",
     "answers": [
-      "299,792,458 m/s",
-      "300,000,000 m/s",
-      "299,000,000 m/s",
-      "301,000,000 m/s"
+      "To lend money to banks",
+      "To facilitate the buying and selling of securities",
+      "To regulate interest rates",
+      "To provide loans to companies"
     ],
-    "correct": 0,
-    "number": 13
+    "correct": 1
   },
   {
-    "text": "Which element has the atomic number 1?",
+    "number": 14,
+    "text": "Which book is considered the bible of value investing?",
     "answers": [
-      "Helium",
-      "Hydrogen",
-      "Lithium",
-      "Carbon"
+      "The Intelligent Investor",
+      "Rich Dad Poor Dad",
+      "One Up on Wall Street",
+      "Think and Grow Rich"
     ],
-    "correct": 1,
-    "number": 14
+    "correct": 0
   },
   {
-    "text": "Who was the first person to walk on the moon?",
+    "number": 15,
+    "text": "What does IPO stand for in the stock market?",
     "answers": [
-      "Buzz Aldrin",
-      "Neil Armstrong",
-      "John Glenn",
-      "Alan Shepard"
+      "International Price Offering",
+      "Initial Public Offering",
+      "Investment Portfolio Option",
+      "Internal Profit Objective"
     ],
-    "correct": 1,
-    "number": 15
+    "correct": 1
   }
 ]
