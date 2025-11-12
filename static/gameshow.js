@@ -1159,25 +1159,38 @@ function updateQuestionDisplay(state) {
     // Only hide question during lifeline voting, not audience polls
     if (state.lifeline_voting_active) {
         questionEl.textContent = '';
+        questionEl.classList.remove('typing');
+        questionEl.dataset.animationInProgress = 'false';
+        questionEl.dataset.wasHiddenForLifeline = 'true';
         if (subtextEl) {
             subtextEl.classList.add('hidden');
             subtextEl.classList.remove('waiting-animation');
         }
         return; // Exit early during lifeline voting only
     }
-    
+
     // Try to get question from state first (includes data from server), then fall back to local questions array
     const question = state.currentQuestionData || questions[state.current_question];
-    
+    const questionText = question ? (question.text || question.question || '') : '';
+
     if (state.question_visible && question) {
-        
+
         if (subtextEl) {
             subtextEl.classList.add('hidden');
             subtextEl.classList.remove('waiting-animation');  // Clean up animation class
         }
-        
+
+        // If we previously hid the question for a lifeline, ensure it comes back immediately
+        if (questionEl.dataset.wasHiddenForLifeline === 'true' &&
+            questionEl.dataset.currentQuestion === questionText) {
+            questionEl.textContent = questionText;
+            questionEl.classList.remove('typing');
+            questionEl.dataset.animationInProgress = 'false';
+            delete questionEl.dataset.wasHiddenForLifeline;
+        }
+
         // Use typewriter effect for dramatic reveal
-        if (!questionEl.dataset.currentQuestion || questionEl.dataset.currentQuestion !== question.text) {
+        if (!questionEl.dataset.currentQuestion || questionEl.dataset.currentQuestion !== questionText) {
             // New question detected - clear voting panel highlighting
             console.log('🆕 New question detected, clearing voting panel states');
             const voteOptions = document.querySelectorAll('.vote-option-integrated');
@@ -1206,16 +1219,16 @@ function updateQuestionDisplay(state) {
                 return; // Don't start a new animation if one is in progress
             }
             
-            questionEl.dataset.currentQuestion = question.text;
+            questionEl.dataset.currentQuestion = questionText;
             questionEl.dataset.animationInProgress = 'true';
-            
+
             // Add fallback timer in case typewriter gets stuck
             let typewriterFallbackTimer = setTimeout(() => {
                 console.log('⚠️ Typewriter fallback timer triggered - forcing completion');
-                questionEl.textContent = question.text;
+                questionEl.textContent = questionText;
                 questionEl.classList.remove('typing');
                 questionEl.dataset.animationInProgress = 'false';
-                
+
                 // Send completion message
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
@@ -1227,12 +1240,12 @@ function updateQuestionDisplay(state) {
                 }
             }, 8000); // 8 second fallback for safety
             
-            typewriterEffect(questionEl, question.text, 60).then(() => {
+            typewriterEffect(questionEl, questionText, 60).then(() => {
                 // Clear fallback timer since animation completed normally
                 clearTimeout(typewriterFallbackTimer);
                 console.log('✅ Question typewriter effect completed');
                 questionEl.dataset.animationInProgress = 'false';
-                
+
                 // Send message to server that typewriter animation is complete
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
@@ -1245,8 +1258,13 @@ function updateQuestionDisplay(state) {
                 console.error('❌ Typewriter animation error:', error);
                 questionEl.dataset.animationInProgress = 'false';
                 // Fallback: just show the text
-                questionEl.textContent = question.text;
+                questionEl.textContent = questionText;
             });
+        } else if (questionEl.textContent.trim() === '' && questionText) {
+            // Safety net: ensure text is visible if it was cleared without triggering a new animation
+            questionEl.textContent = questionText;
+            questionEl.classList.remove('typing');
+            questionEl.dataset.animationInProgress = 'false';
         }
     } else if (state.preparing_for_game) {
         // Only show "Get ready" text if no voting is active
