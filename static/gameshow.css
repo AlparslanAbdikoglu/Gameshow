@@ -3288,7 +3288,8 @@ body {
     gap: 24px;
     box-sizing: border-box;
     max-height: calc(100vh - 120px);
-    overflow: hidden
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 #credits-overlay.credits-roll-active .credits-content {
@@ -3318,6 +3319,61 @@ body {
 .credits-section {
     margin: 12px 0;
     width: 100%;
+}
+
+.credits-winners-section {
+    padding: 18px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 215, 0, 0.25);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 140, 0, 0.15));
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+}
+
+.credits-winners {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: center;
+}
+
+.credits-winner {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 18px;
+    font-size: 32px;
+    font-weight: 800;
+    color: #FFFFFF;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+}
+
+.credits-winner-rank {
+    font-size: 36px;
+    color: #FFD700;
+    min-width: 120px;
+    text-align: left;
+    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.credits-winner-name {
+    font-size: 32px;
+    color: #FFFFFF;
+    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.credits-winner-points {
+    font-size: 24px;
+    color: rgba(255, 215, 0, 0.9);
+    font-weight: 700;
+    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+.credits-winner-placeholder {
+    font-size: 22px;
+    color: rgba(255, 255, 255, 0.75);
+    letter-spacing: 2px;
+    text-transform: uppercase;
 }
 
 .credits-section-title {
@@ -3486,6 +3542,18 @@ body {
     font-family: "Orbitron", monospace;
 }
 
+.hot-seat-timer.countdown {
+    color: #FFE082;
+    font-size: 40px;
+    letter-spacing: 1px;
+    animation: hotSeatCountdownPulse 1s ease-in-out infinite;
+}
+
+.hot-seat-timer.countdown.go {
+    color: #76FF03;
+    animation: hotSeatCountdownLaunch 0.5s ease-in-out 2;
+}
+
 .hot-seat-timer.entry-countdown {
     color: #FFE082;
     font-size: 28px;
@@ -3509,6 +3577,32 @@ body {
 @keyframes timerCritical {
     0%, 100% { transform: scale(1); color: #FF4500; }
     50% { transform: scale(1.2); color: #FFF; }
+}
+
+@keyframes hotSeatCountdownPulse {
+    0%, 100% {
+        transform: scale(1);
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    }
+    50% {
+        transform: scale(1.15);
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.95);
+    }
+}
+
+@keyframes hotSeatCountdownLaunch {
+    0% {
+        transform: scale(1);
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    }
+    50% {
+        transform: scale(1.25);
+        text-shadow: 0 4px 20px rgba(118, 255, 3, 0.9);
+    }
+    100% {
+        transform: scale(1.1);
+        text-shadow: 0 3px 14px rgba(118, 255, 3, 0.7);
+    }
 }
 
 .hot-seat-status {
