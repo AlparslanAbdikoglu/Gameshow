@@ -195,6 +195,10 @@ let gameState = {
   // Game completion tracking
   game_completed: false,      // Has the game reached question 15 and been completed
   final_game_stats: null,     // Final leaderboard stats when game completes
+  final_game_winners: [],     // Top winners from the most recent completed game
+  finalLeaderboardShown: false,
+  pending_endgame_sequence: false,
+  endgame_ready_timestamp: null,
   // Ask a Mod Feature States
   ask_a_mod_active: false,    // Is Ask a Mod lifeline currently active
   ask_a_mod_start_time: null, // When Ask a Mod session started
@@ -217,6 +221,11 @@ let gameState = {
   hot_seat_profiles: {},       // Map of uploaded hot seat profile stories keyed by username
   hot_seat_profiles_last_update: null, // Timestamp of last profile upload for status displays
   hot_seat_timer_interval: null, // Reference to timer interval for cleanup
+  hot_seat_prestart_interval: null, // Countdown interval that runs before the main timer
+  hot_seat_prestart_seconds: 0,     // Remaining seconds in the pre-start countdown
+  hot_seat_prestart_total: 0,       // Total seconds configured for the pre-start countdown
+  hot_seat_timer_pending_start: false, // Whether we are waiting to begin the hot seat timer
+  hot_seat_countdown_started: false,   // Tracks if the pre-start countdown has started
   // Hot Seat Entry Collection
   hot_seat_entry_active: false,  // Is entry collection period active
   hot_seat_entries: [],          // Array of usernames who typed "JOIN"
@@ -871,6 +880,7 @@ function resetGiveaway(clearWinners = false) {
 
 // Start giveaway timer updates
 let giveawayTimerInterval = null;
+let pendingEndgameInterval = null;
 function startGiveawayTimer() {
   // Clear any existing timer
   if (giveawayTimerInterval) {
@@ -882,6 +892,19 @@ function startGiveawayTimer() {
     clearInterval(giveawayTimerInterval);
     giveawayTimerInterval = null;
   }
+
+  if (pendingEndgameInterval) {
+    clearInterval(pendingEndgameInterval);
+    pendingEndgameInterval = null;
+  }
+
+  gameState.pending_endgame_sequence = false;
+  gameState.final_game_winners = [];
+  gameState.final_game_stats = null;
+  gameState.finalLeaderboardShown = false;
+  gameState.game_completed = false;
+  gameState.prizeConfiguration.winnersAnnounced = false;
+  gameState.endgame_ready_timestamp = null;
   
   // Send timer updates every second with throttling
   let lastBroadcastTime = 0;
@@ -1829,6 +1852,7 @@ wss.on('connection', (ws, req) => {
   delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
+  delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
   
   if (isDevelopment) {
@@ -1988,6 +2012,7 @@ wss.on('connection', (ws, req) => {
           delete cleanGameState.lifeline_countdown_interval;
           delete cleanGameState.hot_seat_timer_interval;
           delete cleanGameState.hot_seat_entry_timer_interval;
+          delete cleanGameState.hot_seat_prestart_interval;
           delete cleanGameState.hot_seat_entry_lookup;
 
           // Convert Set to Array for JSON serialization
@@ -2668,6 +2693,7 @@ function broadcastState(force = false, critical = false) {
   delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
+  delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
 
   // Convert Set to Array for JSON serialization
@@ -4862,7 +4888,16 @@ function handleVoteUpdate(data) {
 // Start the entry period for hot seat
 function startHotSeatEntryPeriod() {
   console.log('🎯 Starting hot seat entry period');
-  
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+  gameState.hot_seat_timer_pending_start = false;
+  gameState.hot_seat_countdown_started = false;
+  gameState.hot_seat_prestart_seconds = 0;
+  gameState.hot_seat_prestart_total = 0;
+
   // Reset entries
   gameState.hot_seat_entries = [];
   gameState.hot_seat_entry_lookup = new Set();
@@ -4922,6 +4957,91 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
+function broadcastHotSeatCountdown(remaining, options = {}) {
+  broadcastToClients({
+    type: 'hot_seat_countdown',
+    user: gameState.hot_seat_user,
+    remaining,
+    total: gameState.hot_seat_prestart_total,
+    questionNumber: gameState.current_question + 1,
+    go: options.go === true,
+    timestamp: Date.now()
+  });
+}
+
+function startHotSeatCountdown(countdownSeconds) {
+  if (!gameState.hot_seat_active) {
+    return;
+  }
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
+  gameState.hot_seat_prestart_seconds = seconds;
+  gameState.hot_seat_prestart_total = seconds;
+  gameState.hot_seat_countdown_started = true;
+
+  broadcastHotSeatCountdown(seconds);
+
+  if (seconds === 0) {
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_countdown_started = false;
+    startHotSeatTimer();
+    return;
+  }
+
+  gameState.hot_seat_prestart_interval = setInterval(() => {
+    gameState.hot_seat_prestart_seconds = Math.max(0, gameState.hot_seat_prestart_seconds - 1);
+
+    if (gameState.hot_seat_prestart_seconds > 0) {
+      broadcastHotSeatCountdown(gameState.hot_seat_prestart_seconds);
+      return;
+    }
+
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    broadcastHotSeatCountdown(0, { go: true });
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_countdown_started = false;
+    startHotSeatTimer();
+  }, 1000);
+}
+
+function queueHotSeatCountdown(countdownSeconds) {
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
+  gameState.hot_seat_prestart_seconds = seconds;
+  gameState.hot_seat_prestart_total = seconds;
+  gameState.hot_seat_timer_pending_start = true;
+  gameState.hot_seat_countdown_started = false;
+
+  triggerHotSeatCountdownIfReady();
+}
+
+function triggerHotSeatCountdownIfReady() {
+  if (!gameState.hot_seat_active || !gameState.hot_seat_timer_pending_start) {
+    return false;
+  }
+
+  if (gameState.hot_seat_countdown_started) {
+    return false;
+  }
+
+  if (!gameState.question_visible) {
+    return false;
+  }
+
+  startHotSeatCountdown(gameState.hot_seat_prestart_seconds || 0);
+  return true;
+}
+
 function initializeHotSeatSession(selectedUsers, options = {}) {
   const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
 
@@ -4933,6 +5053,9 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   const selectionMethod = options.selectionMethod || 'manual';
   const primaryUser = uniqueUsers[0];
   const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
+  const countdownSeconds = Number.isFinite(options.countdownSeconds)
+    ? Math.max(0, Math.round(options.countdownSeconds))
+    : 3;
 
   // End any lingering entry countdown now that a session is beginning
   if (gameState.hot_seat_entry_timer_interval) {
@@ -4979,7 +5102,7 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     });
   });
 
-  startHotSeatTimer();
+  queueHotSeatCountdown(countdownSeconds);
 
   broadcastToClients({
     type: 'hot_seat_activated',
@@ -4989,6 +5112,7 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     questionNumber: gameState.current_question + 1,
     message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
     selectionMethod,
+    countdown: countdownSeconds,
     profile: primaryProfile || null,
     alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
     timestamp: Date.now()
@@ -5018,7 +5142,8 @@ function drawHotSeatWinners() {
 
   return initializeHotSeatSession(winners, {
     selectionMethod: 'join_entry',
-    message: `Hot seat activated for: ${winners.join(', ')}`
+    message: `Hot seat activated for: ${winners.join(', ')}`,
+    countdownSeconds: 3
   });
 }
 
@@ -5073,22 +5198,31 @@ function selectHotSeatUser(manualUsername = null) {
   }
 
   return initializeHotSeatSession([selectedUser], {
-    selectionMethod
+    selectionMethod,
+    countdownSeconds: 3
   });
 }
 
 function startHotSeatTimer() {
-  // Clear any existing timer
-  if (gameState.hot_seat_timer_interval) {
-    clearInterval(gameState.hot_seat_timer_interval);
+  if (!gameState.hot_seat_active) {
+    return;
   }
-  
-  // Clear any existing timer before creating new one
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  gameState.hot_seat_timer_pending_start = false;
+  gameState.hot_seat_countdown_started = false;
+  gameState.hot_seat_prestart_seconds = 0;
+  gameState.hot_seat_prestart_total = 0;
+
   if (gameState.hot_seat_timer_interval) {
     clearInterval(gameState.hot_seat_timer_interval);
     gameState.hot_seat_timer_interval = null;
   }
-  
+
   gameState.hot_seat_timer_interval = setInterval(() => {
     gameState.hot_seat_timer--;
     
@@ -5218,7 +5352,17 @@ function endHotSeat(wasCorrect = null, timeout = false) {
     clearInterval(gameState.hot_seat_timer_interval);
     gameState.hot_seat_timer_interval = null;
   }
-  
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  gameState.hot_seat_timer_pending_start = false;
+  gameState.hot_seat_countdown_started = false;
+  gameState.hot_seat_prestart_seconds = 0;
+  gameState.hot_seat_prestart_total = 0;
+
   // Broadcast hot seat end
   broadcastToClients({
     type: 'hot_seat_ended',
@@ -5439,25 +5583,35 @@ function getTopLeaderboardPlayers(count = 10) {
 }
 
 function finalizeGameLeaderboard() {
-    console.log('🏁 GAME COMPLETE - Finalizing current game leaderboard');
-    
-    // CRITICAL: Mark game as completed to prevent further questions
-    gameState.game_completed = true;
-    gameState.endGameTriggered = true;
-    
-    // Get final game stats
-    const finalStats = getLeaderboardStats().current_game;
+  if (gameState.game_completed) {
+    console.log('ℹ️ Game already completed - skipping finalizeGameLeaderboard()');
+    return;
+  }
+
+  console.log('🏁 GAME COMPLETE - Finalizing current game leaderboard');
+
+  // CRITICAL: Mark game as completed to prevent further questions
+  gameState.game_completed = true;
+  gameState.endGameTriggered = true;
+
+  // Get final game stats
+  const finalStats = getLeaderboardStats().current_game;
+  gameState.final_game_stats = finalStats;
+  gameState.final_game_winners = Array.isArray(finalStats) ? finalStats.slice(0, 3) : [];
+  gameState.pending_endgame_sequence = false;
+  gameState.endgame_ready_timestamp = Date.now();
+
   // Log the winner if there are players
   if (finalStats && finalStats.length > 0) {
     const winner = finalStats[0];
     console.log(`🏆 GAME WINNER: ${winner.username} with ${winner.points} points!`);
-    console.log(`📊 Top 3 Players:`);
+    console.log('📊 Top 3 Players:');
     finalStats.slice(0, 3).forEach((player, index) => {
       const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
       console.log(`${medal} ${player.username}: ${player.points} points (${player.correct_answers}/${player.total_votes} correct)`);
     });
   }
-  
+
   // Broadcast game completion with final leaderboard
   broadcastToClients({
     type: 'game_completed',
@@ -5466,19 +5620,19 @@ function finalizeGameLeaderboard() {
     total_players: finalStats ? finalStats.length : 0,
     timestamp: Date.now()
   });
-  
+
   // Do NOT reset current_game here - keep for display until new game starts
   console.log('📊 Current game leaderboard finalized (preserved for viewing)');
   console.log(`🎮 Total participants: ${gameState.gameshow_participants.length}`);
-  
+
   // Save leaderboard data after game completion
   saveLeaderboardData();
-  
+
   // Export game to CSV archive
   const csvFilename = exportGameToCSV(finalStats);
   if (csvFilename) {
     console.log(`✅ Game successfully archived as ${csvFilename}`);
-    
+
     // Broadcast CSV export success
     broadcastToClients({
       type: 'game_archived',
@@ -5487,6 +5641,61 @@ function finalizeGameLeaderboard() {
       timestamp: Date.now()
     });
   }
+
+  broadcastState(true);
+}
+
+function canStartEndgameSequence() {
+  return !gameState.lifeline_voting_active &&
+    !gameState.lifeline_voting_timer_active &&
+    !gameState.waiting_for_lifeline_tie_break &&
+    !gameState.pending_lifeline_vote &&
+    !gameState.audience_poll_active &&
+    !gameState.is_revote_active &&
+    !gameState.ask_a_mod_active &&
+    !gameState.hot_seat_active;
+}
+
+function runPendingEndgameSequence(reason = 'auto') {
+  if (pendingEndgameInterval) {
+    clearInterval(pendingEndgameInterval);
+    pendingEndgameInterval = null;
+  }
+
+  if (gameState.game_completed) {
+    console.log(`ℹ️ End-game sequence already completed (${reason})`);
+    gameState.pending_endgame_sequence = false;
+    return;
+  }
+
+  console.log(`🏁 Executing end-game sequence (${reason})`);
+  finalizeGameLeaderboard();
+}
+
+function scheduleEndgameSequence(reason = 'final_question', delay = 3000) {
+  console.log(`⏳ Scheduling end-game sequence (${reason}) in ${delay}ms`);
+
+  setTimeout(() => {
+    if (canStartEndgameSequence()) {
+      runPendingEndgameSequence(reason);
+      return;
+    }
+
+    console.log('⏸️ End-game sequence blocked by active interactions. Monitoring until flow is clear...');
+    gameState.pending_endgame_sequence = true;
+
+    if (pendingEndgameInterval) {
+      clearInterval(pendingEndgameInterval);
+    }
+
+    pendingEndgameInterval = setInterval(() => {
+      if (canStartEndgameSequence()) {
+        console.log('✅ Conditions cleared - completing pending end-game sequence');
+        gameState.pending_endgame_sequence = false;
+        runPendingEndgameSequence('pending_resume');
+      }
+    }, 1000);
+  }, delay);
 }
 
 // Helper function to escape CSV values
@@ -6675,6 +6884,10 @@ function resetGameStateWithCleanup() {
     clearInterval(gameState.hot_seat_timer_interval);
     gameState.hot_seat_timer_interval = null;
   }
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
   if (gameState.hot_seat_entry_timer_interval) {
     clearInterval(gameState.hot_seat_entry_timer_interval);
     gameState.hot_seat_entry_timer_interval = null;
@@ -7137,6 +7350,7 @@ async function handleAPI(req, res, pathname) {
     delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
     delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
     delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
+    delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
     delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
 
     // Convert Set to Array for JSON serialization
@@ -9025,6 +9239,7 @@ async function handleAPI(req, res, pathname) {
                 console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
                 gameState.question_visible = true;
                 broadcastState();
+                triggerHotSeatCountdownIfReady();
               }, gameState.hot_seat_entry_duration + 2000); // Add 2 seconds after entry ends
               
               return; // Exit early - question will be shown after entry period
@@ -9046,10 +9261,11 @@ async function handleAPI(req, res, pathname) {
             }
             
             console.log('Question shown - state updated');
-            
+
             // CRITICAL FIX: Broadcast the state update so OBS browser source updates immediately
             broadcastState();
             console.log('📡 Broadcasted question_visible state to all clients');
+            triggerHotSeatCountdownIfReady();
             
             // Broadcast question music audio command
             console.log('🎵 Broadcasting question music audio command');
@@ -9456,75 +9672,9 @@ async function handleAPI(req, res, pathname) {
             
             // Check if this was the final question (Question 15, index 14)
             if (gameState.current_question === 14 && !gameState.endGameTriggered) {
-              console.log('🎯 Question 15 revealed - triggering end-game sequence...');
+              console.log('🎯 Question 15 revealed - preparing end-game sequence...');
               gameState.endGameTriggered = true;
-              
-              // Delay to allow answer reveal animation to complete
-              setTimeout(() => {
-                finalizeGameLeaderboard();
-                
-                // Check if prizes are enabled
-                if (gameState.prizeConfiguration.enabled && !gameState.prizeConfiguration.winnersAnnounced) {
-                  console.log('🏆 Showing end-game leaderboard with prize winners...');
-                  
-                  // Get top winners from leaderboard
-                  const topWinners = getTopLeaderboardPlayers(gameState.prizeConfiguration.topWinnersCount);
-                  
-                  // Broadcast end-game leaderboard display command
-                  broadcastToClients({
-                    type: 'show_endgame_leaderboard',
-                    winners: topWinners,
-                    prizeConfig: gameState.prizeConfiguration,
-                    timestamp: Date.now()
-                  });
-                  
-                  // Mark winners as announced
-                  gameState.prizeConfiguration.winnersAnnounced = true;
-                  console.log(`🎉 Announced ${topWinners.length} winners for prizes`);
-                  
-                  // Play celebration sound
-                  setTimeout(() => {
-                    broadcastToClients({ type: 'audio_command', command: 'play_applause' });
-                    broadcastToClients({ type: 'confetti_trigger', command: 'create_massive_confetti' });
-                  }, 1000);
-                  
-                  // Auto-start credits after showing winners
-                  setTimeout(() => {
-                    if (!gameState.credits_rolling) {
-                      console.log('🎬 Auto-starting end game credits after winners announcement');
-                      gameState.credits_rolling = true;
-                      gameState.credits_scrolling = true;
-                      gameState.curtains_closed = true;
-                      
-                      // End any active polls
-                      gameState.audience_poll_active = false;
-                      gameState.show_voting_activity = false;
-                      gameState.show_poll_winner = null;
-                      
-                      console.log(`🎭 Credits will feature ${gameState.gameshow_participants.length} participants`);
-                      broadcastState();
-                    }
-                  }, 30000); // 30 second delay to show winners before credits
-                } else {
-                  // No prizes or already announced, go straight to credits
-                  setTimeout(() => {
-                    if (!gameState.credits_rolling) {
-                      console.log('🎬 Auto-starting end game credits after final question');
-                      gameState.credits_rolling = true;
-                      gameState.credits_scrolling = true;
-                      gameState.curtains_closed = true;
-                      
-                      // End any active polls
-                      gameState.audience_poll_active = false;
-                      gameState.show_voting_activity = false;
-                      gameState.show_poll_winner = null;
-                      
-                      console.log(`🎭 Credits will feature ${gameState.gameshow_participants.length} participants`);
-                      broadcastState();
-                    }
-                  }, 5000); // 5 second delay before credits
-                }
-              }, 3000); // 3 second delay after reveal for dramatic effect
+              scheduleEndgameSequence('final_question_reveal', 3000);
             }
             
             break;
@@ -10260,6 +10410,7 @@ async function handleAPI(req, res, pathname) {
             // Kick off the credits sequence on all connected displays
             broadcastToClients({
               type: 'roll_credits',
+              winners: gameState.final_game_winners || [],
               timestamp: Date.now()
             });
 
@@ -10312,13 +10463,22 @@ async function handleAPI(req, res, pathname) {
           case 'show_final_leaderboard':
             console.log('🏆 Showing final leaderboard with winners');
 
-            // Get top winners based on prize configuration
-            const topWinners = getTopLeaderboardPlayers(gameState.prizeConfiguration.topWinnersCount);
-            
+            const finalStats = Array.isArray(gameState.final_game_stats) && gameState.final_game_stats.length > 0
+              ? gameState.final_game_stats
+              : (getLeaderboardStats().current_game || []);
+
+            if (!finalStats || finalStats.length === 0) {
+              console.warn('⚠️ No final stats available when attempting to show final leaderboard');
+            }
+
+            const topWinners = finalStats.slice(0, gameState.prizeConfiguration.topWinnersCount);
+            gameState.final_game_winners = finalStats.slice(0, 3);
+
             // Mark that we've shown the final leaderboard
             gameState.finalLeaderboardShown = true;
             gameState.prizeConfiguration.winnersAnnounced = true;
-            
+            gameState.endgame_ready_timestamp = gameState.endgame_ready_timestamp || Date.now();
+
             // Broadcast to display the end-game leaderboard
             broadcastToClients({
               type: 'show_endgame_leaderboard',
@@ -10326,15 +10486,15 @@ async function handleAPI(req, res, pathname) {
               prizeConfig: gameState.prizeConfiguration,
               timestamp: Date.now()
             });
-            
+
             // Also trigger confetti
             broadcastToClients({
               type: 'confetti_trigger',
               command: 'create_massive_confetti'
             });
-            
-            console.log(`🎉 Displayed top ${gameState.prizeConfiguration.topWinnersCount} winners`);
-            broadcastState();
+
+            console.log(`🎉 Displayed top ${topWinners.length} winners`);
+            broadcastState(true);
             break;
 
           case 'show_leaderboard':
@@ -10377,6 +10537,7 @@ async function handleAPI(req, res, pathname) {
             // Then start the credits roll
             broadcastToClients({
               type: 'roll_credits',
+              winners: gameState.final_game_winners || [],
               timestamp: Date.now()
             });
             
@@ -11157,6 +11318,7 @@ async function handleAPI(req, res, pathname) {
         delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
         delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
         delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
+        delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
         delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
