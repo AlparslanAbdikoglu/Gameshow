@@ -56,9 +56,9 @@
       "best_streak": 12,
       "fastest_correct_time": null,
       "hot_seat_appearances": 0,
-      "hot_sat_correct": 0,
       "questions_completed": 15,
-      "total_points_all_games": 236
+      "total_points_all_games": 236,
+      "hot_seat_correct": 0
     },
     {
       "game_id": "game_1730063103648_kerviz",
@@ -284,11 +284,71 @@
       "hot_seat_correct": 0,
       "questions_completed": 15,
       "total_points_all_games": 170
+    },
+    {
+      "game_id": "game_1731281108166_imsin__",
+      "date": "2025-11-10T23:25:08.166Z",
+      "username": "imsin__",
+      "final_points": 223,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 7083,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 1328
+    },
+    {
+      "game_id": "game_1731281108166_hedgefondmanager",
+      "date": "2025-11-10T23:25:08.166Z",
+      "username": "hedgefondmanager",
+      "final_points": 216,
+      "correct_answers": 11,
+      "total_answers": 11,
+      "accuracy": 100,
+      "best_streak": 11,
+      "fastest_correct_time": 6610,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 228
+    },
+    {
+      "game_id": "game_1731281108166_jvrosz4",
+      "date": "2025-11-10T23:25:08.166Z",
+      "username": "jvrosz4",
+      "final_points": 207,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 8520,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 666
+    },
+    {
+      "game_id": "game_1762380761864_jpx_269",
+      "date": "2025-11-05T22:12:41.864Z",
+      "username": "jpx_269",
+      "final_points": 328,
+      "correct_answers": 29,
+      "total_answers": 31,
+      "accuracy": 94,
+      "best_streak": 17,
+      "fastest_correct_time": null,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 328
     }
   ],
   "metadata": {
-    "total_games": 6,
-    "last_updated": "2025-11-09T00:02:00.000Z",
-    "note": "Last 6 games only (Oct 20, 22, 27, 29, Nov 3, 5). Winners continue earning points in leaderboard."
+    "total_games": 23,
+    "last_updated": "2025-11-10T23:25:08.166Z",
+    "note": "Includes latest games through Nov 10 with dedicated previous winner tracking."
   }
 }
