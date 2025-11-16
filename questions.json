@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "In technical analysis, what’s a “liquidity grab”?",
+    "text": "What does 'liquidity zone' refer to in trading?",
     "answers": [
-      "A whale selling everything",
-      "A gap in chart data",
-      "A random candle spike",
-      "A short (or long) squeeze where stop-losses get triggered"
+      "A volume indicator on exchanges",
+      "A type of resistance based on time",
+      "A period of low volatility",
+      "An area on the chart where orders are concentrated"
     ],
     "correct": 3
   },
   {
     "number": 2,
-    "text": "What’s the primary role of VWAP in intraday trading?",
+    "text": "What is the primary goal of a trading journal?",
     "answers": [
-      "It calculates open interest",
-      "It identifies RSI divergences",
-      "It shows the average price weighted by volume",
-      "It shows good and poor highs and lows"
+      "To share results on social media",
+      "To record emotions, trades, and performance for self-improvement",
+      "To report profits for taxes",
+      "To predict the next trend automatically"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 3,
-    "text": "What’s a “stop hunt”?",
+    "text": "What is a 'breaker block' in price action analysis?",
     "answers": [
-      "When the market purposely moves to trigger trader stop-losses",
-      "When an exchange stops orders for maintenance",
-      "A type of futures funding event",
-      "A rare pattern on RSI"
+      "A bullish engulfing candle",
+      "A lagging indicator",
+      "A volume gap",
+      "A consolidation that turns into a liquidity trap"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 4,
+    "text": "What does 'Delta Divergence' usually indicate?",
+    "answers": [
+      "Momentum between buyers and sellers is shifting",
+      "The RSI is above 70",
+      "Open interest dropped to zero",
+      "Volume has stopped updating"
     ],
     "correct": 0
   },
   {
-    "number": 4,
-    "text": "What is the 80% setup rule based on?",
-    "answers": [
-      "My friends 80% sure what they doing",
-      "Price rotating through value once accepting back within",
-      "Profit target reached",
-      "Candle size reaching 80%"
-    ],
-    "correct": 1
-  },
-  {
     "number": 5,
-    "text": "What happens when funding rates are deeply negative?",
+    "text": "What does the 'Value Area High (VAH)' represent in a volume profile?",
     "answers": [
-      "The market is balanced",
-      "Shorts are paying longs, meaning selling pressure is extreme",
-      "Funding has paused",
-      "Longs are paying shorts"
+      "The level where 70% of trading occurred",
+      "The area where no trades happened",
+      "The lowest traded price in the session",
+      "The upper boundary of fair value"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 6,
-    "text": "What does Open Interest (OI) increasing while price drops often mean?",
+    "text": "What does 'confluence' mean in technical analysis?",
     "answers": [
-      "Market is consolidating",
-      "Shorts are being closed",
-      "New short positions entering the market",
-      "No one’s trading"
+      "A random indicator crossover",
+      "Sudden price manipulation",
+      "Multiple signals aligning at the same price level",
+      "Volume dropping rapidly"
     ],
     "correct": 2
   },
   {
     "number": 7,
-    "text": "Why is the 106–107K range on BTC considered a key level in market structure?",
+    "text": "What is 'order flow' primarily used to analyze?",
     "answers": [
-      "It’s the highest open interest level ever recorded",
-      "It has acted as a critical resistance/support zone for nearly a year",
-      "It’s where all gaps get filled",
-      "It represents a Fibonacci 100% retracement"
+      "Daily candle colors",
+      "The volume of tweets about crypto",
+      "The behavior of institutional traders",
+      "The RSI overbought level"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 8,
-    "text": "What is a “pivot zone” in technical analysis?",
+    "text": "What is 'smart money' in trading slang?",
     "answers": [
-      "A random candle that reverses",
-      "A price area that often acts as both support and resistance",
-      "A single data point on the RSI",
-      "A point where open interest resets"
+      "Automated market maker bots",
+      "Institutional and professional capital",
+      "New traders entering with high leverage",
+      "Retail investors buying top coins"
     ],
     "correct": 1
   },
   {
     "number": 9,
-    "text": "If a daily close happens above 103,500 (BTC) level after multiple rejections, what does it generally suggest?",
+    "text": "What does the 'POC' stand for in volume analysis?",
     "answers": [
-      "The trend is weakening",
-      "The level remains insignificant",
-      "A potential shift in market bias to bullish",
-      "That trading volume is low"
+      "Point of Control",
+      "Pivot Order Chart",
+      "Price of Control",
+      "Power of Candles"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 10,
-    "text": "What is typically indicated when price returns into the weekly Value Area after a breakout?",
+    "text": "What does it mean if price 'reclaims a key level'?",
     "answers": [
-      "The breakout is strengthening",
-      "The move might be losing momentum",
-      "The market is entering price discovery",
-      "A liquidity grab just occurred"
+      "Price breaks below support",
+      "Price moves back above a previously lost level",
+      "The market resets open interest",
+      "Volume vanishes entirely"
     ],
     "correct": 1
   },
   {
     "number": 11,
-    "text": "In Volume Profile, what does the Point of Control (POC) represent?",
+    "text": "What does a 'Gap Fill and Go' setup describe?",
     "answers": [
-      "The level with the highest traded volume",
-      "The level with the lowest liquidity",
-      "A moving average line",
-      "The highest candle wick of the session"
+      "Price fills the gap and continues in the same direction",
+      "Price fills the gap and reverses",
+      "Price ignores the gap entirely",
+      "Price rejects before entering the gap"
     ],
     "correct": 0
   },
   {
     "number": 12,
-    "text": "What’s the difference between RTH and ETH gaps?",
+    "text": "What does 'imbalanced market' mean?",
     "answers": [
-      "There is no difference",
-      "ETH gaps occur during high volume",
-      "RTH gaps appear only in crypto markets",
-      "RTH gaps happen during regular trading hours, ETH gaps occur overnight"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 13,
-    "text": "What’s a “Gap Fill and Go” setup?",
-    "answers": [
-      "Price fills the gap fully, then continues in the same direction",
-      "Price never touches the gap",
-      "Price fills halfway and reverses",
-      "Gaps are ignored in this scenario"
+      "Buyers or sellers are dominating, creating directional movement",
+      "Spread is too small",
+      "Market is frozen",
+      "No traders are active"
     ],
     "correct": 0
   },
   {
-    "number": 14,
-    "text": "What’s a “Gap Fill and Reverse”?",
+    "number": 13,
+    "text": "What does 'cutting losers early' help traders achieve?",
     "answers": [
-      "Market halts during fill",
-      "Gap never gets filled",
-      "Price fills the gap, rejects, and moves back opposite direction",
-      "Volume disappears completely"
+      "Higher win rate automatically",
+      "Larger drawdowns",
+      "Overconfidence",
+      "Emotional control and risk discipline"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 14,
+    "text": "What does 'price acceptance' within Market Profile indicate?",
+    "answers": [
+      "Price rejected all orders",
+      "A strong imbalance forming",
+      "The market agreed on value at that level",
+      "Price halted trading"
     ],
     "correct": 2
   },
   {
     "number": 15,
-    "text": "What’s one of the best ways to cope with market swings and portfolio drawdowns?",
+    "text": "What does 'market context' refer to?",
     "answers": [
-      "Revenge trade to win it back fast",
-      "Reduce position size, review journal, and stay consistent",
-      "Watch every tick and overanalyze each move",
-      "Double down until it recovers"
+      "The highest open interest",
+      "The number of green candles in a row",
+      "The spread between spot and futures",
+      "Understanding how current price action fits into the bigger picture"
     ],
-    "correct": 1
+    "correct": 3
   }
 ]

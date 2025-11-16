@@ -434,7 +434,7 @@ function handleWebSocketMessage(message) {
             if (currentState.credits_rolling) {
                 console.log('🎬 Credits rolling state detected');
                 if (!currentState.credits_displayed) {
-                    showCredits(currentState.gameshow_participants || []);
+                    showCredits(currentState.gameshow_participants || [], currentState.final_game_winners || []);
                     currentState.credits_displayed = true;
                 }
             } else if (!currentState.credits_rolling && currentState.credits_displayed) {
@@ -476,6 +476,15 @@ function handleWebSocketMessage(message) {
                 }
             }
             break;
+        case 'game_completed':
+            if (Array.isArray(message.final_leaderboard)) {
+                currentState.final_game_stats = message.final_leaderboard;
+                currentState.final_game_winners = message.final_leaderboard.slice(0, 3);
+                console.log('🏁 Stored final game winners for credits:', currentState.final_game_winners.map(winner => winner.username || winner.name || 'Unknown').join(', '));
+            } else {
+                console.warn('⚠️ Game completed message received without leaderboard data');
+            }
+            break;
         case 'game_state':
             const prevContestant = currentState.contestant_name;
             const prevGameActive = currentState.game_active;
@@ -513,7 +522,7 @@ function handleWebSocketMessage(message) {
             if (currentState.credits_rolling) {
                 console.log('🎬 Credits rolling state detected');
                 if (!currentState.credits_displayed) {
-                    showCredits(currentState.gameshow_participants || []);
+                    showCredits(currentState.gameshow_participants || [], currentState.final_game_winners || []);
                     currentState.credits_displayed = true;
                 }
             } else if (!currentState.credits_rolling && currentState.credits_displayed) {
@@ -868,6 +877,10 @@ function handleWebSocketMessage(message) {
             handleHotSeatEntryUpdate(message);
             break;
 
+        case 'hot_seat_countdown':
+            handleHotSeatCountdown(message);
+            break;
+
         case 'hot_seat_no_entries':
             handleHotSeatNoEntries(message);
             break;
@@ -905,12 +918,15 @@ function handleWebSocketMessage(message) {
             break;
             
         case 'show_endgame_leaderboard':
+            if (Array.isArray(message.winners)) {
+                currentState.final_game_winners = message.winners.slice(0, 3);
+            }
             showEndGameLeaderboard(message.winners, message.prizeConfig);
             break;
             
         case 'roll_credits':
             console.log('🎬 Received command to roll credits');
-            startCreditsRoll();
+            startCreditsRoll(message.winners);
             break;
             
         case 'confetti_trigger':
@@ -1143,25 +1159,38 @@ function updateQuestionDisplay(state) {
     // Only hide question during lifeline voting, not audience polls
     if (state.lifeline_voting_active) {
         questionEl.textContent = '';
+        questionEl.classList.remove('typing');
+        questionEl.dataset.animationInProgress = 'false';
+        questionEl.dataset.wasHiddenForLifeline = 'true';
         if (subtextEl) {
             subtextEl.classList.add('hidden');
             subtextEl.classList.remove('waiting-animation');
         }
         return; // Exit early during lifeline voting only
     }
-    
+
     // Try to get question from state first (includes data from server), then fall back to local questions array
     const question = state.currentQuestionData || questions[state.current_question];
-    
+    const questionText = question ? (question.text || question.question || '') : '';
+
     if (state.question_visible && question) {
-        
+
         if (subtextEl) {
             subtextEl.classList.add('hidden');
             subtextEl.classList.remove('waiting-animation');  // Clean up animation class
         }
-        
+
+        // If we previously hid the question for a lifeline, ensure it comes back immediately
+        if (questionEl.dataset.wasHiddenForLifeline === 'true' &&
+            questionEl.dataset.currentQuestion === questionText) {
+            questionEl.textContent = questionText;
+            questionEl.classList.remove('typing');
+            questionEl.dataset.animationInProgress = 'false';
+            delete questionEl.dataset.wasHiddenForLifeline;
+        }
+
         // Use typewriter effect for dramatic reveal
-        if (!questionEl.dataset.currentQuestion || questionEl.dataset.currentQuestion !== question.text) {
+        if (!questionEl.dataset.currentQuestion || questionEl.dataset.currentQuestion !== questionText) {
             // New question detected - clear voting panel highlighting
             console.log('🆕 New question detected, clearing voting panel states');
             const voteOptions = document.querySelectorAll('.vote-option-integrated');
@@ -1190,16 +1219,16 @@ function updateQuestionDisplay(state) {
                 return; // Don't start a new animation if one is in progress
             }
             
-            questionEl.dataset.currentQuestion = question.text;
+            questionEl.dataset.currentQuestion = questionText;
             questionEl.dataset.animationInProgress = 'true';
-            
+
             // Add fallback timer in case typewriter gets stuck
             let typewriterFallbackTimer = setTimeout(() => {
                 console.log('⚠️ Typewriter fallback timer triggered - forcing completion');
-                questionEl.textContent = question.text;
+                questionEl.textContent = questionText;
                 questionEl.classList.remove('typing');
                 questionEl.dataset.animationInProgress = 'false';
-                
+
                 // Send completion message
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
@@ -1211,12 +1240,12 @@ function updateQuestionDisplay(state) {
                 }
             }, 8000); // 8 second fallback for safety
             
-            typewriterEffect(questionEl, question.text, 60).then(() => {
+            typewriterEffect(questionEl, questionText, 60).then(() => {
                 // Clear fallback timer since animation completed normally
                 clearTimeout(typewriterFallbackTimer);
                 console.log('✅ Question typewriter effect completed');
                 questionEl.dataset.animationInProgress = 'false';
-                
+
                 // Send message to server that typewriter animation is complete
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
@@ -1229,8 +1258,13 @@ function updateQuestionDisplay(state) {
                 console.error('❌ Typewriter animation error:', error);
                 questionEl.dataset.animationInProgress = 'false';
                 // Fallback: just show the text
-                questionEl.textContent = question.text;
+                questionEl.textContent = questionText;
             });
+        } else if (questionEl.textContent.trim() === '' && questionText) {
+            // Safety net: ensure text is visible if it was cleared without triggering a new animation
+            questionEl.textContent = questionText;
+            questionEl.classList.remove('typing');
+            questionEl.dataset.animationInProgress = 'false';
         }
     } else if (state.preparing_for_game) {
         // Only show "Get ready" text if no voting is active
@@ -4012,28 +4046,73 @@ function hideHowToPlay() {
 }
 
 // Credits Display Functions
-function showCredits(participants) {
+function showCredits(participants = [], winners = []) {
     const overlay = document.getElementById('credits-overlay');
     const participantsContainer = document.getElementById('credits-participants');
-    
+    const winnersContainer = document.getElementById('credits-winners');
+
     if (!overlay || !participantsContainer) {
         console.error('❌ Credits elements not found');
         return;
     }
-    
-    // Clear previous participants
+
+    // Clear previous participants and winners
     participantsContainer.innerHTML = '';
-    
+    if (winnersContainer) {
+        winnersContainer.innerHTML = '';
+    } else {
+        console.warn('⚠️ Credits winners container not found');
+    }
+
     // Show the overlay
     overlay.classList.remove('hidden');
-    console.log('🎬 Showing credits with', participants.length, 'participants');
-    
+    console.log('🎬 Showing credits with', participants.length, 'participants and', Array.isArray(winners) ? winners.length : 0, 'winners');
+
+    if (winnersContainer) {
+        const safeWinners = Array.isArray(winners) ? winners.slice(0, 3) : [];
+        if (safeWinners.length === 0) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'credits-winner-placeholder';
+            placeholder.textContent = 'Winners will be announced shortly';
+            winnersContainer.appendChild(placeholder);
+        } else {
+            safeWinners.forEach((winner, index) => {
+                const winnerRow = document.createElement('div');
+                winnerRow.className = 'credits-winner';
+
+                const rankSpan = document.createElement('span');
+                rankSpan.className = 'credits-winner-rank';
+                rankSpan.textContent = index === 0 ? '🥇 1st' : index === 1 ? '🥈 2nd' : '🥉 3rd';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'credits-winner-name';
+                nameSpan.textContent = (winner.username || winner.name || 'Winner').toUpperCase();
+
+                const pointsValue = winner.points ?? winner.final_points;
+                if (pointsValue !== undefined) {
+                    const pointsSpan = document.createElement('span');
+                    pointsSpan.className = 'credits-winner-points';
+                    const formattedPoints = typeof pointsValue === 'number' ? pointsValue.toLocaleString() : pointsValue;
+                    pointsSpan.textContent = `${formattedPoints} pts`;
+                    winnerRow.appendChild(pointsSpan);
+                    winnerRow.insertBefore(nameSpan, pointsSpan);
+                } else {
+                    winnerRow.appendChild(nameSpan);
+                }
+
+                winnerRow.insertBefore(rankSpan, winnerRow.firstChild);
+                winnersContainer.appendChild(winnerRow);
+            });
+        }
+    }
+
     // Create scrolling container for all names
+    let scrollDuration = Math.max(60, (participants && participants.length > 0) ? participants.length * 1.5 : 0);
     if (participants && participants.length > 0) {
         // Create a container that will scroll
         const scrollContainer = document.createElement('div');
         scrollContainer.className = 'credits-name-container';
-        
+
         // Add all participant names to the scrolling container
         participants.forEach((participant, index) => {
             const nameDiv = document.createElement('div');
@@ -4041,37 +4120,36 @@ function showCredits(participants) {
             nameDiv.textContent = participant;
             scrollContainer.appendChild(nameDiv);
         });
-        
+
         // Add the scrolling container to the viewport
         participantsContainer.appendChild(scrollContainer);
-        
-        // Calculate duration based on number of participants (about 1.5 seconds per name)
-        const scrollDuration = Math.max(10, participants.length * 1.5);
+
+        // Calculate duration based on number of participants (about 1.5 seconds per name) with 60 second minimum
         scrollContainer.style.animationDuration = scrollDuration + 's';
-        
+
         console.log(`🎬 Starting credit scroll for ${participants.length} names over ${scrollDuration} seconds`);
-        
+
         // Start fade out after scroll completes
         setTimeout(() => {
             console.log('🎬 Credits scroll complete, starting fade out');
-            
+
             // Add fade out transition
             overlay.style.transition = 'opacity 2s ease-out';
             overlay.style.opacity = '0';
-            
-            // Hide completely after fade
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                    overlay.style.opacity = '';
-                    overlay.style.transition = '';
-                    overlay.classList.remove('credits-roll-active');
 
-                    // Clear the local credits state
-                    if (currentState) {
-                        currentState.credits_rolling = false;
-                        currentState.credits_displayed = false;
+            // Hide completely after fade
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                overlay.style.opacity = '';
+                overlay.style.transition = '';
+                overlay.classList.remove('credits-roll-active');
+
+                // Clear the local credits state
+                if (currentState) {
+                    currentState.credits_rolling = false;
+                    currentState.credits_displayed = false;
                 }
-                
+
                 // Notify server that credits are complete
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
@@ -4080,24 +4158,21 @@ function showCredits(participants) {
                     }));
                     console.log('📡 Sent credits_complete to server');
                 }
-                
+
                 console.log('🎬 Credits fully hidden');
             }, 2000); // Wait for fade to complete
         }, scrollDuration * 1000); // Start fade right after last name exits
-        
     } else {
-        // No participants, show default message
+        // No participants, show default message but keep credits visible for minimum duration
         const messageDiv = document.createElement('div');
         messageDiv.className = 'credits-name';
         messageDiv.textContent = 'Thanks for watching!';
         participantsContainer.appendChild(messageDiv);
-        
-        // Auto-hide after a delay with fade
+
         setTimeout(() => {
-            // Fade out smoothly
             overlay.style.transition = 'opacity 2s ease-out';
             overlay.style.opacity = '0';
-            
+
             setTimeout(() => {
                 overlay.classList.add('hidden');
                 overlay.style.opacity = '';
@@ -4108,8 +4183,7 @@ function showCredits(participants) {
                     currentState.credits_rolling = false;
                     currentState.credits_displayed = false;
                 }
-                
-                // Notify server that credits are complete
+
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.send(JSON.stringify({
                         type: 'credits_complete',
@@ -4118,7 +4192,7 @@ function showCredits(participants) {
                     console.log('📡 Sent credits_complete to server');
                 }
             }, 2000);
-        }, 3000); // Show message for 3 seconds before fading
+        }, scrollDuration * 1000);
     }
 }
 
@@ -4165,6 +4239,13 @@ let hotSeatEntryState = {
 };
 
 let hotSeatProfileHideTimeout = null;
+let hotSeatCountdownState = {
+    active: false,
+    remaining: 0
+};
+let hotSeatCountdownResetTimeout = null;
+let hotSeatBaseStatusMessage = '';
+let hotSeatInitialTimerValue = 60;
 
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
@@ -4392,6 +4473,20 @@ function handleHotSeatActivated(message) {
     const timerValue = typeof message.timer === 'number' && message.timer > 0
         ? message.timer
         : fallbackTimer;
+    const countdownSeconds = typeof message.countdown === 'number'
+        ? Math.max(0, Math.round(message.countdown))
+        : 0;
+
+    if (hotSeatCountdownResetTimeout) {
+        clearTimeout(hotSeatCountdownResetTimeout);
+        hotSeatCountdownResetTimeout = null;
+    }
+
+    hotSeatInitialTimerValue = timerValue;
+    hotSeatCountdownState = {
+        active: countdownSeconds > 0,
+        remaining: countdownSeconds
+    };
 
     hotSeatEntryState = {
         active: false,
@@ -4439,14 +4534,31 @@ function handleHotSeatActivated(message) {
         display.setAttribute('aria-label', `Hot seat active for ${primaryUser}`);
 
         userEl.textContent = primaryUser;
-        timerEl.textContent = `${timerValue}s`;
         timerEl.className = "hot-seat-timer";
+        if (countdownSeconds > 0) {
+            timerEl.textContent = `${countdownSeconds}`;
+            timerEl.className = "hot-seat-timer countdown";
+        } else {
+            timerEl.textContent = `${timerValue}s`;
+        }
         statusEl.style.color = "";
 
+        const baseStatusMessage = participants.length > 1
+            ? `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`
+            : `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+        hotSeatBaseStatusMessage = baseStatusMessage;
+        if (statusEl.dataset) {
+            statusEl.dataset.baseMessage = baseStatusMessage;
+        }
+
         if (participants.length > 1) {
-            statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
+            statusEl.textContent = countdownSeconds > 0
+                ? `Countdown: ${countdownSeconds}...`
+                : baseStatusMessage;
         } else {
-            statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+            statusEl.textContent = countdownSeconds > 0
+                ? `Countdown: ${countdownSeconds}...`
+                : baseStatusMessage;
         }
     }
 
@@ -4463,6 +4575,9 @@ function handleHotSeatActivated(message) {
     if (participants.length > 1) {
         bannerMessageParts.push(`Alternates: ${participants.slice(1).join(', ')}`);
     }
+    if (countdownSeconds > 0) {
+        bannerMessageParts.push(`Countdown: ${countdownSeconds}…`);
+    }
     bannerMessageParts.push('Lions cheer them on!');
 
     setHotSeatBanner({
@@ -4478,7 +4593,9 @@ function handleHotSeatActivated(message) {
 
     if (hud && hudUser && hudTimer) {
         hudUser.textContent = primaryUser;
-        hudTimer.textContent = `${timerValue} seconds remaining`;
+        hudTimer.textContent = countdownSeconds > 0
+            ? `Countdown: ${countdownSeconds} seconds`
+            : `${timerValue} seconds remaining`;
         hud.classList.remove("hidden");
 
         setTimeout(() => {
@@ -4507,6 +4624,10 @@ function handleHotSeatTimerUpdate(message) {
     const timerEl = document.getElementById("hot-seat-timer");
     const hudTimer = document.getElementById("hot-seat-hud-timer");
 
+    if (hotSeatCountdownState.active) {
+        return;
+    }
+
     if (timerEl) {
         timerEl.textContent = `${message.timer}s`;
 
@@ -4525,8 +4646,97 @@ function handleHotSeatTimerUpdate(message) {
     }
 }
 
+function handleHotSeatCountdown(message) {
+    const remaining = typeof message.remaining === 'number'
+        ? Math.max(0, Math.round(message.remaining))
+        : null;
+
+    if (remaining === null) {
+        return;
+    }
+
+    if (hotSeatCountdownResetTimeout) {
+        clearTimeout(hotSeatCountdownResetTimeout);
+        hotSeatCountdownResetTimeout = null;
+    }
+
+    const timerEl = document.getElementById("hot-seat-timer");
+    const statusEl = document.getElementById("hot-seat-status");
+    const hudTimer = document.getElementById("hot-seat-hud-timer");
+
+    if (remaining > 0) {
+        hotSeatCountdownState.active = true;
+        hotSeatCountdownState.remaining = remaining;
+
+        if (timerEl) {
+            timerEl.textContent = `${remaining}`;
+            timerEl.className = "hot-seat-timer countdown";
+        }
+
+        if (statusEl) {
+            const baseMessage = (statusEl.dataset && statusEl.dataset.baseMessage)
+                || hotSeatBaseStatusMessage
+                || statusEl.textContent
+                || '';
+            if (statusEl.dataset) {
+                statusEl.dataset.baseMessage = baseMessage;
+            }
+            statusEl.textContent = `Countdown: ${remaining}...`;
+        }
+
+        if (hudTimer) {
+            hudTimer.textContent = `Countdown: ${remaining} seconds`;
+        }
+
+        return;
+    }
+
+    hotSeatCountdownState.active = false;
+    hotSeatCountdownState.remaining = 0;
+
+    if (timerEl) {
+        timerEl.textContent = 'GO!';
+        timerEl.className = "hot-seat-timer countdown go";
+    }
+
+    if (statusEl) {
+        const baseMessage = (statusEl.dataset && statusEl.dataset.baseMessage)
+            || hotSeatBaseStatusMessage
+            || 'Only the hot seat player may answer this question. Type A, B, C, or D now!';
+        statusEl.textContent = 'Go! Timer starting!';
+        if (statusEl.dataset) {
+            statusEl.dataset.baseMessage = baseMessage;
+        }
+    }
+
+    if (hudTimer) {
+        hudTimer.textContent = `${hotSeatInitialTimerValue} seconds remaining`;
+    }
+
+    hotSeatCountdownResetTimeout = setTimeout(() => {
+        if (timerEl) {
+            timerEl.className = "hot-seat-timer";
+            timerEl.textContent = `${hotSeatInitialTimerValue}s`;
+        }
+        if (statusEl) {
+            const baseMessage = (statusEl.dataset && statusEl.dataset.baseMessage)
+                || hotSeatBaseStatusMessage
+                || 'Only the hot seat player may answer this question. Type A, B, C, or D now!';
+            statusEl.textContent = baseMessage;
+        }
+        hotSeatCountdownResetTimeout = null;
+    }, 900);
+}
+
 function handleHotSeatAnswered(message) {
     console.log("🎯 HOT SEAT ANSWER:", message.user, "selected", message.answer);
+
+    hotSeatCountdownState.active = false;
+    hotSeatCountdownState.remaining = 0;
+    if (hotSeatCountdownResetTimeout) {
+        clearTimeout(hotSeatCountdownResetTimeout);
+        hotSeatCountdownResetTimeout = null;
+    }
 
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
@@ -4554,6 +4764,13 @@ function handleHotSeatAnswered(message) {
 function handleHotSeatTimeout(message) {
     console.log("⏰ HOT SEAT TIMEOUT for", message.user);
 
+    hotSeatCountdownState.active = false;
+    hotSeatCountdownState.remaining = 0;
+    if (hotSeatCountdownResetTimeout) {
+        clearTimeout(hotSeatCountdownResetTimeout);
+        hotSeatCountdownResetTimeout = null;
+    }
+
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
         statusEl.textContent = "TIME IS UP! No answer submitted.";
@@ -4579,6 +4796,15 @@ function handleHotSeatTimeout(message) {
 
 function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
+
+    hotSeatCountdownState.active = false;
+    hotSeatCountdownState.remaining = 0;
+    hotSeatBaseStatusMessage = '';
+    hotSeatInitialTimerValue = 60;
+    if (hotSeatCountdownResetTimeout) {
+        clearTimeout(hotSeatCountdownResetTimeout);
+        hotSeatCountdownResetTimeout = null;
+    }
 
     // Hide hot seat display
     const display = document.getElementById("hot-seat-display");
@@ -5453,7 +5679,7 @@ function showEndGameLeaderboard(winners, prizeConfig) {
 }
 
 // Start credits roll
-function startCreditsRoll() {
+function startCreditsRoll(winnersPayload) {
     console.log('🎬 Starting credits roll...');
 
     // Hide the winners leaderboard first
@@ -5469,6 +5695,16 @@ function startCreditsRoll() {
         ? currentState.gameshow_participants
         : [];
 
+    const winners = Array.isArray(winnersPayload)
+        ? winnersPayload.slice(0, 3)
+        : (currentState && Array.isArray(currentState.final_game_winners)
+            ? currentState.final_game_winners
+            : []);
+
+    if (currentState) {
+        currentState.final_game_winners = winners;
+    }
+
     const subtitleEl = creditsOverlay.querySelector('.credits-subtitle');
     if (subtitleEl && currentState && currentState.prizeConfiguration && currentState.prizeConfiguration.customMessage) {
         subtitleEl.textContent = currentState.prizeConfiguration.customMessage;
@@ -5476,7 +5712,7 @@ function startCreditsRoll() {
 
     creditsOverlay.classList.add('credits-roll-active');
 
-    showCredits(participants);
+    showCredits(participants, winners);
 
     if (window.soundSystem && typeof window.soundSystem.playApplause === 'function') {
         window.soundSystem.playApplause();
