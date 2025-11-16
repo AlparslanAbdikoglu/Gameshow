@@ -11,15 +11,8 @@ const path = require('path');
 // Your simple list
 const simpleList = [
   "Kerviz",
-  "ottokar16",
-  "imsin__",
   "el_boris",
-  "pipelinsk",
-  "xeenonLion",
-  "gabo0o93",
-  "domchec",
-  "mannaka02",
-  "inkyDeranged"
+  "jpx_269",
 ];
 
 // Convert to proper format
