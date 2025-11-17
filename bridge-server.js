@@ -1863,28 +1863,13 @@ wss.on('connection', (ws, req) => {
   // Detect potential reconnection patterns
   detectReconnection(clientIP, clientId);
   
-  // Add connection stability improvements for development environment
-  const isDevelopment = clientIP === '::1' || clientIP === '127.0.0.1' || clientIP === '::ffff:127.0.0.1';
-  
-  // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-  const cleanGameState = { ...gameState };
-  delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-  delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-  delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-  delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+    // Add connection stability improvements for development environment
+    const isDevelopment = clientIP === '::1' || clientIP === '127.0.0.1' || clientIP === '::ffff:127.0.0.1';
 
-  if (cleanGameState.slot_machine && cleanGameState.slot_machine.current_round) {
-    const sanitizedRound = { ...cleanGameState.slot_machine.current_round };
-    delete sanitizedRound.entry_lookup;
-    delete sanitizedRound.entry_interval;
-    delete sanitizedRound.entry_timeout;
-    delete sanitizedRound.auto_spin_timeout;
-    cleanGameState.slot_machine = {
-      ...cleanGameState.slot_machine,
-      current_round: sanitizedRound
-    };
-  }
+    const cleanGameState = createSerializableGameState({
+      includeQuestionData: true,
+      includePrizes: true
+    });
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -2039,25 +2024,10 @@ wss.on('connection', (ws, req) => {
           console.log('🔄 Sending full state sync to newly registered browser_source');
           
           // Send current game state immediately
-          const cleanGameState = { ...gameState };
-          delete cleanGameState.lifeline_countdown_interval;
-          delete cleanGameState.hot_seat_timer_interval;
-          delete cleanGameState.hot_seat_entry_timer_interval;
-          delete cleanGameState.hot_seat_prestart_interval;
-          delete cleanGameState.hot_seat_entry_lookup;
-
-          // Convert Set to Array for JSON serialization
-          if (cleanGameState.processed_mod_messages instanceof Set) {
-            cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
-          }
-          
-          // Include current question data if a question is visible
-          if (cleanGameState.question_visible && questions[cleanGameState.current_question]) {
-            cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
-          }
-          
-          // Include prize amounts for money ladder
-          cleanGameState.prizes = prizeAmounts;
+          const cleanGameState = createSerializableGameState({
+            includeQuestionData: true,
+            includePrizes: true
+          });
           
           const stateMessage = JSON.stringify({
             type: 'state',
@@ -2685,6 +2655,56 @@ wss.on('connection', (ws, req) => {
 let lastBroadcastTime = 0;
 const BROADCAST_THROTTLE_MS = 100; // Minimum 100ms between broadcasts
 
+function createSerializableGameState(options = {}) {
+  const {
+    includeQuestions = false,
+    includeCurrentQuestion = false,
+    includeQuestionData = false,
+    includePrizes = false
+  } = options;
+
+  const cleanGameState = { ...gameState };
+  delete cleanGameState.lifeline_countdown_interval;
+  delete cleanGameState.hot_seat_timer_interval;
+  delete cleanGameState.hot_seat_entry_timer_interval;
+  delete cleanGameState.hot_seat_prestart_interval;
+  delete cleanGameState.hot_seat_entry_lookup;
+
+  if (cleanGameState.processed_mod_messages instanceof Set) {
+    cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
+  }
+
+  if (cleanGameState.slot_machine) {
+    cleanGameState.slot_machine = { ...cleanGameState.slot_machine };
+    if (cleanGameState.slot_machine.current_round) {
+      const sanitizedRound = { ...cleanGameState.slot_machine.current_round };
+      delete sanitizedRound.entry_lookup;
+      delete sanitizedRound.entry_interval;
+      delete sanitizedRound.entry_timeout;
+      delete sanitizedRound.auto_spin_timeout;
+      cleanGameState.slot_machine.current_round = sanitizedRound;
+    }
+  }
+
+  if (includeQuestionData && cleanGameState.question_visible && questions[cleanGameState.current_question]) {
+    cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
+  }
+
+  if (includeCurrentQuestion && questions[cleanGameState.current_question]) {
+    cleanGameState.currentQuestion = questions[cleanGameState.current_question];
+  }
+
+  if (includeQuestions) {
+    cleanGameState.questions = questions;
+  }
+
+  if (includePrizes) {
+    cleanGameState.prizes = prizeAmounts;
+  }
+
+  return cleanGameState;
+}
+
 // Broadcast state updates to all connected clients
 function broadcastState(force = false, critical = false) {
   // Throttle broadcasts to prevent browser overload (unless forced or critical)
@@ -2693,51 +2713,29 @@ function broadcastState(force = false, critical = false) {
     return; // Skip this broadcast to prevent spam
   }
   lastBroadcastTime = now;
-  
+
   // Log critical broadcasts for debugging
   if (critical) {
     console.log('🚨 CRITICAL broadcast bypassing throttle');
   }
-  
+
   // DEBUG: Log when broadcasting with answer_locked_in = true
   if (DEBUG_BROADCAST_LOGGING && gameState.answer_locked_in) {
     console.log(`📡 broadcastState() called with answer_locked_in = true, selected_answer = ${gameState.selected_answer}`);
   }
-  
-  // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-  const cleanGameState = { ...gameState };
-  delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-  delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-  delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-  delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
 
-  // Convert Set to Array for JSON serialization
-  if (cleanGameState.processed_mod_messages instanceof Set) {
-    cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
-  }
-  
-  // Include current question data if a question is visible
-  if (cleanGameState.question_visible && questions[cleanGameState.current_question]) {
-    cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
-  }
-  
-  // Include ALL questions for control panel (fixes questions disappearing after votes)
-  cleanGameState.questions = questions;
-  
-  // Include current question for control panel display
-  if (questions && questions[cleanGameState.current_question]) {
-    cleanGameState.currentQuestion = questions[cleanGameState.current_question];
-  }
-  
-  // Include prize amounts for money ladder
-  cleanGameState.prizes = prizeAmounts;
-  
+  const cleanGameState = createSerializableGameState({
+    includeQuestions: true,
+    includeCurrentQuestion: true,
+    includeQuestionData: true,
+    includePrizes: true
+  });
+
   const message = JSON.stringify({
     type: 'state',
     data: cleanGameState
   });
-  
+
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
@@ -7851,29 +7849,11 @@ async function handleAPI(req, res, pathname) {
   }
   
   if (pathname === '/api/state') {
-    // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-    const cleanGameState = { ...gameState };
-    delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-    delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-    delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-    delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-    delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
-
-    // Convert Set to Array for JSON serialization
-    if (cleanGameState.processed_mod_messages instanceof Set) {
-      cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
-    }
-    
-    // Include current question data for control panel display
-    if (questions && questions[cleanGameState.current_question]) {
-      cleanGameState.currentQuestion = questions[cleanGameState.current_question];
-    }
-    
-    // Include all questions for the question manager
-    cleanGameState.questions = questions;
-    
-    // Include prize amounts
-    cleanGameState.prizes = prizeAmounts;
+      const cleanGameState = createSerializableGameState({
+        includeQuestions: true,
+        includeCurrentQuestion: true,
+        includePrizes: true
+      });
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(cleanGameState));
@@ -11837,16 +11817,10 @@ async function handleAPI(req, res, pathname) {
         broadcastState(false, true); // Critical broadcast for control panel actions
         console.log('DEBUG: broadcastState() completed successfully');
         
-        // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-        const cleanGameState = { ...gameState };
-        delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-        delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-        delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-        delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-        delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+          const cleanGameState = createSerializableGameState();
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, state: cleanGameState }));
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, state: cleanGameState }));
         
       } catch (error) {
         console.error('ERROR in control API:', error);
