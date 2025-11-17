@@ -11,6 +11,7 @@ import LifelineManager from './LifelineManager';
 import GiveawayControlPanel from './GiveawayControlPanel';
 import LeaderboardControl from './LeaderboardControl';
 import PrizeConfiguration from './PrizeConfiguration';
+import SlotMachinePanel from './SlotMachinePanel';
 // import PerformanceMonitor from './PerformanceMonitor'; // Removed - component deleted
 // import ProducerPreview from './ProducerPreview'; // Removed to reduce lag
 import { obsIntegration } from '../utils/obs-integration';
@@ -2166,6 +2167,10 @@ const KimbillionaireControlPanel: React.FC = () => {
               onRollCredits={handleEndGameCredits}
               disabled={!gameState.game_active || gameState.curtains_closed}
             />
+          </div>
+
+          <div className={styles.controlSection}>
+            <SlotMachinePanel slotMachine={gameState.slot_machine} />
           </div>
 
           {/* Lifelines Section */}

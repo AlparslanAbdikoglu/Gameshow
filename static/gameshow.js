@@ -126,6 +126,20 @@ let previousWinnersFetchPromise = null;
 let isShowingPreviousWinners = false;
 const PREVIOUS_WINNERS_CACHE_MS = 60 * 1000;
 
+// Slot machine UI state
+const slotMachineUiState = {
+    entries: [],
+    status: 'Idle',
+    countdownMs: null,
+    leverUser: null,
+    symbols: ['🦁', '🦁', '🦁'],
+    resultText: '',
+    resultType: 'idle',
+    triggerEmoji: '',
+    triggerEmojiUrl: ''
+};
+let slotMachineElements = null;
+
 // Initialize the gameshow when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🎮 Initializing Kimbillionaire gameshow...');
@@ -485,10 +499,13 @@ function handleWebSocketMessage(message) {
                 console.warn('⚠️ Game completed message received without leaderboard data');
             }
             break;
+        case 'slot_machine_event':
+            handleSlotMachineEvent(message);
+            break;
         case 'game_state':
             const prevContestant = currentState.contestant_name;
             const prevGameActive = currentState.game_active;
-            
+
             currentState = message;
             console.log('📡 Received game_state update:', {
                 audience_poll_active: currentState.audience_poll_active,
@@ -1147,6 +1164,271 @@ function updateDisplay(state) {
     } catch (error) {
         console.error('❌ Error updating info panel:', error);
     }
+
+    try {
+        updateSlotMachineDisplay(state);
+    } catch (error) {
+        console.error('❌ Error updating slot machine display:', error);
+    }
+}
+
+function getSlotMachineElements() {
+    if (slotMachineElements) {
+        return slotMachineElements;
+    }
+
+    slotMachineElements = {
+        root: document.getElementById('slot-machine-overlay'),
+        status: document.getElementById('slot-machine-status'),
+        countdown: document.getElementById('slot-machine-countdown'),
+        entryCount: document.getElementById('slot-machine-entry-count'),
+        entryList: document.getElementById('slot-machine-entry-list'),
+        leverUser: document.getElementById('slot-machine-lever-user'),
+        triggerCopy: document.getElementById('slot-machine-trigger-copy'),
+        result: document.getElementById('slot-machine-result'),
+        reels: Array.from(document.querySelectorAll('#slot-machine-reels .slot-machine-reel'))
+    };
+
+    return slotMachineElements;
+}
+
+function renderSlotMachineTriggerCopy(element) {
+    if (!element) {
+        return;
+    }
+
+    const statusLabel = (slotMachineUiState.status || '').toLowerCase();
+    const shouldPromptTrigger = Boolean(
+        slotMachineUiState.leverUser && statusLabel.includes('waiting')
+    );
+
+    if (!shouldPromptTrigger) {
+        element.textContent = 'Type JOIN to enter';
+        return;
+    }
+
+    element.innerHTML = '';
+    element.appendChild(document.createTextNode('Share '));
+
+    if (slotMachineUiState.triggerEmojiUrl && slotMachineUiState.triggerEmoji) {
+        const img = document.createElement('img');
+        img.src = slotMachineUiState.triggerEmojiUrl;
+        img.alt = slotMachineUiState.triggerEmoji;
+        element.appendChild(img);
+        element.appendChild(document.createTextNode(` ${slotMachineUiState.triggerEmoji}`));
+    } else if (slotMachineUiState.triggerEmoji) {
+        element.appendChild(document.createTextNode(slotMachineUiState.triggerEmoji));
+    } else {
+        element.appendChild(document.createTextNode('the featured emote'));
+    }
+
+    element.appendChild(document.createTextNode(' to spin'));
+}
+
+function renderSlotMachineUi() {
+    const elements = getSlotMachineElements();
+    if (!elements.root) {
+        return;
+    }
+
+    if (slotMachineUiState.status === 'Idle' && slotMachineUiState.entries.length === 0 && !slotMachineUiState.leverUser) {
+        elements.root.classList.add('hidden');
+        elements.root.classList.remove('active');
+        return;
+    }
+
+    elements.root.classList.remove('hidden');
+    elements.root.classList.add('active');
+
+    if (elements.status) {
+        elements.status.textContent = slotMachineUiState.status;
+    }
+
+    if (elements.countdown) {
+        if (slotMachineUiState.countdownMs != null) {
+            const seconds = Math.max(0, Math.ceil(slotMachineUiState.countdownMs / 1000));
+            elements.countdown.textContent = `${seconds}s`;
+        } else {
+            elements.countdown.textContent = '--';
+        }
+    }
+
+    if (elements.entryCount) {
+        elements.entryCount.textContent = slotMachineUiState.entries.length;
+    }
+
+    if (elements.entryList) {
+        const listMarkup = slotMachineUiState.entries.slice(0, 12)
+            .map((name) => `<span>${name}</span>`)
+            .join('');
+        elements.entryList.innerHTML = listMarkup;
+    }
+
+    if (elements.leverUser) {
+        elements.leverUser.textContent = slotMachineUiState.leverUser || 'Awaiting pick';
+    }
+
+    if (elements.triggerCopy) {
+        renderSlotMachineTriggerCopy(elements.triggerCopy);
+    }
+
+    if (elements.reels && elements.reels.length > 0) {
+        elements.reels.forEach((reelEl, index) => {
+            const symbol = slotMachineUiState.symbols[index] || slotMachineUiState.symbols[0] || '🦁';
+            reelEl.textContent = symbol;
+        });
+    }
+
+    if (elements.result) {
+        elements.result.textContent = slotMachineUiState.resultText || '';
+        elements.result.classList.remove('success', 'fail');
+        if (slotMachineUiState.resultType === 'success') {
+            elements.result.classList.add('success');
+        } else if (slotMachineUiState.resultType === 'fail') {
+            elements.result.classList.add('fail');
+        }
+    }
+}
+
+function updateSlotMachineDisplay(state) {
+    const elements = getSlotMachineElements();
+    if (!elements.root) {
+        return;
+    }
+
+    const slotState = state.slot_machine || {};
+    const round = slotState.current_round || null;
+
+    if (!round && !slotState.last_round_result) {
+        slotMachineUiState.status = 'Idle';
+        slotMachineUiState.entries = [];
+        slotMachineUiState.leverUser = null;
+        slotMachineUiState.countdownMs = null;
+        slotMachineUiState.resultText = '';
+        slotMachineUiState.resultType = 'idle';
+        slotMachineUiState.triggerEmoji = '';
+        slotMachineUiState.triggerEmojiUrl = '';
+        renderSlotMachineUi();
+        return;
+    }
+
+    if (round) {
+        slotMachineUiState.entries = Array.isArray(round.entries) ? [...round.entries] : slotMachineUiState.entries;
+        slotMachineUiState.leverUser = round.lever_candidate || null;
+        slotMachineUiState.countdownMs = round.entry_started_at && round.entry_duration_ms
+            ? Math.max(0, round.entry_duration_ms - (Date.now() - round.entry_started_at))
+            : null;
+        slotMachineUiState.triggerEmoji = round.trigger_emoji || slotState.trigger_emoji || '';
+        slotMachineUiState.triggerEmojiUrl = round.trigger_emoji_url || slotState.trigger_emoji_url || '';
+        slotMachineUiState.status = round.status === 'collecting'
+            ? 'Entries Open'
+            : round.status === 'awaiting_lever'
+                ? 'Waiting for Lever'
+                : round.status === 'spinning'
+                    ? 'Spinning...'
+                    : 'Slot Machine';
+        if (round.results && Array.isArray(round.results.symbols)) {
+            slotMachineUiState.symbols = round.results.symbols.map((symbol) => symbol.emoji || symbol);
+            slotMachineUiState.resultText = round.results.matched
+                ? `Leo jackpot! +${round.results.perParticipantPoints || 0} pts each`
+                : 'No bonus awarded';
+            slotMachineUiState.resultType = round.results.matched ? 'success' : 'fail';
+        }
+    } else if (slotState.last_round_result) {
+        slotMachineUiState.status = 'Previous Result';
+        slotMachineUiState.leverUser = slotState.last_round_result.leverUser || null;
+        slotMachineUiState.entries = [];
+        slotMachineUiState.countdownMs = null;
+        slotMachineUiState.symbols = (slotState.last_round_result.symbols || []).map((symbol) => symbol.emoji || symbol);
+        slotMachineUiState.resultText = slotState.last_round_result.matched
+            ? `Leo jackpot! +${slotState.last_round_result.perParticipantPoints || 0} pts each`
+            : 'No bonus awarded';
+        slotMachineUiState.resultType = slotState.last_round_result.matched ? 'success' : 'fail';
+        slotMachineUiState.triggerEmoji = '';
+        slotMachineUiState.triggerEmojiUrl = '';
+    }
+
+    renderSlotMachineUi();
+}
+
+function handleSlotMachineEvent(message) {
+    const data = message.data || {};
+    const elements = getSlotMachineElements();
+    if (!elements.root) {
+        return;
+    }
+
+    switch (message.event) {
+        case 'entry_started':
+            slotMachineUiState.status = data.questionNumber
+                ? `Entries Open · Q${data.questionNumber}`
+                : 'Entries Open';
+            slotMachineUiState.entries = [];
+            slotMachineUiState.leverUser = null;
+            slotMachineUiState.symbols = ['🦁', '🦁', '🦁'];
+            slotMachineUiState.countdownMs = data.duration || 60000;
+            slotMachineUiState.resultText = '';
+            slotMachineUiState.resultType = 'idle';
+            slotMachineUiState.triggerEmoji = data.triggerEmoji || '';
+            slotMachineUiState.triggerEmojiUrl = data.triggerEmojiUrl || '';
+            break;
+        case 'entry_tick':
+            slotMachineUiState.countdownMs = data.remaining ?? slotMachineUiState.countdownMs;
+            if (typeof data.entries === 'number' && data.entries > slotMachineUiState.entries.length) {
+                const placeholderCount = data.entries - slotMachineUiState.entries.length;
+                slotMachineUiState.entries = slotMachineUiState.entries.concat(new Array(placeholderCount).fill('…'));
+            }
+            break;
+        case 'entry_update':
+            if (data.latestEntry && !slotMachineUiState.entries.includes(data.latestEntry)) {
+                slotMachineUiState.entries = [...slotMachineUiState.entries, data.latestEntry];
+            }
+            slotMachineUiState.countdownMs = data.remaining ?? slotMachineUiState.countdownMs;
+            break;
+        case 'lever_ready':
+            slotMachineUiState.status = 'Waiting for Lever';
+            slotMachineUiState.leverUser = data.leverUser || null;
+            slotMachineUiState.countdownMs = null;
+            slotMachineUiState.triggerEmoji = data.triggerEmoji || slotMachineUiState.triggerEmoji;
+            slotMachineUiState.triggerEmojiUrl = data.triggerEmojiUrl || slotMachineUiState.triggerEmojiUrl;
+            break;
+        case 'spin_started':
+            slotMachineUiState.status = 'Spinning...';
+            slotMachineUiState.resultText = '';
+            slotMachineUiState.resultType = 'idle';
+            slotMachineUiState.countdownMs = null;
+            if (elements.reels) {
+                elements.reels.forEach((reel) => {
+                    reel.classList.add('spin');
+                    setTimeout(() => reel.classList.remove('spin'), 900);
+                });
+            }
+            break;
+        case 'result':
+            slotMachineUiState.status = 'Results';
+            slotMachineUiState.symbols = (data.symbols || []).map((symbol) => symbol.emoji || symbol);
+            slotMachineUiState.resultText = data.matched
+                ? `Leo jackpot! +${data.perParticipantPoints || 0} pts each`
+                : 'No bonus awarded';
+            slotMachineUiState.resultType = data.matched ? 'success' : 'fail';
+            slotMachineUiState.leverUser = data.leverUser || slotMachineUiState.leverUser;
+            slotMachineUiState.countdownMs = null;
+            break;
+        case 'no_entries':
+            slotMachineUiState.status = 'No entries';
+            slotMachineUiState.entries = [];
+            slotMachineUiState.leverUser = null;
+            slotMachineUiState.countdownMs = null;
+            slotMachineUiState.resultText = 'Waiting for next milestone';
+            slotMachineUiState.resultType = 'fail';
+            slotMachineUiState.triggerEmoji = '';
+            slotMachineUiState.triggerEmojiUrl = '';
+            break;
+        default:
+            return;
+    }
+
+    renderSlotMachineUi();
 }
 
 // Update question display

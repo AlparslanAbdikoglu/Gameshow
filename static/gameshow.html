@@ -161,6 +161,43 @@
         </div>
     </div>
     
+    <!-- Slot Machine Overlay -->
+    <div class="slot-machine-overlay hidden" id="slot-machine-overlay">
+        <div class="slot-machine-panel glass-panel">
+            <div class="slot-machine-header">
+                <div class="slot-machine-title">Leo Slot Machine</div>
+                <div class="slot-machine-status" id="slot-machine-status">Idle</div>
+            </div>
+            <div class="slot-machine-body">
+                <div class="slot-machine-reels" id="slot-machine-reels">
+                    <div class="slot-machine-reel" data-index="0">🦁</div>
+                    <div class="slot-machine-reel" data-index="1">🦁</div>
+                    <div class="slot-machine-reel" data-index="2">🦁</div>
+                </div>
+                <div class="slot-machine-info">
+                    <div class="slot-machine-countdown">
+                        <span class="label">Countdown</span>
+                        <span class="value" id="slot-machine-countdown">--</span>
+                    </div>
+                    <div class="slot-machine-entries">
+                        <span class="label">Entries</span>
+                        <span class="value" id="slot-machine-entry-count">0</span>
+                        <div class="slot-machine-entry-list" id="slot-machine-entry-list"></div>
+                    </div>
+                    <div class="slot-machine-lever">
+                        <span class="label">Lever Lion</span>
+                        <span class="value" id="slot-machine-lever-user">Awaiting pick</span>
+                        <div class="slot-machine-trigger" id="slot-machine-trigger-copy">Share 🦁 to spin</div>
+                    </div>
+                </div>
+            </div>
+            <div class="slot-machine-footer">
+                <div class="slot-machine-note">Type JOIN before questions 5, 10, and 15 for a chance at an even Leo bonus (max 25 pts shared).</div>
+                <div class="slot-machine-result" id="slot-machine-result"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Overlays -->
     <div class="overlay hidden" id="winner-overlay">
         <div class="winner-content">

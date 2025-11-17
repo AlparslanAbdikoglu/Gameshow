@@ -198,6 +198,16 @@ let gameState = {
   final_game_winners: [],     // Top winners from the most recent completed game
   finalLeaderboardShown: false,
   pending_endgame_sequence: false,
+  // Slot machine bonus mode state
+  slot_machine: {
+    enabled: true,
+    schedule_questions: [4, 9, 14], // zero-indexed milestone questions (5, 10, 15)
+    entry_duration_ms: 60000,
+    max_points: 25,
+    trigger_emoji: '🦁',
+    current_round: null,
+    last_round_result: null
+  },
   endgame_ready_timestamp: null,
   // Ask a Mod Feature States
   ask_a_mod_active: false,    // Is Ask a Mod lifeline currently active
@@ -891,6 +901,15 @@ function startGiveawayTimer() {
   if (giveawayTimerInterval) {
     clearInterval(giveawayTimerInterval);
     giveawayTimerInterval = null;
+  }
+
+  ensureSlotMachineState();
+  if (gameState.slot_machine && gameState.slot_machine.current_round) {
+    cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+    gameState.slot_machine.current_round = null;
+  }
+  if (gameState.slot_machine) {
+    gameState.slot_machine.last_round_result = null;
   }
 
   if (pendingEndgameInterval) {
@@ -1854,6 +1873,17 @@ wss.on('connection', (ws, req) => {
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
   delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+
+  if (cleanGameState.slot_machine && cleanGameState.slot_machine.current_round) {
+    const sanitizedRound = { ...cleanGameState.slot_machine.current_round };
+    delete sanitizedRound.entry_lookup;
+    delete sanitizedRound.entry_interval;
+    delete sanitizedRound.entry_timeout;
+    cleanGameState.slot_machine = {
+      ...cleanGameState.slot_machine,
+      current_round: sanitizedRound
+    };
+  }
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -2215,10 +2245,16 @@ wss.on('connection', (ws, req) => {
               username: normalizedUsername,
               timestamp: Date.now()
             });
+
+            // Mirror the entry into the slot machine round if active
+            addSlotMachineEntry(normalizedUsername);
           } else {
             console.log(`ℹ️ Ignoring duplicate hot seat entry from ${normalizedUsername}`);
           }
         }
+
+        // Slot machine lever trigger detection
+        handleSlotMachineEmojiTrigger(normalizedUsername, messageText);
         
         // Add to gameshow participants for hot seat selection (chat activity)
         if (data.username && !gameState.gameshow_participants.includes(data.username)) {
@@ -4957,6 +4993,319 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
+// Slot Machine Bonus Mode Helpers
+const SLOT_MACHINE_SYMBOLS = [
+  { id: 'leo', label: 'Leo', emoji: '🦁' },
+  { id: 'crown', label: 'Crown', emoji: '👑' },
+  { id: 'claw', label: 'Claw', emoji: '🐾' },
+  { id: 'star', label: 'Star', emoji: '⭐' }
+];
+const SLOT_MACHINE_TRIGGER_EMOTES = Object.keys(TWITCH_EMOTES || {});
+
+function getRandomSlotMachineTriggerEmoji(previousEmoji = null) {
+  if (!SLOT_MACHINE_TRIGGER_EMOTES.length) {
+    return { code: '🦁', url: null };
+  }
+
+  let pool = SLOT_MACHINE_TRIGGER_EMOTES;
+  if (previousEmoji && SLOT_MACHINE_TRIGGER_EMOTES.length > 1) {
+    const filtered = SLOT_MACHINE_TRIGGER_EMOTES.filter((code) => code !== previousEmoji);
+    if (filtered.length) {
+      pool = filtered;
+    }
+  }
+
+  const selected = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    code: selected,
+    url: TWITCH_EMOTES[selected] || null
+  };
+}
+
+function ensureSlotMachineState() {
+  if (!gameState.slot_machine) {
+    const initialTrigger = getRandomSlotMachineTriggerEmoji();
+    gameState.slot_machine = {
+      enabled: true,
+      schedule_questions: [4, 9, 14],
+      entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
+      max_points: 25,
+      trigger_emoji: initialTrigger.code,
+      trigger_emoji_url: initialTrigger.url,
+      current_round: null,
+      last_round_result: null
+    };
+  }
+
+  if (!Array.isArray(gameState.slot_machine.schedule_questions)) {
+    gameState.slot_machine.schedule_questions = [4, 9, 14];
+  }
+  gameState.slot_machine.entry_duration_ms = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
+  gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
+  if (!gameState.slot_machine.trigger_emoji) {
+    const fallbackTrigger = getRandomSlotMachineTriggerEmoji();
+    gameState.slot_machine.trigger_emoji = fallbackTrigger.code;
+    gameState.slot_machine.trigger_emoji_url = fallbackTrigger.url;
+  } else if (!gameState.slot_machine.trigger_emoji_url) {
+    gameState.slot_machine.trigger_emoji_url = TWITCH_EMOTES[gameState.slot_machine.trigger_emoji] || null;
+  }
+}
+
+function broadcastSlotMachineEvent(event, payload = {}) {
+  broadcastToClients({
+    type: 'slot_machine_event',
+    event,
+    timestamp: Date.now(),
+    data: payload
+  });
+}
+
+function cleanupSlotMachineRoundTimers(round) {
+  if (!round) return;
+  if (round.entry_interval) {
+    clearInterval(round.entry_interval);
+    round.entry_interval = null;
+  }
+  if (round.entry_timeout) {
+    clearTimeout(round.entry_timeout);
+    round.entry_timeout = null;
+  }
+}
+
+function startSlotMachineEntryRound(questionIndex) {
+  ensureSlotMachineState();
+
+  if (!gameState.slot_machine.enabled) {
+    console.log('🎰 Slot machine disabled - skipping entry round');
+    return;
+  }
+
+  if (gameState.slot_machine.current_round &&
+    ['collecting', 'awaiting_lever', 'spinning'].includes(gameState.slot_machine.current_round.status)) {
+    console.log('🎰 Slot machine round already active, skipping new start');
+    return;
+  }
+
+  const duration = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
+  const triggerSelection = getRandomSlotMachineTriggerEmoji(gameState.slot_machine.trigger_emoji);
+  const round = {
+    question_index: questionIndex,
+    status: 'collecting',
+    entry_started_at: Date.now(),
+    entry_duration_ms: duration,
+    entries: [],
+    entry_lookup: new Set(),
+    entry_interval: null,
+    entry_timeout: null,
+    lever_candidate: null,
+    trigger_emoji: triggerSelection.code,
+    trigger_emoji_url: triggerSelection.url,
+    spin_requested_by: null
+  };
+
+  gameState.slot_machine.current_round = round;
+  gameState.slot_machine.trigger_emoji = round.trigger_emoji;
+  gameState.slot_machine.trigger_emoji_url = round.trigger_emoji_url || null;
+
+  broadcastSlotMachineEvent('entry_started', {
+    questionNumber: questionIndex + 1,
+    duration,
+    triggerEmoji: round.trigger_emoji,
+    triggerEmojiUrl: round.trigger_emoji_url || null
+  });
+  broadcastState(true);
+
+  round.entry_interval = setInterval(() => {
+    const elapsed = Date.now() - round.entry_started_at;
+    const remaining = Math.max(0, round.entry_duration_ms - elapsed);
+
+    broadcastSlotMachineEvent('entry_tick', {
+      questionNumber: questionIndex + 1,
+      remaining,
+      entries: round.entries.length
+    });
+
+    if (remaining <= 0) {
+      concludeSlotMachineEntryRound('timer');
+    }
+  }, 1000);
+
+  round.entry_timeout = setTimeout(() => concludeSlotMachineEntryRound('timer'), duration);
+}
+
+function addSlotMachineEntry(username) {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || round.status !== 'collecting' || !username) {
+    return;
+  }
+
+  const normalized = username.toLowerCase();
+  if (!round.entry_lookup) {
+    round.entry_lookup = new Set(round.entries.map((name) => name.toLowerCase()));
+  }
+
+  if (round.entry_lookup.has(normalized)) {
+    return;
+  }
+
+  round.entry_lookup.add(normalized);
+  round.entries.push(username);
+
+  broadcastSlotMachineEvent('entry_update', {
+    questionNumber: round.question_index + 1,
+    entries: round.entries.length,
+    latestEntry: username
+  });
+}
+
+function concludeSlotMachineEntryRound(reason = 'timer') {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || round.status !== 'collecting') {
+    return;
+  }
+
+  cleanupSlotMachineRoundTimers(round);
+  round.status = 'awaiting_lever';
+
+  if (round.entries.length === 0) {
+    broadcastSlotMachineEvent('no_entries', {
+      questionNumber: round.question_index + 1,
+      reason
+    });
+    gameState.slot_machine.current_round = null;
+    broadcastState(true);
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * round.entries.length);
+  round.lever_candidate = round.entries[randomIndex];
+
+  broadcastSlotMachineEvent('lever_ready', {
+    questionNumber: round.question_index + 1,
+    leverUser: round.lever_candidate,
+    triggerEmoji: round.trigger_emoji,
+    triggerEmojiUrl: round.trigger_emoji_url || null,
+    entries: round.entries.length
+  });
+  broadcastState(true);
+}
+
+function handleSlotMachineEmojiTrigger(username, messageText) {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || round.status !== 'awaiting_lever' || !round.lever_candidate) {
+    return;
+  }
+
+  if (round.lever_candidate.toLowerCase() !== username.toLowerCase()) {
+    return;
+  }
+
+  if (!messageText) {
+    return;
+  }
+
+  const triggerEmoji = round.trigger_emoji || gameState.slot_machine.trigger_emoji;
+  if (!triggerEmoji) {
+    return;
+  }
+
+  const normalizedTrigger = triggerEmoji.toLowerCase();
+  const normalizedMessage = (messageText || '').toLowerCase();
+  const hasTrigger = normalizedMessage.includes(normalizedTrigger);
+
+  if (!hasTrigger) {
+    return;
+  }
+
+  spinSlotMachineRound('chat');
+}
+
+function spinSlotMachineRound(source = 'system') {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || (round.status !== 'awaiting_lever' && round.status !== 'collecting')) {
+    return;
+  }
+
+  cleanupSlotMachineRoundTimers(round);
+  round.status = 'spinning';
+  round.spin_requested_by = source;
+
+  broadcastSlotMachineEvent('spin_started', {
+    questionNumber: round.question_index + 1,
+    entries: round.entries.length,
+    leverUser: round.lever_candidate || null
+  });
+  broadcastState(true);
+
+  setTimeout(() => {
+    const symbols = Array.from({ length: 3 }).map(() => {
+      const index = Math.floor(Math.random() * SLOT_MACHINE_SYMBOLS.length);
+      return SLOT_MACHINE_SYMBOLS[index];
+    });
+
+    const tripleLeo = symbols.every((symbol) => symbol.id === 'leo');
+    let perParticipantPoints = 0;
+    let totalAwardedPoints = 0;
+
+    if (tripleLeo && round.entries.length > 0) {
+      const maxPoints = gameState.slot_machine.max_points || 25;
+      const basePer = Math.floor(maxPoints / round.entries.length);
+      perParticipantPoints = basePer > 0 ? basePer : (round.entries.length <= maxPoints ? 1 : 0);
+
+      totalAwardedPoints = perParticipantPoints * round.entries.length;
+      if (totalAwardedPoints > maxPoints) {
+        perParticipantPoints = Math.floor(maxPoints / round.entries.length);
+        totalAwardedPoints = perParticipantPoints * round.entries.length;
+      }
+
+      if (perParticipantPoints > 0) {
+        round.entries.forEach((entryUsername) => {
+          addPointsToPlayer(entryUsername, perParticipantPoints, 'Leo Slot Machine bonus');
+        });
+      }
+    }
+
+    const resultPayload = {
+      questionNumber: round.question_index + 1,
+      entries: round.entries.length,
+      leverUser: round.lever_candidate || null,
+      symbols: symbols.map((symbol) => ({
+        id: symbol.id,
+        label: symbol.label,
+        emoji: symbol.emoji
+      })),
+      matched: tripleLeo,
+      perParticipantPoints,
+      totalAwardedPoints
+    };
+
+    round.status = 'results';
+    round.results = resultPayload;
+    gameState.slot_machine.last_round_result = {
+      ...resultPayload,
+      timestamp: Date.now()
+    };
+
+    broadcastSlotMachineEvent('result', resultPayload);
+    broadcastState(true);
+
+    setTimeout(() => {
+      if (gameState.slot_machine && gameState.slot_machine.current_round === round) {
+        gameState.slot_machine.current_round = null;
+        broadcastState(true);
+      }
+    }, 15000);
+  }, 2500);
+}
+
 function broadcastHotSeatCountdown(remaining, options = {}) {
   broadcastToClients({
     type: 'hot_seat_countdown',
@@ -5642,6 +5991,15 @@ function finalizeGameLeaderboard() {
     });
   }
 
+  const completeFinalStats = getCurrentGameLeaderboardEntries({ includeIgnored: true, limit: null });
+  const archiveIsoDate = csvFilename ? deriveIsoDateFromGameBaseId(path.parse(csvFilename).name) : new Date().toISOString();
+  updatePreviousWinnersFromFinalStats(completeFinalStats, {
+    csvFilename,
+    completedAt: archiveIsoDate,
+    questionsCompleted: gameState.current_question + 1,
+    contestant: gameState.contestant_name || null
+  });
+
   broadcastState(true);
 }
 
@@ -6077,15 +6435,147 @@ function loadPreviousWinners() {
   }
 }
 
+function getBaseGameId(gameId = '') {
+  if (typeof gameId !== 'string') {
+    return '';
+  }
+  const lastUnderscore = gameId.lastIndexOf('_');
+  return lastUnderscore > 0 ? gameId.slice(0, lastUnderscore) : gameId;
+}
+
+function deriveGameBaseId(context = {}) {
+  if (context.gameBaseId) {
+    return context.gameBaseId;
+  }
+  if (context.csvFilename) {
+    const parsed = path.parse(context.csvFilename).name;
+    if (parsed) {
+      return parsed;
+    }
+  }
+  if (context.completedAt) {
+    const completedDate = new Date(context.completedAt);
+    if (!Number.isNaN(completedDate.getTime())) {
+      return `game_${completedDate.toISOString().replace(/[:.]/g, '-').slice(0, -5)}`;
+    }
+  }
+  return `game_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`;
+}
+
+function deriveIsoDateFromGameBaseId(baseId) {
+  const match = typeof baseId === 'string' && baseId.match(/^game_(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})$/);
+  if (!match) {
+    return new Date().toISOString();
+  }
+  const [datePart, timePart] = match[1].split('T');
+  const isoTime = timePart.replace(/-/g, ':');
+  return `${datePart}T${isoTime}.000Z`;
+}
+
+function createWinnerEntryFromPlayer(player, options) {
+  if (!player) {
+    return null;
+  }
+
+  const username = player.username || 'unknown';
+  const totalAnswers = player.total_answers ?? player.total_votes ?? player.totalAnswers ?? 0;
+  const correctAnswers = player.correct_answers ?? player.correct_votes ?? 0;
+  const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+  const finalPoints = player.points ?? player.total_points ?? player.totalPoints ?? 0;
+
+  return {
+    game_id: `${options.baseId}_${username.toLowerCase()}`,
+    date: options.isoDate,
+    username,
+    final_points: finalPoints,
+    correct_answers: correctAnswers,
+    total_answers: totalAnswers,
+    accuracy,
+    best_streak: player.best_streak ?? player.current_streak ?? 0,
+    fastest_correct_time: player.fastest_correct_time ?? player.fastest_response_ms ?? null,
+    hot_seat_appearances: player.hot_seat_appearances ?? 0,
+    hot_seat_correct: player.hot_seat_correct ?? 0,
+    questions_completed: options.questionsCompleted ?? 15,
+    total_points_all_games: player.total_points ?? finalPoints,
+    contestant_name: options.contestant || null
+  };
+}
+
+function updatePreviousWinnersFromFinalStats(finalStats, context = {}) {
+  if (!Array.isArray(finalStats) || finalStats.length === 0) {
+    console.log('ℹ️ No final stats available for previous winners update');
+    return;
+  }
+
+  try {
+    const winnersData = loadPreviousWinners();
+    const baseId = deriveGameBaseId(context);
+    const isoDate = context.completedAt
+      ? new Date(context.completedAt).toISOString()
+      : deriveIsoDateFromGameBaseId(baseId);
+    const questionsCompleted = context.questionsCompleted || gameState.current_question + 1;
+    const topPlayers = finalStats.slice(0, 3);
+    const newEntries = topPlayers
+      .map((player) => createWinnerEntryFromPlayer(player, {
+        baseId,
+        isoDate,
+        questionsCompleted,
+        contestant: context.contestant || gameState.contestant_name || null
+      }))
+      .filter(Boolean);
+
+    if (newEntries.length === 0) {
+      console.log('ℹ️ No winner entries generated from final stats');
+      return;
+    }
+
+    const prefix = `${baseId}_`;
+    winnersData.winners = winnersData.winners.filter((entry) => !(entry?.game_id || '').startsWith(prefix));
+    winnersData.winners.unshift(...newEntries);
+
+    savePreviousWinners(winnersData);
+
+    broadcastToClients({
+      type: 'previous_winners_updated',
+      winners: winnersData.winners.slice(0, 10),
+      metadata: winnersData.metadata,
+      timestamp: Date.now()
+    });
+
+    console.log(`🏆 Previous winners updated for ${baseId} (${newEntries.length} entries)`);
+  } catch (error) {
+    console.error('❌ Failed to update previous winners from final stats:', error);
+  }
+}
+
 function savePreviousWinners(winnersData) {
   try {
     const winnersPath = path.join(__dirname, 'previous-winners.json');
     const tempFile = path.join(__dirname, 'previous-winners.json.tmp');
-    
+
     // Update metadata
-    winnersData.metadata.last_updated = new Date().toISOString();
-    winnersData.metadata.total_games = winnersData.winners.length;
-    
+    const metadata = { ...(winnersData.metadata || {}) };
+    metadata.last_updated = new Date().toISOString();
+    const uniqueGameDates = new Set();
+    const uniquePlayers = new Set();
+    winnersData.winners.forEach((entry) => {
+      if (!entry) return;
+      if (entry.date) {
+        const canonicalDate = new Date(entry.date);
+        if (!Number.isNaN(canonicalDate.getTime())) {
+          uniqueGameDates.add(canonicalDate.toISOString());
+        }
+      } else if (entry.game_id) {
+        uniqueGameDates.add(getBaseGameId(entry.game_id));
+      }
+      if (entry.username) {
+        uniquePlayers.add(entry.username.toLowerCase());
+      }
+    });
+    metadata.total_games = uniqueGameDates.size;
+    metadata.total_players = uniquePlayers.size;
+    winnersData.metadata = metadata;
+
     // Atomic write: write to temp file first, then rename
     fs.writeFileSync(tempFile, JSON.stringify(winnersData, null, 2));
     fs.renameSync(tempFile, winnersPath);
@@ -6250,43 +6740,59 @@ function importPreviousWinners(importData) {
 }
 
 // Get formatted leaderboard statistics
+function getCurrentGameLeaderboardEntries(options = {}) {
+  const { includeIgnored = false, limit = 10 } = options;
+  const ignoredUsers = includeIgnored ? [] : getCachedIgnoredList();
+  const entries = Object.entries(leaderboardData.current_game || {})
+    .filter(([username]) => includeIgnored || !ignoredUsers.includes(username.toLowerCase()))
+    .map(([username, stats]) => ({
+      username,
+      ...stats,
+      points: stats.points || stats.total_points || 0,
+      total_answers: stats.total_answers || stats.total_votes || 0,
+      total_votes: stats.total_votes || stats.total_answers || 0,
+      correct_answers: stats.correct_answers || stats.correct_votes || 0,
+      current_streak: stats.current_streak || 0,
+      best_streak: stats.best_streak || 0
+    }))
+    .sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  if (typeof limit === 'number') {
+    return entries.slice(0, limit);
+  }
+  return entries;
+}
+
 function getLeaderboardStats() {
   const ignoredUsers = getCachedIgnoredList();
-  
+
   const formatLeaderboard = (data, period) => {
-    // Use correct field based on period
-    const sortField = period === 'current_game' ? 'points' : 'total_points';
-    
+    const isCurrentGame = period === 'current_game';
+
     return Object.entries(data)
-      .filter(([username]) => !ignoredUsers.includes(username.toLowerCase())) // Filter out ignored users
+      .filter(([username]) => !ignoredUsers.includes(username.toLowerCase()))
       .map(([username, stats]) => ({
         username,
         ...stats,
-        // Normalize points field for display
         points: stats.points || stats.total_points || 0,
-        // Map total_answers to total_votes for display consistency
-        total_votes: period === 'current_game' ? (stats.total_answers || 0) : (stats.total_votes || 0),
-        // Ensure correct_answers is properly mapped
-        correct_answers: period === 'current_game' ? (stats.correct_answers || 0) : (stats.correct_votes || 0),
-        // Map streaks properly based on period
-        current_streak: period === 'current_game' ? (stats.current_streak || 0) : 0,
+        total_votes: isCurrentGame ? (stats.total_answers || 0) : (stats.total_votes || 0),
+        correct_answers: isCurrentGame ? (stats.correct_answers || 0) : (stats.correct_votes || 0),
+        current_streak: isCurrentGame ? (stats.current_streak || 0) : 0,
         best_streak: stats.best_streak || 0,
-        // Include period-specific best streaks
         daily_best_streak: stats.daily_best_streak || 0,
         weekly_best_streak: stats.weekly_best_streak || 0,
         monthly_best_streak: stats.monthly_best_streak || 0
       }))
       .sort((a, b) => {
-        // Sort by the appropriate field
-        const aValue = period === 'current_game' ? (a.points || 0) : (a.total_points || 0);
-        const bValue = period === 'current_game' ? (b.points || 0) : (b.total_points || 0);
+        const aValue = isCurrentGame ? (a.points || 0) : (a.total_points || 0);
+        const bValue = isCurrentGame ? (b.points || 0) : (b.total_points || 0);
         return bValue - aValue;
       })
-      .slice(0, 10); // Top 10
+      .slice(0, 10);
   };
-  
+
   return {
-    current_game: formatLeaderboard(leaderboardData.current_game, 'current_game'),
+    current_game: getCurrentGameLeaderboardEntries({ includeIgnored: false, limit: 10 }),
     daily: formatLeaderboard(leaderboardData.daily, 'daily'),
     weekly: formatLeaderboard(leaderboardData.weekly, 'weekly'),
     monthly: formatLeaderboard(leaderboardData.monthly, 'monthly'),
@@ -9219,30 +9725,43 @@ async function handleAPI(req, res, pathname) {
               clearTimeout(global.typewriterTimeout);
             }
             
-            // Check if this is a milestone question for automatic hot seat (only if enabled)
+            // Check if this is a milestone question for automatic hot seat or slot machine bonus
             const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
-            if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
-              console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
-              
-              // Start entry period BEFORE showing the question
-              startHotSeatEntryPeriod();
-              
-              // Delay showing the actual question until entry period ends
-              // The entry period will automatically draw winners when it ends
-              console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
-              
-              // Hide the question temporarily
-              gameState.question_visible = false;
-              
-              // Show question after entry period
-              setTimeout(() => {
-                console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
-                gameState.question_visible = true;
-                broadcastState();
-                triggerHotSeatCountdownIfReady();
-              }, gameState.hot_seat_entry_duration + 2000); // Add 2 seconds after entry ends
-              
-              return; // Exit early - question will be shown after entry period
+            ensureSlotMachineState();
+            const slotMachineSchedule = gameState.slot_machine?.schedule_questions || [];
+            const isHotSeatMilestone = gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question);
+            const isSlotMachineMilestone = gameState.slot_machine?.enabled && slotMachineSchedule.includes(gameState.current_question);
+
+            if (isHotSeatMilestone || isSlotMachineMilestone) {
+              if (isHotSeatMilestone) {
+                console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
+                startHotSeatEntryPeriod();
+              }
+
+              if (isSlotMachineMilestone) {
+                console.log(`🎰 Slot machine entry starting before question ${gameState.current_question + 1}`);
+                startSlotMachineEntryRound(gameState.current_question);
+              }
+
+              const hotSeatDelay = isHotSeatMilestone ? gameState.hot_seat_entry_duration : 0;
+              const slotMachineDelay = isSlotMachineMilestone
+                ? (gameState.slot_machine.entry_duration_ms || hotSeatDelay || 60000)
+                : 0;
+              const entryDelay = Math.max(hotSeatDelay, slotMachineDelay);
+
+              if (entryDelay > 0) {
+                console.log(`⏱️ Delaying question display for entry period (${entryDelay / 1000} seconds)`);
+                gameState.question_visible = false;
+
+                setTimeout(() => {
+                  console.log(`📝 Entry period complete, now showing question ${gameState.current_question + 1}`);
+                  gameState.question_visible = true;
+                  broadcastState();
+                  triggerHotSeatCountdownIfReady();
+                }, entryDelay + 2000);
+
+                return; // Exit early - question will be shown after entry period
+              }
             }
             
             // Server-side failsafe: auto-enable Show Answers button after 8 seconds

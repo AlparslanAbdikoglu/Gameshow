@@ -27,15 +27,55 @@
   };
 
   // Core Game Types
-  export interface Question {
-    text: string;
-    answers: string[];
-    correct: number;
-    number: number;
-    category?: string;
-    difficulty?: 'easy' | 'medium' | 'hard';
-    timeLimit?: number;
-  }
+export interface Question {
+  text: string;
+  answers: string[];
+  correct: number;
+  number: number;
+  category?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  timeLimit?: number;
+}
+
+export interface SlotMachineSymbol {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
+export interface SlotMachineRound {
+  question_index: number;
+  status: 'collecting' | 'awaiting_lever' | 'spinning' | 'results';
+  entry_duration_ms: number;
+  entry_started_at: number;
+  entries: string[];
+  lever_candidate?: string | null;
+  trigger_emoji?: string;
+  trigger_emoji_url?: string | null;
+  results?: {
+    symbols?: SlotMachineSymbol[];
+    matched?: boolean;
+    perParticipantPoints?: number;
+    totalAwardedPoints?: number;
+    leverUser?: string | null;
+  };
+}
+
+export interface SlotMachineState {
+  enabled: boolean;
+  schedule_questions: number[];
+  entry_duration_ms: number;
+  max_points?: number;
+  trigger_emoji?: string;
+  trigger_emoji_url?: string | null;
+  current_round?: SlotMachineRound | null;
+  last_round_result?: {
+    symbols?: SlotMachineSymbol[];
+    matched?: boolean;
+    perParticipantPoints?: number;
+    leverUser?: string | null;
+  } | null;
+}
 
 export interface GameState {
   current_question: number;
@@ -104,6 +144,7 @@ export interface GameState {
     customMessage?: string;
     winnersAnnounced?: boolean;
   };
+  slot_machine?: SlotMachineState;
 }
 
 // Lifeline Types

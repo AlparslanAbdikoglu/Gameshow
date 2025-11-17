@@ -1,6 +1,51 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-11-12T23-05-24_el_boris",
+      "date": "2025-11-12T23:05:24.698Z",
+      "username": "el_boris",
+      "final_points": 189,
+      "correct_answers": 12,
+      "total_answers": 14,
+      "accuracy": 86,
+      "best_streak": 9,
+      "fastest_correct_time": 6959,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 189
+    },
+    {
+      "game_id": "game_2025-11-12T23-05-24_jpx_269",
+      "date": "2025-11-12T23:05:24.698Z",
+      "username": "jpx_269",
+      "final_points": 186,
+      "correct_answers": 13,
+      "total_answers": 13,
+      "accuracy": 100,
+      "best_streak": 13,
+      "fastest_correct_time": 16270,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 186
+    },
+    {
+      "game_id": "game_2025-11-12T23-05-24_kerviz",
+      "date": "2025-11-12T23:05:24.698Z",
+      "username": "kerviz",
+      "final_points": 185,
+      "correct_answers": 11,
+      "total_answers": 13,
+      "accuracy": 85,
+      "best_streak": 9,
+      "fastest_correct_time": 5853,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 185
+    },
+    {
       "game_id": "game_1730844841008_giulicious40",
       "date": "2025-11-05T23:14:01.008Z",
       "username": "giulicious40",
@@ -331,11 +376,11 @@
     }
   ],
   "metadata": {
-    "total_games": 22,
-    "last_updated": "2025-11-09T00:02:00.000Z",
-    "note": "Last 6 games only (Oct 20, 22, 27, 29, Nov 3, 5). Winners continue earning points in leaderboard. | Aggregated from dictated results with normalized usernames and summed statistics.",
-    "total_players": 14,
-    "total_source_entries": 16,
-    "source_range": "2025-10-20 to 2025-11-03"
+    "total_games": 8,
+    "last_updated": "2025-11-17T00:30:38.920Z",
+    "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
+    "total_players": 15,
+    "total_source_entries": 25,
+    "source_range": "2025-10-20 to 2025-11-12"
   }
 }
