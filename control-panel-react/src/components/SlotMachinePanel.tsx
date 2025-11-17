@@ -1,12 +1,30 @@
 import React from 'react';
 import styles from './KimbillionaireControlPanel.module.css';
 import { SlotMachineState } from '../types/gameTypes';
+import { gameApi } from '../utils/api';
 
 interface SlotMachinePanelProps {
   slotMachine?: SlotMachineState;
 }
 
 const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
+  const [testingSpin, setTestingSpin] = React.useState(false);
+
+  const handleTestSpin = React.useCallback(async () => {
+    if (testingSpin) {
+      return;
+    }
+
+    setTestingSpin(true);
+    try {
+      await gameApi.sendCommand('slot_machine_test_spin');
+    } catch (error) {
+      console.error('Failed to trigger slot machine test spin', error);
+    } finally {
+      setTestingSpin(false);
+    }
+  }, [testingSpin]);
+
   if (!slotMachine) {
     return (
       <div className={styles.slotMachinePanel}>
@@ -32,17 +50,16 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
   }
 
   const round = slotMachine.current_round;
+  const isTestRound = Boolean(round?.is_test_round || slotMachine.last_round_result?.isTestRound);
   const statusLabel = round
-    ? round.status.replace('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase())
-    : 'Idle';
+    ? `${round.status.replace('_', ' ').replace(/\b\w/g, (char) => char.toUpperCase())}${round.is_test_round ? ' · Test' : ''}`
+    : (isTestRound ? 'Test Result' : 'Idle');
   const entryCount = round?.entries?.length || 0;
   const leverUser = round?.lever_candidate || slotMachine.last_round_result?.leverUser || '—';
   const upcoming = (slotMachine.schedule_questions || []).map((index) => index + 1);
   const countdownSeconds = round && round.entry_started_at
     ? Math.max(0, Math.ceil((round.entry_duration_ms - (Date.now() - round.entry_started_at)) / 1000))
     : null;
-  const triggerEmoji = round?.trigger_emoji || slotMachine.trigger_emoji || '';
-  const triggerEmojiUrl = round?.trigger_emoji_url || slotMachine.trigger_emoji_url || null;
 
   return (
     <div className={styles.slotMachinePanel}>
@@ -65,21 +82,8 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
         </div>
       </div>
       <div className={styles.slotMachineNote}>
-        Next automatic windows: {upcoming.length ? upcoming.map((q) => `Q${q}`).join(', ') : '—'} · Trigger emote{' '}
-        <span className={styles.slotMachineTriggerPreview}>
-          {triggerEmojiUrl && triggerEmoji ? (
-            <>
-              <img
-                src={triggerEmojiUrl}
-                alt={triggerEmoji}
-                className={styles.slotMachineTriggerImage}
-              />
-              {triggerEmoji}
-            </>
-          ) : (
-            triggerEmoji || '—'
-          )}
-        </span>
+        Next automatic windows: {upcoming.length ? upcoming.map((q) => `Q${q}`).join(', ') : '—'} · Chat command: JOIN · Auto
+        spin (no emote trigger)
       </div>
       {round?.entries?.length ? (
         <div className={styles.slotMachineEntries}>
@@ -89,8 +93,19 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
           {round.entries.length > 6 && <span>+{round.entries.length - 6} more</span>}
         </div>
       ) : (
-        <p className={styles.slotMachineNote}>Prompt chat to type JOIN before questions 5, 10, and 15.</p>
+        <p className={styles.slotMachineNote}>Prompt chat to type JOIN before questions 4, 9, and 14.</p>
       )}
+      <div className={styles.slotMachineActions}>
+        <button
+          type="button"
+          className={styles.slotMachineButton}
+          onClick={handleTestSpin}
+          disabled={testingSpin}
+        >
+          {testingSpin ? 'Triggering…' : 'Test Spin'}
+        </button>
+        <span className={styles.slotMachineActionHelp}>Runs a rehearsal spin without affecting live scores.</span>
+      </div>
     </div>
   );
 };

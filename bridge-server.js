@@ -201,10 +201,9 @@ let gameState = {
   // Slot machine bonus mode state
   slot_machine: {
     enabled: true,
-    schedule_questions: [4, 9, 14], // zero-indexed milestone questions (5, 10, 15)
+    schedule_questions: [3, 8, 13], // zero-indexed milestone questions (Questions 4, 9, 14)
     entry_duration_ms: 60000,
     max_points: 25,
-    trigger_emoji: '🦁',
     current_round: null,
     last_round_result: null
   },
@@ -1879,6 +1878,7 @@ wss.on('connection', (ws, req) => {
     delete sanitizedRound.entry_lookup;
     delete sanitizedRound.entry_interval;
     delete sanitizedRound.entry_timeout;
+    delete sanitizedRound.auto_spin_timeout;
     cleanGameState.slot_machine = {
       ...cleanGameState.slot_machine,
       current_round: sanitizedRound
@@ -2253,9 +2253,6 @@ wss.on('connection', (ws, req) => {
           }
         }
 
-        // Slot machine lever trigger detection
-        handleSlotMachineEmojiTrigger(normalizedUsername, messageText);
-        
         // Add to gameshow participants for hot seat selection (chat activity)
         if (data.username && !gameState.gameshow_participants.includes(data.username)) {
           gameState.gameshow_participants.push(data.username);
@@ -4994,61 +4991,51 @@ function startHotSeatEntryPeriod() {
 }
 
 // Slot Machine Bonus Mode Helpers
-const SLOT_MACHINE_SYMBOLS = [
-  { id: 'leo', label: 'Leo', emoji: '🦁' },
-  { id: 'crown', label: 'Crown', emoji: '👑' },
-  { id: 'claw', label: 'Claw', emoji: '🐾' },
-  { id: 'star', label: 'Star', emoji: '⭐' }
+const SLOT_MACHINE_FALLBACK_SYMBOLS = [
+  { id: 'leo', label: 'Leo', emoji: '🦁', emojiUrl: null },
+  { id: 'crown', label: 'Crown', emoji: '👑', emojiUrl: null },
+  { id: 'claw', label: 'Claw', emoji: '🐾', emojiUrl: null },
+  { id: 'star', label: 'Star', emoji: '⭐', emojiUrl: null }
 ];
-const SLOT_MACHINE_TRIGGER_EMOTES = Object.keys(TWITCH_EMOTES || {});
+const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code, url]) => ({
+  id: code,
+  label: code,
+  emoji: code,
+  emojiUrl: url
+}));
 
-function getRandomSlotMachineTriggerEmoji(previousEmoji = null) {
-  if (!SLOT_MACHINE_TRIGGER_EMOTES.length) {
-    return { code: '🦁', url: null };
-  }
+function getSlotMachineSymbolPool() {
+  return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
+}
 
-  let pool = SLOT_MACHINE_TRIGGER_EMOTES;
-  if (previousEmoji && SLOT_MACHINE_TRIGGER_EMOTES.length > 1) {
-    const filtered = SLOT_MACHINE_TRIGGER_EMOTES.filter((code) => code !== previousEmoji);
-    if (filtered.length) {
-      pool = filtered;
-    }
-  }
-
-  const selected = pool[Math.floor(Math.random() * pool.length)];
+function drawSlotMachineSymbol() {
+  const pool = getSlotMachineSymbolPool();
+  const symbol = pool[Math.floor(Math.random() * pool.length)];
   return {
-    code: selected,
-    url: TWITCH_EMOTES[selected] || null
+    id: symbol.id,
+    label: symbol.label || symbol.id,
+    emoji: symbol.emoji || symbol.id,
+    emojiUrl: symbol.emojiUrl || symbol.url || null
   };
 }
 
 function ensureSlotMachineState() {
   if (!gameState.slot_machine) {
-    const initialTrigger = getRandomSlotMachineTriggerEmoji();
     gameState.slot_machine = {
       enabled: true,
-      schedule_questions: [4, 9, 14],
+      schedule_questions: [3, 8, 13],
       entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
       max_points: 25,
-      trigger_emoji: initialTrigger.code,
-      trigger_emoji_url: initialTrigger.url,
       current_round: null,
       last_round_result: null
     };
   }
 
   if (!Array.isArray(gameState.slot_machine.schedule_questions)) {
-    gameState.slot_machine.schedule_questions = [4, 9, 14];
+    gameState.slot_machine.schedule_questions = [3, 8, 13];
   }
   gameState.slot_machine.entry_duration_ms = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
   gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
-  if (!gameState.slot_machine.trigger_emoji) {
-    const fallbackTrigger = getRandomSlotMachineTriggerEmoji();
-    gameState.slot_machine.trigger_emoji = fallbackTrigger.code;
-    gameState.slot_machine.trigger_emoji_url = fallbackTrigger.url;
-  } else if (!gameState.slot_machine.trigger_emoji_url) {
-    gameState.slot_machine.trigger_emoji_url = TWITCH_EMOTES[gameState.slot_machine.trigger_emoji] || null;
-  }
 }
 
 function broadcastSlotMachineEvent(event, payload = {}) {
@@ -5070,6 +5057,10 @@ function cleanupSlotMachineRoundTimers(round) {
     clearTimeout(round.entry_timeout);
     round.entry_timeout = null;
   }
+  if (round.auto_spin_timeout) {
+    clearTimeout(round.auto_spin_timeout);
+    round.auto_spin_timeout = null;
+  }
 }
 
 function startSlotMachineEntryRound(questionIndex) {
@@ -5087,7 +5078,6 @@ function startSlotMachineEntryRound(questionIndex) {
   }
 
   const duration = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
-  const triggerSelection = getRandomSlotMachineTriggerEmoji(gameState.slot_machine.trigger_emoji);
   const round = {
     question_index: questionIndex,
     status: 'collecting',
@@ -5098,20 +5088,17 @@ function startSlotMachineEntryRound(questionIndex) {
     entry_interval: null,
     entry_timeout: null,
     lever_candidate: null,
-    trigger_emoji: triggerSelection.code,
-    trigger_emoji_url: triggerSelection.url,
-    spin_requested_by: null
+    spin_requested_by: null,
+    auto_spin_timeout: null,
+    is_test_round: false
   };
 
   gameState.slot_machine.current_round = round;
-  gameState.slot_machine.trigger_emoji = round.trigger_emoji;
-  gameState.slot_machine.trigger_emoji_url = round.trigger_emoji_url || null;
 
   broadcastSlotMachineEvent('entry_started', {
     questionNumber: questionIndex + 1,
     duration,
-    triggerEmoji: round.trigger_emoji,
-    triggerEmojiUrl: round.trigger_emoji_url || null
+    isTestRound: false
   });
   broadcastState(true);
 
@@ -5122,7 +5109,8 @@ function startSlotMachineEntryRound(questionIndex) {
     broadcastSlotMachineEvent('entry_tick', {
       questionNumber: questionIndex + 1,
       remaining,
-      entries: round.entries.length
+      entries: round.entries.length,
+      isTestRound: !!round.is_test_round
     });
 
     if (remaining <= 0) {
@@ -5156,7 +5144,8 @@ function addSlotMachineEntry(username) {
   broadcastSlotMachineEvent('entry_update', {
     questionNumber: round.question_index + 1,
     entries: round.entries.length,
-    latestEntry: username
+    latestEntry: username,
+    isTestRound: !!round.is_test_round
   });
 }
 
@@ -5174,7 +5163,8 @@ function concludeSlotMachineEntryRound(reason = 'timer') {
   if (round.entries.length === 0) {
     broadcastSlotMachineEvent('no_entries', {
       questionNumber: round.question_index + 1,
-      reason
+      reason,
+      isTestRound: !!round.is_test_round
     });
     gameState.slot_machine.current_round = null;
     broadcastState(true);
@@ -5187,43 +5177,14 @@ function concludeSlotMachineEntryRound(reason = 'timer') {
   broadcastSlotMachineEvent('lever_ready', {
     questionNumber: round.question_index + 1,
     leverUser: round.lever_candidate,
-    triggerEmoji: round.trigger_emoji,
-    triggerEmojiUrl: round.trigger_emoji_url || null,
-    entries: round.entries.length
+    entries: round.entries.length,
+    isTestRound: !!round.is_test_round
   });
   broadcastState(true);
-}
 
-function handleSlotMachineEmojiTrigger(username, messageText) {
-  ensureSlotMachineState();
-  const round = gameState.slot_machine.current_round;
-
-  if (!round || round.status !== 'awaiting_lever' || !round.lever_candidate) {
-    return;
+  if (!round.is_test_round) {
+    round.auto_spin_timeout = setTimeout(() => spinSlotMachineRound('auto_lever'), 4000);
   }
-
-  if (round.lever_candidate.toLowerCase() !== username.toLowerCase()) {
-    return;
-  }
-
-  if (!messageText) {
-    return;
-  }
-
-  const triggerEmoji = round.trigger_emoji || gameState.slot_machine.trigger_emoji;
-  if (!triggerEmoji) {
-    return;
-  }
-
-  const normalizedTrigger = triggerEmoji.toLowerCase();
-  const normalizedMessage = (messageText || '').toLowerCase();
-  const hasTrigger = normalizedMessage.includes(normalizedTrigger);
-
-  if (!hasTrigger) {
-    return;
-  }
-
-  spinSlotMachineRound('chat');
 }
 
 function spinSlotMachineRound(source = 'system') {
@@ -5237,25 +5198,24 @@ function spinSlotMachineRound(source = 'system') {
   cleanupSlotMachineRoundTimers(round);
   round.status = 'spinning';
   round.spin_requested_by = source;
+  round.auto_spin_timeout = null;
 
   broadcastSlotMachineEvent('spin_started', {
     questionNumber: round.question_index + 1,
     entries: round.entries.length,
-    leverUser: round.lever_candidate || null
+    leverUser: round.lever_candidate || null,
+    isTestRound: !!round.is_test_round
   });
   broadcastState(true);
 
   setTimeout(() => {
-    const symbols = Array.from({ length: 3 }).map(() => {
-      const index = Math.floor(Math.random() * SLOT_MACHINE_SYMBOLS.length);
-      return SLOT_MACHINE_SYMBOLS[index];
-    });
-
-    const tripleLeo = symbols.every((symbol) => symbol.id === 'leo');
+    const symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
+    const firstSymbol = symbols[0];
+    const jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
     let perParticipantPoints = 0;
     let totalAwardedPoints = 0;
 
-    if (tripleLeo && round.entries.length > 0) {
+    if (!round.is_test_round && jackpot && round.entries.length > 0) {
       const maxPoints = gameState.slot_machine.max_points || 25;
       const basePer = Math.floor(maxPoints / round.entries.length);
       perParticipantPoints = basePer > 0 ? basePer : (round.entries.length <= maxPoints ? 1 : 0);
@@ -5268,7 +5228,7 @@ function spinSlotMachineRound(source = 'system') {
 
       if (perParticipantPoints > 0) {
         round.entries.forEach((entryUsername) => {
-          addPointsToPlayer(entryUsername, perParticipantPoints, 'Leo Slot Machine bonus');
+          addPointsToPlayer(entryUsername, perParticipantPoints, 'Slot Machine bonus');
         });
       }
     }
@@ -5280,11 +5240,13 @@ function spinSlotMachineRound(source = 'system') {
       symbols: symbols.map((symbol) => ({
         id: symbol.id,
         label: symbol.label,
-        emoji: symbol.emoji
+        emoji: symbol.emoji,
+        emojiUrl: symbol.emojiUrl || null
       })),
-      matched: tripleLeo,
+      matched: jackpot,
       perParticipantPoints,
-      totalAwardedPoints
+      totalAwardedPoints,
+      isTestRound: !!round.is_test_round
     };
 
     round.status = 'results';
@@ -5304,6 +5266,59 @@ function spinSlotMachineRound(source = 'system') {
       }
     }, 15000);
   }, 2500);
+}
+
+function triggerSlotMachineTestSpin() {
+  ensureSlotMachineState();
+
+  if (!gameState.slot_machine.enabled) {
+    console.log('🎰 Slot machine disabled - skipping test spin');
+    return;
+  }
+
+  if (gameState.slot_machine.current_round) {
+    cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+    gameState.slot_machine.current_round = null;
+  }
+
+  const sampleEntries = ['RoaryTest', 'NalaTest', 'SimbaTest'];
+  const round = {
+    question_index: Math.max(0, gameState.current_question || 0),
+    status: 'collecting',
+    entry_started_at: Date.now(),
+    entry_duration_ms: 5000,
+    entries: [...sampleEntries],
+    entry_lookup: new Set(sampleEntries.map((name) => name.toLowerCase())),
+    entry_interval: null,
+    entry_timeout: null,
+    lever_candidate: null,
+    spin_requested_by: null,
+    auto_spin_timeout: null,
+    is_test_round: true
+  };
+
+  gameState.slot_machine.current_round = round;
+
+  broadcastSlotMachineEvent('entry_started', {
+    questionNumber: round.question_index + 1,
+    duration: round.entry_duration_ms,
+    isTestRound: true
+  });
+  broadcastState(true);
+
+  sampleEntries.forEach((username, index) => {
+    broadcastSlotMachineEvent('entry_update', {
+      questionNumber: round.question_index + 1,
+      entries: index + 1,
+      latestEntry: username,
+      isTestRound: true
+    });
+  });
+
+  setTimeout(() => {
+    concludeSlotMachineEntryRound('test');
+    setTimeout(() => spinSlotMachineRound('host_test'), 800);
+  }, 1000);
 }
 
 function broadcastHotSeatCountdown(remaining, options = {}) {
@@ -9726,10 +9741,10 @@ async function handleAPI(req, res, pathname) {
             }
             
             // Check if this is a milestone question for automatic hot seat or slot machine bonus
-            const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
+            const hotSeatMilestones = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
             ensureSlotMachineState();
             const slotMachineSchedule = gameState.slot_machine?.schedule_questions || [];
-            const isHotSeatMilestone = gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question);
+            const isHotSeatMilestone = gameState.hot_seat_enabled && hotSeatMilestones.includes(gameState.current_question);
             const isSlotMachineMilestone = gameState.slot_machine?.enabled && slotMachineSchedule.includes(gameState.current_question);
 
             if (isHotSeatMilestone || isSlotMachineMilestone) {
@@ -10951,7 +10966,12 @@ async function handleAPI(req, res, pathname) {
             gameState.gameshow_participants = [...demoParticipants];
             console.log(`🎭 Added ${gameState.gameshow_participants.length} demo participants:`, gameState.gameshow_participants.join(', '));
             break;
-            
+
+          case 'slot_machine_test_spin':
+            console.log('🎰 Host requested a slot machine test spin');
+            triggerSlotMachineTestSpin();
+            break;
+
           case 'start_hot_seat_entry':
             console.log('📝 Starting hot seat entry period');
             startHotSeatEntryPeriod();

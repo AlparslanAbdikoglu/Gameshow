@@ -41,6 +41,7 @@ export interface SlotMachineSymbol {
   id: string;
   label: string;
   emoji: string;
+  emojiUrl?: string | null;
 }
 
 export interface SlotMachineRound {
@@ -50,8 +51,7 @@ export interface SlotMachineRound {
   entry_started_at: number;
   entries: string[];
   lever_candidate?: string | null;
-  trigger_emoji?: string;
-  trigger_emoji_url?: string | null;
+  is_test_round?: boolean;
   results?: {
     symbols?: SlotMachineSymbol[];
     matched?: boolean;
@@ -66,14 +66,13 @@ export interface SlotMachineState {
   schedule_questions: number[];
   entry_duration_ms: number;
   max_points?: number;
-  trigger_emoji?: string;
-  trigger_emoji_url?: string | null;
   current_round?: SlotMachineRound | null;
   last_round_result?: {
     symbols?: SlotMachineSymbol[];
     matched?: boolean;
     perParticipantPoints?: number;
     leverUser?: string | null;
+    isTestRound?: boolean;
   } | null;
 }
 

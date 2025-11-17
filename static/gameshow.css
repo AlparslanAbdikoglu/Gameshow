@@ -4368,6 +4368,13 @@ body.hot-seat-active .hot-seat-display.active {
     animation: reelSpin 0.9s ease;
 }
 
+.slot-machine-reel img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 8px;
+}
+
 @keyframes reelSpin {
     0% { transform: translateY(-10px); filter: blur(6px); }
     50% { transform: translateY(10px); filter: blur(2px); }
@@ -4448,4 +4455,8 @@ body.hot-seat-active .hot-seat-display.active {
 
 .slot-machine-result.fail {
     color: #ff8fa3;
+}
+
+.slot-machine-result.test {
+    color: #4fc3f7;
 }
