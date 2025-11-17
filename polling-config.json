@@ -1,3 +1,13 @@
 {
-  "action": "disconnect"
+  "action": "disconnect",
+  "isActive": false,
+  "twitch": {
+    "channel": "k1m6a",
+    "username": "justinfan12345"
+  },
+  "youtube": {
+    "apiKey": "",
+    "liveChatId": "",
+    "pollingInterval": 5000
+  }
 }

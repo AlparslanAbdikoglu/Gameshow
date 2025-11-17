@@ -1,6 +1,54 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-11-17T23-13-08_inkyderanged",
+      "date": "2025-11-17T23:13:08.000Z",
+      "username": "inkyderanged",
+      "final_points": 264,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 8993,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 264,
+      "contestant_name": "November 17th"
+    },
+    {
+      "game_id": "game_2025-11-17T23-13-08_gilfrancarvalho",
+      "date": "2025-11-17T23:13:08.000Z",
+      "username": "gilfrancarvalho",
+      "final_points": 181,
+      "correct_answers": 10,
+      "total_answers": 10,
+      "accuracy": 100,
+      "best_streak": 10,
+      "fastest_correct_time": 18881,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 181,
+      "contestant_name": "November 17th"
+    },
+    {
+      "game_id": "game_2025-11-17T23-13-08_svladimirs",
+      "date": "2025-11-17T23:13:08.000Z",
+      "username": "svladimirs",
+      "final_points": 167,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 16738,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 167,
+      "contestant_name": "November 17th"
+    },
+    {
       "game_id": "game_2025-11-12T23-05-24_el_boris",
       "date": "2025-11-12T23:05:24.698Z",
       "username": "el_boris",
@@ -376,10 +424,10 @@
     }
   ],
   "metadata": {
-    "total_games": 8,
-    "last_updated": "2025-11-17T00:30:38.920Z",
+    "total_games": 9,
+    "last_updated": "2025-11-17T23:13:08.866Z",
     "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
-    "total_players": 15,
+    "total_players": 17,
     "total_source_entries": 25,
     "source_range": "2025-10-20 to 2025-11-12"
   }
