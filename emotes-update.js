@@ -55,3 +55,12 @@ const TWITCH_EMOTES = {
   'k1m6aPog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_03b9318aa256404590085b7aad65eb82/default/dark/2.0',
   'k1m6aPopcorn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_bfdfdcf6304e4ec4a4890449601cc0ba/default/dark/2.0'
 };
+
+// Make the emote definitions available in both browser and Node contexts
+if (typeof window !== 'undefined') {
+  window.TWITCH_EMOTES = TWITCH_EMOTES;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = TWITCH_EMOTES;
+}

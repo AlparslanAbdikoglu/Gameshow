@@ -28,173 +28,34 @@ let messageHandlers: Set<(message: ChatMessage) => void> = new Set();
 let connectionPromise: Promise<void> | null = null;
 let instanceCounter = 0;
 
-// Twitch Emote Definitions
-const TWITCH_EMOTES: { [key: string]: string } = {
-  // Original emotes from first list
-  'k1m6aClipit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c6a0b28a6a5548c8b64698444174173a/default/dark/2.0',
-  'k1m6aChef': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_24c6bfc0497a4c96892cf3c3bc01fe48/default/dark/2.0',
-  'k1m6aCo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5b17cf73d7d5417aa8f37b8bb9f6e0fe/default/dark/2.0',
-  'k1m6aHappyJam': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1e21c9ad16cf4ffa8f8e73df44d4e58f/default/dark/2.0',
-  'k1m6aHorse': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ef95fef0a0d74e6db614d4dac82b8f5f/default/dark/2.0',
-  'k1m6aHotel': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f3e5e68ba91c4fb3beeaaa69ad14e51f/default/dark/2.0',
-  'k1m6aLove': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_767294f4fbf14deaa65487efb5e11b55/default/dark/2.0',
-  'k1m6aJam': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e849d7766e9e4293a881e75f8139552c/default/dark/2.0',
-  'k1m6aLul': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_04f3c7fe0428460e855cbd6a62aa8b07/default/dark/2.0',
-  'k1m6aBaby': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e36e16f7e6304e949de83f92e4e7d8bb/default/dark/2.0',
-  'k1m6aLeech': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b40ba59b36084f7db37e88c0b4fce24f/default/dark/2.0',
-  'k1m6aSteer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7f852081c9a14efe9bde161c4359a528/default/dark/2.0',
-  'k1m6aKk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2e32b96c8e77461c857c0e90de1f9d4f/default/dark/2.0',
-  'k1m6aTrain': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4cf670d5fa8242ebab89a6ab5c616771/default/dark/2.0',
-  'k1m6aDj': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8cf31502415443788a03fe3aefc1a7af/default/dark/2.0',
-  'k1m6aBlock': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_45bbf656cd1c42e3ab9d2bb614dc6b2e/default/dark/2.0',
-  'k1m6aPalmtree': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a1dfffa070c6420d9b673b3b1f1f0acf/default/dark/2.0',
-  'k1m6aPizza': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ab88a0dbf28c486d8e079e23e973e83f/default/dark/2.0',
-  'k1m6aSunshine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e1f21e4e7fea439a9b36f0ba02b0e7ee/default/dark/2.0',
-  'k1m6aPsgjuice': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ea0ac815167448e7a1cafde20fe93427/default/dark/2.0',
-  'k1m6aSmile': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3fea13ba7b5e455a93cc959dfb0e0c86/default/dark/2.0',
-  'k1m6aGlizz': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b1a067c85b2349ffa1e1b6e39f8e4bc6/default/dark/2.0',
-  'k1m6aChin': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cae4cf9b3de842b995f5ba982f7bb370/default/dark/2.0',
-  'k1m6aNoshot': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e06de7c832b0440b8f96ba067b9fbb96/default/dark/2.0',
-  'k1m6aSalute': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b6e561b15bb1485683e3bdb862204b49/default/dark/3.0',
-  'k1m6aShotty': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f30f82c8e6de4b2e92797ab59f2df36e/default/dark/2.0',
-  'k1m6aMonkey': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d91f03c0cc35425db3cf7f8b83025595/default/dark/2.0',
-  'k1m6aShiba': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_63c1e5f3b8ca4c72827297e6f03bb53e/default/dark/2.0',
-  'k1m6aSpray': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1cf332c5e73b45e18d23f95c1c6cf2f5/default/dark/2.0',
-  'k1m6aRice': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_78ae7cdf89814354a09a50be08d9ea22/default/dark/2.0',
-  'k1m6aBowl': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f1322c73e93a4bb08897fb50802e0cd2/default/dark/2.0',
-  'k1m6aWine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1a0b4c33bb92417e855dc8cdb06d46da/default/dark/2.0',
-  'k1m6aCheer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d1ae4b977a2c40b5b6f8acef7fa17cd1/default/dark/2.0',
-  'k1m6aChew': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b3a97a6dea0e415993b5b666e5f69e95/default/dark/2.0',
-  'k1m6aDrop': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_83e1e1e0b09e46ed89802d98dc1c00ce/default/dark/2.0',
-  'k1m6aGreenscreen': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_30dcf8de63fb4b9fb891bbaf95cca80a/default/dark/2.0',
-  'k1m6aStupid': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_96c07f1a9c96426bbfdf1e1bc4f99c04/default/dark/2.0',
-  'k1m6aLongbeach': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9e012ced913a412a9cbfb973d8e5b3a7/default/dark/2.0',
-  'k1m6aNotb': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_24a1a1d0b2f64b659ca09b6e88d09fb1/default/dark/2.0',
-  'k1m6aMatcha': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3b26cf9fbe9f4bc58a860f7f5f616ef7/default/dark/2.0',
-  'k1m6aLetcook': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dbe732bb16254bb7876caf1b6b1c14f1/default/dark/2.0',
-  'k1m6aMuni': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f3c5f4f2bf9848b4851e5c7d30c10f76/default/dark/2.0',
-  'k1m6aFb': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_97b2b18b37e9485099ad7c12a8fa47f5/default/dark/2.0',
-  'k1m6aRamen': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1b2b93f1cf6543b495e969f51e6fda31/default/dark/2.0',
-  'k1m6aSoju': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7090e951f6a14bc5b7ef2e5ea37dc970/default/dark/2.0',
-  'k1m6aIce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ee70fe2c3e5948e09d973f4dd6c614f0/default/dark/2.0',
-  'k1m6aEarl': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2f2c957e3a2d4eb7849fc6e26fa2ec4b/default/dark/2.0',
-  'k1m6aCoomer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e088b65bb2cf472d9b4e6a52d616e6fa/default/dark/2.0',
-  'k1m6aFunkycoomer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_fd7ee96c00ef4063825f9b48eceeed66/default/dark/2.0',
-  'k1m6aObo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4fefa69bb6db469097eeb8bb99987c2a/default/dark/2.0',
-  'k1m6aOk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d63f079b08ee4dffbc44e73dcff2b10f/default/dark/2.0',
-  'k1m6aSnore': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f26e1f8b15ad49c7afd18c89abaab22f/default/dark/2.0',
-  'k1m6aRun': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3b0ad39b67fa4c57ac7f4f87f2cc2b4f/default/dark/2.0',
-  'k1m6aCake': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d7f0b4e5aa174fc3a19e646c4c8aa48f/default/dark/2.0',
-  'k1m6aEgg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e2a7e67a7e914c97a9bb646d8e7c62e3/default/dark/2.0',
-  'k1m6aJj': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7a9f670b0cf54b5c9cf6f7b5ad0a4f42/default/dark/2.0',
-  'k1m6aFrog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_fad59febe61647e099b1e81e1fdb8a8f/default/dark/2.0',
-  'k1m6aHeart': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d088de4a03514f59a566f0ad97de0595/default/dark/2.0',
-  'k1m6aChamp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dca4c5f1b0b943c7849d5a85fb6c2dcc/default/dark/2.0',
-  'k1m6aBoom': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_aff4b7cb58094f6fb95f95e2bdf3f7f8/default/dark/2.0',
-  'k1m6aSick': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c4e3c7c67c2a495198ea9cc982e31dd7/default/dark/2.0',
-  'k1m6aFr': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e1cf1c28f98d49c6bfba50c80ee82b5f/default/dark/2.0',
-  'k1m6aFrr': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1e25e5c8eeb04e839d34c1b0ea58a6a5/default/dark/2.0',
-  'k1m6aPink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b0e35b17a63d4dd78ac1cf6d14f9cf5e/default/dark/2.0',
-  'k1m6aReally': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_66f27cd5cf764bb2ad4e8d52bfa3c9ba/default/dark/2.0',
-  'k1m6aStand': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_96f1e74bb7fc4d42ad842a9c0e7fb1e9/default/dark/2.0',
-  'k1m6aShip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a860feac7bff4e7587e6e8bb2b6aac68/default/dark/2.0',
-  'k1m6aWoody': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_67feaf4b70224bc4adff7db8b893bf37/default/dark/2.0',
-  'k1m6aGrunt': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ad69bb69b4174f6c888f067a4c3f96ef/default/dark/2.0',
-  'k1m6aLime': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0ddfd5c6f50b47b99fb3f014b6c0a41f/default/dark/2.0',
-  'k1m6aClean': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d4dd3f37b6344c8ba72d1bb7a72fecef/default/dark/2.0',
-  'k1m6aJumbotron': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e6a039c8cc3f4c39b0b26a84b5cb0eea/default/dark/2.0',
-  'k1m6aOwl': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3f2a72e9f7b14e61a2e7b05a1e5177d0/default/dark/2.0',
-  'k1m6aOat': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5d853f94bfcd49779eee59f8cf66cc9f/default/dark/2.0',
-  'k1m6aSpread': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3c4bb7febe9f494589ba91f4bf7fbe2b/default/dark/2.0',
-  'k1m6aSwag': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b965f3e1e71243919b92e1b829dcaa2e/default/dark/2.0',
-  'k1m6aUp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cd4c2f48e4ac4c96980bb0c4797b7ca7/default/dark/2.0',
-  'k1m6aWack': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e55b5b0babb94e30a0e1819c1ba4b90d/default/dark/2.0',
-  'k1m6aLb': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cd088c039ad34f00a8f6c616b21c61f5/default/dark/2.0',
-  
-  // New emotes from the updated list
-  'k1m6aCarried': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_68877ffd62914c0baf656683a56885e3/default/dark/2.0',
-  'k1m6aBonk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_6d4a3720c4ca4553a9f7d09ecc228d1c/default/dark/2.0',
-  'k1m6aBlind': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_008fc17538c54d7baf69325b406d421b/default/dark/2.0',
-  'k1m6aBlade': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d4688e604455438e990eda8bfe386621/default/dark/2.0',
-  'k1m6aBan': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a09c3654c25f4a9194ac04951e867285/default/dark/2.0',
-  'k1m6aAstronaut': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c261a2bf5aef4f20a05876f12acfde0b/default/dark/2.0',
-  'k1m6a1010': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8948832ab3834d34bd62ade32a697858/default/dark/2.0',
-  'k1m6aCrab': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5bcd86cb8351436c84a5a90927e91d2a/default/dark/2.0',
-  'k1m6aCozy': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_10002a6ae9cc4f50a5ca94949ca4a096/default/dark/2.0',
-  'k1m6aCopium': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5eca88a8751f4a04b5882b70304e4053/default/dark/2.0',
-  'k1m6aCool': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_19d1d2370d7e49d08926d9c40f1cf699/default/dark/2.0',
-  'k1m6aConfused': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1d50d00f2a1444f4a4952f3aaf562ede/default/dark/2.0',
-  'k1m6aCoffeesip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_116a23cc11734b41b27f6f922b62f630/default/dark/2.0',
-  'k1m6aCoffee': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_413469c842154f72853b651c6db8c0f4/default/dark/2.0',
-  'k1m6aClown': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b289f3411b9b4ccc862385d4d20c26a0/default/dark/2.0',
-  'k1m6aDerp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_681daf912abc479980401475f6b9c082/default/dark/2.0',
-  'k1m6aDevil': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a370f93b4f9744989b2ab2d357dd061c/default/dark/2.0',
-  'k1m6aDoit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f6971cbe0867419085814dd09ba3ee2f/default/dark/2.0',
-  'k1m6aFacepalm': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5db4850780504895ab219bdcd03339ab/default/dark/2.0',
-  'k1m6aFail': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0435ef9b206b459aae88657265db15a8/default/dark/2.0',
-  'k1m6aFine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e9eaecce2b094260b0f4b39bc95b70d0/default/dark/2.0',
-  'k1m6aFlower': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9440e8eae9e44659b39c3380007b05cd/default/dark/2.0',
-  'k1m6aGasm': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_26ae96c88de64ecab0f5deab4643caff/default/dark/2.0',
-  'k1m6aGasp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8ee142074d2f41429ffc803ff890a290/default/dark/2.0',
-  'k1m6aGg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_6d97ed643b5a4e19a7ce156a02dede7c/default/dark/2.0',
-  'k1m6aGhost': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ec96872a82c34e32bf3d9729647ed717/default/dark/2.0',
-  'k1m6aGift': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b0b9ae66f2b74b6fbdab36669ab9a25e/default/dark/2.0',
-  'k1m6aGrinch': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4dea8452193446d3bc8abe1ae9d79095/default/dark/2.0',
-  'k1m6aHotdog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3dd3518f01584e1b89401adebc037035/default/dark/2.0',
-  'k1m6aHug': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2650294ab5c14ad789210a5002178c6b/default/dark/2.0',
-  'k1m6aHydrate': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c1b78e615a1e4cf9b84566d1e00eebd2/default/dark/2.0',
-  'k1m6aHype': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8aa322d7459e4f86aa65fef5fe5880fb/default/dark/2.0',
-  'k1m6aJason': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_85afabbfc15e49c69c9064ae5b8bd6bd/default/dark/2.0',
-  'k1m6aKekw': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_48b672a057f74de0b953f7004c66d8b9/default/dark/2.0',
-  'k1m6aL': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a383d8c68a0444dd8e2bf1b9ee0b3c30/default/dark/2.0',
-  'k1m6aLearn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_95fb44fddcaf48069e02f4ef5d84ff82/default/dark/2.0',
-  'k1m6aLettuce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_33109ae4e55d45838bf0895d226a8a8c/default/dark/2.0',
-  'k1m6aLurk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dbcaac379c324382b41b6fbc716f3966/default/dark/2.0',
-  'k1m6aMod': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ca20669eb3d9410dbe6907d3fb427fd5/default/dark/2.0',
-  'k1m6aMoney': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e84f0755bec84b8da286011bcf9503d1/default/dark/2.0',
-  'k1m6aNo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e555a2b5667e4a73bc55f163ff1a6fc9/default/dark/2.0',
-  'k1m6aPat': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_300ed456269c49928bc5d0db072a9c95/default/dark/2.0',
-  'k1m6aPew': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d763ee290c774744a6b006754ae6b52b/default/dark/2.0',
-  'k1m6aPixel': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cc583397b8d14507af71592fc3b15c2b/default/dark/2.0',
-  'k1m6aPog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_03b9318aa256404590085b7aad65eb82/default/dark/2.0',
-  'k1m6aPopcorn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_bfdfdcf6304e4ec4a4890449601cc0ba/default/dark/2.0',
-  'k1m6aPray': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1b5460d0cb5043d3bb842b222188ac52/default/dark/2.0',
-  'k1m6aPride': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_081872353abf446d80cbe106d9755a61/default/dark/2.0',
-  'k1m6aPsg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_57fc02265af64c63b30106e2b83fd75e/default/dark/2.0',
-  'k1m6aPuke': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_27486795377745d8a237370db0d08501/default/dark/2.0',
-  'k1m6aRage': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_bc68594da22d4efc88c83016d7248eb6/default/dark/2.0',
-  'k1m6aRip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c7fb2c733dde4b898723521a606ff63e/default/dark/2.0',
-  'k1m6aSad': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_69b1ba54dc0a4d0890f85f3ab72e0e43/default/dark/2.0',
-  'k1m6aShock': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ffdf2bdc4405492798e761ad16617199/default/dark/2.0',
-  'k1m6aSip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3687a7632e6a489e9f951fa976947a1b/default/dark/2.0',
-  'k1m6aSleep': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0ef29e6d15f2416a90d7fd4677b6b6e6/default/dark/2.0',
-  'k1m6aSmug': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8a344f3f450944a7932025656003d66c/default/dark/2.0',
-  'k1m6aSniper': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f8bca68fd1b04ff4a662c65896f32c19/default/dark/2.0',
-  'k1m6aStab': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_076521534f724bec852d2ada23458216/default/dark/2.0',
-  'k1m6aStare': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a7ab8ce9904f4ebc8448e9aff4e7f25d/default/dark/2.0',
-  'k1m6aSuit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a70b975f48634e2c856e06b4d8520534/default/dark/2.0',
-  'k1m6aTaptap': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_be90f6cee63445f290b0e03f9e43d43e/default/dark/2.0',
-  'k1m6aThink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c7461b2486334be587e6dc97f344eb32/default/dark/2.0',
-  'k1m6aTongue': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e3685e6f62d5472b8c31714fde236039/default/dark/2.0',
-  'k1m6aUmbrella': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f07b5d75ddf14638add815e7341b113f/default/dark/2.0',
-  'k1m6aW': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1ff0e62efa884e619e3bd8d8b05c5704/default/dark/2.0',
-  'k1m6aWave': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_eef8c2eca3974415b13dc80f291c2f96/default/dark/2.0',
-  'k1m6aWiggle': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_59d9e228421a43dcbdb44d58f2ce4866/default/dark/2.0',
-  'k1m6aWink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7cf3df4d43324e3d89c0c071fea2f8e4/default/dark/2.0',
-  'k1m6aWow': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_45b386bb9be44b0e8b3b72de2da02ce9/default/dark/2.0',
-  'k1m6aXmasgift': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_261341b67fe8409baced480af78130e2/default/dark/2.0',
-  'k1m6aYes': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1f4eb7f1a0e64f0e91ede6be618e0760/default/dark/2.0',
-  'k1m6aZombie': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c65f4314d1b94f1c8bd10ba7d139d6c1/default/dark/2.0'
+declare global {
+  interface Window {
+    TWITCH_EMOTES?: { [key: string]: string };
+  }
+}
+
+const getInitialTwitchEmotes = () => {
+  if (typeof window !== 'undefined' && window.TWITCH_EMOTES) {
+    return window.TWITCH_EMOTES;
+  }
+  return {};
 };
 
 // Function to process emotes in text
-const processEmotes = (text: string): React.ReactNode => {
+const processEmotes = (text: string, emotes: { [key: string]: string }): React.ReactNode => {
+  if (!text) {
+    return '';
+  }
+
+  const sortedEmotes = Object.keys(emotes).sort((a, b) => b.length - a.length);
+  if (sortedEmotes.length === 0) {
+    return text;
+  }
+
   // Sort emote keywords by length (longest first) to avoid partial replacements
-  const sortedEmotes = Object.keys(TWITCH_EMOTES).sort((a, b) => b.length - a.length);
-  
   const elements: React.ReactNode[] = [];
   let lastIndex = 0;
-  
+
   // Create a regex pattern for all emotes
   const emotePattern = new RegExp(`\\b(${sortedEmotes.join('|')})\\b`, 'g');
   
@@ -210,7 +71,7 @@ const processEmotes = (text: string): React.ReactNode => {
     elements.push(
       <img 
         key={`${match.index}-${emote}`}
-        src={TWITCH_EMOTES[emote]} 
+        src={emotes[emote]}
         alt={emote} 
         style={{ 
           display: 'inline-block',
@@ -250,6 +111,7 @@ const LiveChatViewer: React.FC<LiveChatViewerProps> = React.memo(({ disabled = f
   const [operationStatus, setOperationStatus] = useState<string | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
+  const [twitchEmotes, setTwitchEmotes] = useState<{ [key: string]: string }>(() => getInitialTwitchEmotes());
   // Remove local WebSocket ref - we'll use the shared one
   // const wsRef = useRef<WebSocket | null>(null);
   
@@ -296,7 +158,7 @@ const LiveChatViewer: React.FC<LiveChatViewerProps> = React.memo(({ disabled = f
   const MAX_RECONNECT_ATTEMPTS = 5;
   const reconnectAttemptsRef = useRef(0);
 
-  // processEmotes function is defined above (line 190) to handle Twitch emote replacement
+  // processEmotes helper defined above handles Twitch emote replacement
 
   // Message handler
   const handleMessage = useCallback((chatMessage: ChatMessage) => {
@@ -420,6 +282,31 @@ const LiveChatViewer: React.FC<LiveChatViewerProps> = React.memo(({ disabled = f
       console.error('❌ Error syncing VIP list:', error);
     }
   };
+
+  useEffect(() => {
+    if (Object.keys(twitchEmotes).length > 0) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch(`${API_BASE_URL}/api/twitch-emotes`, { signal: controller.signal })
+      .then(response => response.json())
+      .then(data => {
+        const nextEmotes = data?.emotes || data;
+        setTwitchEmotes(nextEmotes);
+        if (typeof window !== 'undefined') {
+          window.TWITCH_EMOTES = nextEmotes;
+        }
+      })
+      .catch(error => {
+        if (error.name !== 'AbortError') {
+          console.error('⚠️ Failed to load Twitch emotes from API:', error);
+        }
+      });
+
+    return () => controller.abort();
+  }, [twitchEmotes]);
 
   // Save moderators to localStorage whenever the list changes
   useEffect(() => {
@@ -1268,7 +1155,7 @@ const LiveChatViewer: React.FC<LiveChatViewerProps> = React.memo(({ disabled = f
                     </span>
                   </div>
                   <div className={styles.messageContent} style={{ color: '#ddd', marginTop: '2px' }}>
-                    {processEmotes(msg.text)}
+                    {processEmotes(msg.text, twitchEmotes)}
                   </div>
                 </div>
               ))

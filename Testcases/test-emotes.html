@@ -15,13 +15,9 @@
         <div id="test-messages"></div>
     </div>
 
+    <script src="../emotes-update.js"></script>
     <script>
-        // Twitch Emote Definitions
-        const TWITCH_EMOTES = {
-            'k1m6aLettuce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_33109ae4e55d45838bf0895d226a8a8c/default/dark/2.0',
-            'k1m6aLove': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_767294f4fbf14deaa65487efb5e11b55/default/dark/2.0',
-            'k1m6aPizza': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ab88a0dbf28c486d8e079e23e973e83f/default/dark/2.0'
-        };
+        const TWITCH_EMOTES = window.TWITCH_EMOTES || {};
 
         function replaceTwitchEmotes(text) {
             let processedText = text
