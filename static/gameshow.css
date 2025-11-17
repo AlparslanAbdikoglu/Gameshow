@@ -4285,17 +4285,21 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 /* Slot Machine Overlay */
+
 .slot-machine-overlay {
-    position: absolute;
-    right: 2%;
-    top: 10%;
-    width: 46%;
-    height: 75%;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 25;
+    padding: 32px;
+    background: rgba(2, 4, 16, 0.86);
+    backdrop-filter: blur(16px) saturate(120%);
+    z-index: 2600;
     pointer-events: none;
+    transition: opacity 0.3s ease;
 }
 
 .slot-machine-overlay.active {
@@ -4303,21 +4307,25 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .slot-machine-panel {
-    width: 100%;
-    height: 100%;
+    width: min(92%, 960px);
+    max-width: 960px;
+    max-height: 90vh;
+    height: auto;
     display: flex;
     flex-direction: column;
-    padding: 20px;
-    background: rgba(9, 12, 25, 0.92);
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
-    border-radius: 24px;
+    padding: 28px;
+    background: rgba(9, 12, 25, 0.94);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 40px 70px rgba(0, 0, 0, 0.6);
+    border-radius: 28px;
 }
 
 .slot-machine-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 16px;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -4333,34 +4341,55 @@ body.hot-seat-active .hot-seat-display.active {
     font-size: 14px;
     padding: 6px 14px;
     border-radius: 999px;
-    background: rgba(255, 211, 105, 0.15);
+    background: rgba(255, 211, 105, 0.18);
+    color: #ffd369;
+    flex-shrink: 0;
+}
+
+.slot-machine-close-test {
+    margin-left: auto;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.slot-machine-close-test:hover,
+.slot-machine-close-test:focus-visible {
+    background: rgba(255, 211, 105, 0.25);
     color: #ffd369;
 }
 
 .slot-machine-body {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 24px;
     flex: 1;
 }
 
 .slot-machine-reels {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    padding: 16px;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-    border-radius: 18px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    border-radius: 22px;
 }
 
 .slot-machine-reel {
-    font-size: 64px;
+    font-size: clamp(48px, 6vw, 88px);
     text-align: center;
-    padding: 24px 0;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.4);
+    padding: 28px 0;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
     transition: transform 0.6s ease, filter 0.6s ease;
 }
 
@@ -4383,8 +4412,8 @@ body.hot-seat-active .hot-seat-display.active {
 
 .slot-machine-info {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
 }
 
 .slot-machine-info .label {
@@ -4403,10 +4432,11 @@ body.hot-seat-active .hot-seat-display.active {
 
 .slot-machine-entry-list {
     margin-top: 8px;
-    max-height: 80px;
-    overflow: hidden;
-    font-size: 13px;
+    max-height: 110px;
+    overflow-y: auto;
+    font-size: 14px;
     color: rgba(255, 255, 255, 0.8);
+    scrollbar-width: thin;
 }
 
 .slot-machine-entry-list span {

@@ -159,9 +159,62 @@ const slotMachineUiState = {
     symbols: getPlaceholderSlotSymbols(),
     resultText: '',
     resultType: 'idle',
-    isTestRound: false
+    isTestRound: false,
+    isVisible: false,
+    forceHideUntilNextRound: false
 };
 let slotMachineElements = null;
+let slotMachineAutoHideTimer = null;
+
+function enableSlotMachineOverlay(options = {}) {
+    const preserveAutoHide = options.preserveAutoHide === true;
+
+    if (!preserveAutoHide && slotMachineAutoHideTimer) {
+        clearTimeout(slotMachineAutoHideTimer);
+        slotMachineAutoHideTimer = null;
+    }
+
+    if (options.resetForceHide) {
+        slotMachineUiState.forceHideUntilNextRound = false;
+    }
+
+    slotMachineUiState.isVisible = true;
+}
+
+function hideSlotMachineOverlay(options = {}) {
+    if (slotMachineAutoHideTimer) {
+        clearTimeout(slotMachineAutoHideTimer);
+        slotMachineAutoHideTimer = null;
+    }
+
+    slotMachineUiState.isVisible = false;
+    if (options.keepForceHide) {
+        slotMachineUiState.forceHideUntilNextRound = true;
+    } else {
+        slotMachineUiState.forceHideUntilNextRound = false;
+    }
+}
+
+function scheduleSlotMachineAutoHide(delayMs = 3500) {
+    if (slotMachineAutoHideTimer) {
+        clearTimeout(slotMachineAutoHideTimer);
+    }
+
+    slotMachineAutoHideTimer = setTimeout(() => {
+        hideSlotMachineOverlay({ keepForceHide: true });
+        renderSlotMachineUi();
+    }, delayMs);
+}
+
+function handleSlotMachineTestCloseClick(event) {
+    event.preventDefault();
+    if (!slotMachineUiState.isTestRound) {
+        return;
+    }
+
+    hideSlotMachineOverlay({ keepForceHide: true });
+    renderSlotMachineUi();
+}
 
 // Initialize the gameshow when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
@@ -1209,8 +1262,14 @@ function getSlotMachineElements() {
         leverUser: document.getElementById('slot-machine-lever-user'),
         triggerCopy: document.getElementById('slot-machine-trigger-copy'),
         result: document.getElementById('slot-machine-result'),
-        reels: Array.from(document.querySelectorAll('#slot-machine-reels .slot-machine-reel'))
+        reels: Array.from(document.querySelectorAll('#slot-machine-reels .slot-machine-reel')),
+        closeTestButton: document.getElementById('slot-machine-close-test')
     };
+
+    if (slotMachineElements.closeTestButton && !slotMachineElements.closeTestButton.dataset.bound) {
+        slotMachineElements.closeTestButton.addEventListener('click', handleSlotMachineTestCloseClick);
+        slotMachineElements.closeTestButton.dataset.bound = 'true';
+    }
 
     return slotMachineElements;
 }
@@ -1247,7 +1306,7 @@ function renderSlotMachineUi() {
         return;
     }
 
-    if (slotMachineUiState.status === 'Idle' && slotMachineUiState.entries.length === 0 && !slotMachineUiState.leverUser) {
+    if (!slotMachineUiState.isVisible) {
         elements.root.classList.add('hidden');
         elements.root.classList.remove('active');
         return;
@@ -1319,6 +1378,14 @@ function renderSlotMachineUi() {
             elements.result.classList.add('test');
         }
     }
+
+    if (elements.closeTestButton) {
+        if (slotMachineUiState.isTestRound) {
+            elements.closeTestButton.classList.remove('hidden');
+        } else {
+            elements.closeTestButton.classList.add('hidden');
+        }
+    }
 }
 
 function updateSlotMachineDisplay(state) {
@@ -1329,6 +1396,8 @@ function updateSlotMachineDisplay(state) {
 
     const slotState = state.slot_machine || {};
     const round = slotState.current_round || null;
+    const roundStatus = round?.status || null;
+    const roundIsActive = ['collecting', 'awaiting_lever', 'spinning'].includes(roundStatus || '');
 
     if (!round && !slotState.last_round_result) {
         slotMachineUiState.status = 'Idle';
@@ -1339,11 +1408,17 @@ function updateSlotMachineDisplay(state) {
         slotMachineUiState.resultText = '';
         slotMachineUiState.resultType = 'idle';
         slotMachineUiState.isTestRound = false;
+        hideSlotMachineOverlay();
         renderSlotMachineUi();
         return;
     }
 
     if (round) {
+        if (roundIsActive) {
+            enableSlotMachineOverlay({ resetForceHide: true });
+        } else if (!slotMachineUiState.forceHideUntilNextRound) {
+            enableSlotMachineOverlay({ preserveAutoHide: true });
+        }
         slotMachineUiState.entries = Array.isArray(round.entries) ? [...round.entries] : [];
         slotMachineUiState.leverUser = round.lever_candidate || null;
         slotMachineUiState.countdownMs = round.entry_started_at && round.entry_duration_ms
@@ -1366,7 +1441,7 @@ function updateSlotMachineDisplay(state) {
             } else {
                 slotMachineUiState.resultText = round.results.matched
                     ? `Jackpot! +${round.results.perParticipantPoints || 0} pts each`
-                    : 'No bonus awarded';
+                    : 'Meh… no bonus this time.';
                 slotMachineUiState.resultType = round.results.matched ? 'success' : 'fail';
             }
         } else {
@@ -1387,8 +1462,11 @@ function updateSlotMachineDisplay(state) {
         } else {
             slotMachineUiState.resultText = slotState.last_round_result.matched
                 ? `Jackpot! +${slotState.last_round_result.perParticipantPoints || 0} pts each`
-                : 'No bonus awarded';
+                : 'Meh… no bonus this time.';
             slotMachineUiState.resultType = slotState.last_round_result.matched ? 'success' : 'fail';
+        }
+        if (!slotMachineUiState.forceHideUntilNextRound) {
+            enableSlotMachineOverlay({ preserveAutoHide: true });
         }
     }
 
@@ -1404,6 +1482,7 @@ function handleSlotMachineEvent(message) {
 
     switch (message.event) {
         case 'entry_started':
+            enableSlotMachineOverlay({ resetForceHide: true });
             slotMachineUiState.status = data.questionNumber
                 ? `Entries Open · Q${data.questionNumber}`
                 : 'Entries Open';
@@ -1416,6 +1495,7 @@ function handleSlotMachineEvent(message) {
             slotMachineUiState.isTestRound = data.isTestRound === true;
             break;
         case 'entry_tick':
+            enableSlotMachineOverlay();
             slotMachineUiState.countdownMs = data.remaining ?? slotMachineUiState.countdownMs;
             if (typeof data.entries === 'number' && data.entries > slotMachineUiState.entries.length) {
                 const placeholderCount = data.entries - slotMachineUiState.entries.length;
@@ -1426,6 +1506,7 @@ function handleSlotMachineEvent(message) {
             }
             break;
         case 'entry_update':
+            enableSlotMachineOverlay();
             if (data.latestEntry && !slotMachineUiState.entries.includes(data.latestEntry)) {
                 slotMachineUiState.entries = [...slotMachineUiState.entries, data.latestEntry];
             }
@@ -1435,6 +1516,7 @@ function handleSlotMachineEvent(message) {
             }
             break;
         case 'lever_ready':
+            enableSlotMachineOverlay();
             slotMachineUiState.status = 'Waiting for Lever';
             slotMachineUiState.leverUser = data.leverUser || null;
             slotMachineUiState.countdownMs = null;
@@ -1443,6 +1525,7 @@ function handleSlotMachineEvent(message) {
             }
             break;
         case 'spin_started':
+            enableSlotMachineOverlay();
             slotMachineUiState.status = 'Spinning...';
             slotMachineUiState.resultText = '';
             slotMachineUiState.resultType = 'idle';
@@ -1458,6 +1541,7 @@ function handleSlotMachineEvent(message) {
             }
             break;
         case 'result':
+            enableSlotMachineOverlay();
             slotMachineUiState.status = 'Results';
             slotMachineUiState.symbols = (data.symbols || []).map(normalizeSlotMachineSymbol);
             slotMachineUiState.leverUser = data.leverUser || slotMachineUiState.leverUser;
@@ -1469,19 +1553,25 @@ function handleSlotMachineEvent(message) {
             } else {
                 slotMachineUiState.resultText = data.matched
                     ? `Jackpot! +${data.perParticipantPoints || 0} pts each`
-                    : 'No bonus awarded';
+                    : 'Meh… no bonus this time.';
                 slotMachineUiState.resultType = data.matched ? 'success' : 'fail';
+                const hideDelay = data.matched ? 6000 : 3500;
+                scheduleSlotMachineAutoHide(hideDelay);
             }
             break;
         case 'no_entries':
+            enableSlotMachineOverlay();
             slotMachineUiState.status = 'No entries';
             slotMachineUiState.entries = [];
             slotMachineUiState.leverUser = null;
             slotMachineUiState.countdownMs = null;
             slotMachineUiState.symbols = getPlaceholderSlotSymbols();
-            slotMachineUiState.resultText = 'Waiting for next milestone';
+            slotMachineUiState.resultText = 'Meh… no entries this time.';
             slotMachineUiState.resultType = 'fail';
             slotMachineUiState.isTestRound = data.isTestRound === true;
+            if (!slotMachineUiState.isTestRound) {
+                scheduleSlotMachineAutoHide(3000);
+            }
             break;
         default:
             return;

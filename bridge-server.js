@@ -14,6 +14,7 @@ const http = require('http');
 const fs = require('fs');
 const url = require('url');
 const WebSocket = require('ws');
+const { processJoinCommand } = require('./lib/join-handler');
 
 // Debug flags - set to false in production for performance
 const DEBUG_LIFELINE_VOTING = false; // Enable only when debugging voting issues
@@ -2215,43 +2216,25 @@ wss.on('connection', (ws, req) => {
         
         // Check for hot seat entry (JOIN command)
         const messageText = typeof data.text === 'string' ? data.text : '';
-        const normalizedUsername = (data.username || '').trim();
-        const lowerUsername = normalizedUsername.toLowerCase();
-        const joinDetected = gameState.hot_seat_entry_active &&
-          normalizedUsername &&
-          /\bjoin\b/i.test(messageText);
 
-        if (joinDetected) {
-          if (!(gameState.hot_seat_entry_lookup instanceof Set)) {
-            const existingEntries = Array.isArray(gameState.hot_seat_entries)
-              ? gameState.hot_seat_entries
-              : [];
-            gameState.hot_seat_entry_lookup = new Set(
-              existingEntries
-                .map(name => (name || '').toLowerCase())
-                .filter(Boolean)
-            );
-          }
-
-          if (!gameState.hot_seat_entry_lookup.has(lowerUsername)) {
-            gameState.hot_seat_entry_lookup.add(lowerUsername);
-            gameState.hot_seat_entries.push(normalizedUsername);
-            console.log(`🎯 Hot Seat Entry: ${normalizedUsername} joined! (Total entries: ${gameState.hot_seat_entries.length})`);
-
-            // Broadcast entry count update
+        processJoinCommand({
+          gameState,
+          username: data.username,
+          messageText,
+          addSlotMachineEntry: (entryName) => addSlotMachineEntry(entryName),
+          onHotSeatEntryAdded: ({ username, totalEntries }) => {
+            console.log(`🎯 Hot Seat Entry: ${username} joined! (Total entries: ${totalEntries})`);
             broadcastToClients({
               type: 'hot_seat_entry_update',
-              entries: gameState.hot_seat_entries.length,
-              username: normalizedUsername,
+              entries: totalEntries,
+              username,
               timestamp: Date.now()
             });
-
-            // Mirror the entry into the slot machine round if active
-            addSlotMachineEntry(normalizedUsername);
-          } else {
-            console.log(`ℹ️ Ignoring duplicate hot seat entry from ${normalizedUsername}`);
+          },
+          onHotSeatDuplicate: (username) => {
+            console.log(`ℹ️ Ignoring duplicate hot seat entry from ${username}`);
           }
-        }
+        });
 
         // Add to gameshow participants for hot seat selection (chat activity)
         if (data.username && !gameState.gameshow_participants.includes(data.username)) {
@@ -5126,7 +5109,7 @@ function addSlotMachineEntry(username) {
   const round = gameState.slot_machine.current_round;
 
   if (!round || round.status !== 'collecting' || !username) {
-    return;
+    return false;
   }
 
   const normalized = username.toLowerCase();
@@ -5135,7 +5118,7 @@ function addSlotMachineEntry(username) {
   }
 
   if (round.entry_lookup.has(normalized)) {
-    return;
+    return false;
   }
 
   round.entry_lookup.add(normalized);
@@ -5147,6 +5130,8 @@ function addSlotMachineEntry(username) {
     latestEntry: username,
     isTestRound: !!round.is_test_round
   });
+
+  return true;
 }
 
 function concludeSlotMachineEntryRound(reason = 'timer') {
