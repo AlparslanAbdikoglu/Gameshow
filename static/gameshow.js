@@ -4059,7 +4059,13 @@ function handleAskAModDisplayUpdate(message) {
 }
 
 // Twitch Emote Definitions for mod response display
-const TWITCH_EMOTES = (typeof window !== 'undefined' && window.TWITCH_EMOTES) ? window.TWITCH_EMOTES : {};
+// Use a unique constant name so we don't redeclare the global TWITCH_EMOTES that
+// emotes-update.js places on window. Redeclaring the identifier caused
+// "Identifier 'TWITCH_EMOTES' has already been declared" which prevented the
+// rest of gameshow.js from executing inside OBS and other browsers.
+const OBS_TWITCH_EMOTES = (typeof window !== 'undefined' && window.TWITCH_EMOTES)
+  ? window.TWITCH_EMOTES
+  : {};
 // Function to replace Twitch emote text with images
 function replaceTwitchEmotes(text) {
   // HTML escape the text first for security
@@ -4071,12 +4077,12 @@ function replaceTwitchEmotes(text) {
     .replace(/'/g, '&#039;');
   
   // Sort emotes by length (longest first) to avoid partial replacements
-  const sortedEmotes = Object.keys(TWITCH_EMOTES).sort((a, b) => b.length - a.length);
+  const sortedEmotes = Object.keys(OBS_TWITCH_EMOTES).sort((a, b) => b.length - a.length);
   
   // Replace each emote with an img tag
   sortedEmotes.forEach(emote => {
     const regex = new RegExp(`\\b${emote}\\b`, 'g');
-    const imgTag = `<img src="${TWITCH_EMOTES[emote]}" alt="${emote}" style="display: inline-block; width: 24px; height: 24px; vertical-align: middle; margin: 0 2px;">`;
+    const imgTag = `<img src="${OBS_TWITCH_EMOTES[emote]}" alt="${emote}" style="display: inline-block; width: 24px; height: 24px; vertical-align: middle; margin: 0 2px;">`;
     processedText = processedText.replace(regex, imgTag);
   });
   
