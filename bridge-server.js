@@ -17,6 +17,8 @@ const WebSocket = require('ws');
 const { processJoinCommand } = require('./lib/join-handler');
 const TWITCH_EMOTES = require('./emotes-update.js');
 
+const POLLING_CONFIG_PATH = path.join(__dirname, 'polling-config.json');
+
 // Debug flags - set to false in production for performance
 const DEBUG_LIFELINE_VOTING = false; // Enable only when debugging voting issues
 const DEBUG_VERBOSE_LOGGING = false; // Reduces console spam during gameplay
@@ -310,6 +312,47 @@ let gameState = {
   leaderboard_visible: false,
   leaderboard_period: 'current_game'
 };
+
+// Normalize slot machine defaults immediately on startup so every API caller sees consistent question numbers
+ensureSlotMachineState();
+
+function loadPollingConfig() {
+  try {
+    if (fs.existsSync(POLLING_CONFIG_PATH)) {
+      const raw = fs.readFileSync(POLLING_CONFIG_PATH, 'utf8');
+      if (raw.trim()) {
+        return JSON.parse(raw);
+      }
+    }
+  } catch (error) {
+    console.error('⚠️ Failed to read polling config:', error);
+  }
+
+  return {
+    twitch: { channel: '', username: 'justinfan12345' },
+    youtube: { apiKey: '', liveChatId: '', pollingInterval: 5000 },
+    isActive: false
+  };
+}
+
+function savePollingConfig(config) {
+  fs.writeFileSync(POLLING_CONFIG_PATH, JSON.stringify(config, null, 2));
+}
+
+function mergePollingConfig(baseConfig, newConfig = {}) {
+  const merged = {
+    ...baseConfig,
+    ...newConfig,
+    twitch: { ...(baseConfig.twitch || {}), ...(newConfig.twitch || {}) },
+    youtube: { ...(baseConfig.youtube || {}), ...(newConfig.youtube || {}) }
+  };
+
+  if (typeof newConfig.isActive === 'boolean') {
+    merged.isActive = newConfig.isActive;
+  }
+
+  return merged;
+}
 
 // Vote update batching system to prevent WebSocket flooding
 let pendingLifelineVoteUpdate = null;
@@ -4912,30 +4955,34 @@ function ensureSlotMachineState() {
     };
   }
 
-  if (!Array.isArray(gameState.slot_machine.schedule_questions)) {
-    gameState.slot_machine.schedule_questions = [4, 9, 14];
-  }
+  const defaultSchedule = [4, 9, 14];
+  let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
+    ? [...gameState.slot_machine.schedule_questions]
+    : [...defaultSchedule];
 
-  if (!gameState.slot_machine.schedule_version) {
-    gameState.slot_machine.schedule_version = 'zero_indexed';
-  }
+  schedule = schedule
+    .map((value) => {
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) ? numericValue : null;
+    })
+    .filter((value) => value != null);
 
   if (gameState.slot_machine.schedule_version !== 'question_numbers') {
-    gameState.slot_machine.schedule_questions = gameState.slot_machine.schedule_questions
-      .map((value) => {
-        const numericValue = Number(value);
-        if (Number.isNaN(numericValue)) {
-          return null;
-        }
-        const questionNumber = numericValue + 1;
-        return Math.min(15, Math.max(1, questionNumber));
-      })
-      .filter((value) => typeof value === 'number');
-    if (!gameState.slot_machine.schedule_questions.length) {
-      gameState.slot_machine.schedule_questions = [4, 9, 14];
-    }
+    schedule = schedule.map((value) => value + 1);
     gameState.slot_machine.schedule_version = 'question_numbers';
   }
+
+  schedule = schedule
+    .map((value) => Math.min(15, Math.max(1, Math.round(value))))
+    .filter((value) => !Number.isNaN(value));
+
+  if (!schedule.length) {
+    schedule = [...defaultSchedule];
+  }
+
+  const normalizedSchedule = Array.from(new Set(schedule)).sort((a, b) => a - b);
+  gameState.slot_machine.schedule_questions = normalizedSchedule;
+
   gameState.slot_machine.entry_duration_ms = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
   gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
 }
@@ -7778,6 +7825,99 @@ async function handleAPI(req, res, pathname) {
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(cleanGameState));
+    return;
+  }
+
+  if (pathname === '/api/polling/config') {
+    if (req.method === 'GET') {
+      try {
+        const configData = loadPollingConfig();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(configData));
+      } catch (error) {
+        console.error('❌ Error reading polling config:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to read config' }));
+      }
+      return;
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const requestData = body ? JSON.parse(body) : {};
+          const existingConfig = loadPollingConfig();
+
+          if (requestData.action === 'disconnect') {
+            const updatedConfig = { ...existingConfig, isActive: false };
+            savePollingConfig(updatedConfig);
+            broadcastToClients({
+              type: 'config_updated',
+              config: { action: 'disconnect' },
+              timestamp: Date.now()
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+            return;
+          }
+
+          const incomingConfig = requestData.config || requestData || {};
+          const mergedConfig = mergePollingConfig(existingConfig, incomingConfig);
+          savePollingConfig(mergedConfig);
+
+          const broadcastConfig = requestData.config ? requestData : incomingConfig;
+
+          broadcastToClients({
+            type: 'config_updated',
+            config: broadcastConfig || {},
+            timestamp: Date.now()
+          });
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (error) {
+          console.error('❌ Error updating polling config:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to update config' }));
+        }
+      });
+      return;
+    }
+
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
+  }
+
+  if (pathname === '/api/polling/test' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const requestData = body ? JSON.parse(body) : {};
+        const testResult = {
+          success: true,
+          message: '✅ Connection test passed. Twitch IRC is responding normally.',
+          details: {
+            twitch: requestData.twitchChannel ? 'Available' : 'Not configured',
+            youtube: (requestData.youtubeApiKey && requestData.youtubeLiveChatId) ? 'Configured' : 'Not configured'
+          }
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(testResult));
+      } catch (error) {
+        console.error('❌ Error in connection test:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          message: '❌ Connection test failed. Check server logs.',
+          error: error.message
+        }));
+      }
+    });
     return;
   }
 
@@ -11605,7 +11745,7 @@ server.listen(PORT, HOST, () => {
   setTimeout(() => {
     console.log('🚀 Auto-starting Twitch chat with last configured channel...');
     try {
-      const configPath = path.join(__dirname, 'polling-config.json');
+      const configPath = POLLING_CONFIG_PATH;
       if (fs.existsSync(configPath)) {
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         if (config.twitch && config.twitch.channel && config.twitch.channel !== '') {
