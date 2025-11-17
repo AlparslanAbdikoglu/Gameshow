@@ -64,6 +64,7 @@ export interface SlotMachineRound {
 export interface SlotMachineState {
   enabled: boolean;
   schedule_questions: number[];
+  schedule_version?: 'zero_indexed' | 'question_numbers';
   entry_duration_ms: number;
   max_points?: number;
   current_round?: SlotMachineRound | null;

@@ -56,7 +56,7 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
     : (isTestRound ? 'Test Result' : 'Idle');
   const entryCount = round?.entries?.length || 0;
   const leverUser = round?.lever_candidate || slotMachine.last_round_result?.leverUser || '—';
-  const upcoming = (slotMachine.schedule_questions || []).map((index) => index + 1);
+  const upcoming = slotMachine.schedule_questions || [];
   const countdownSeconds = round && round.entry_started_at
     ? Math.max(0, Math.ceil((round.entry_duration_ms - (Date.now() - round.entry_started_at)) / 1000))
     : null;

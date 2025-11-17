@@ -203,7 +203,8 @@ let gameState = {
   // Slot machine bonus mode state
   slot_machine: {
     enabled: true,
-    schedule_questions: [3, 8, 13], // zero-indexed milestone questions (Questions 4, 9, 14)
+    schedule_questions: [4, 9, 14], // Question numbers (Q4, Q9, Q14) for automatic entry windows
+    schedule_version: 'question_numbers',
     entry_duration_ms: 60000,
     max_points: 25,
     current_round: null,
@@ -4902,7 +4903,8 @@ function ensureSlotMachineState() {
   if (!gameState.slot_machine) {
     gameState.slot_machine = {
       enabled: true,
-      schedule_questions: [3, 8, 13],
+      schedule_questions: [4, 9, 14],
+      schedule_version: 'question_numbers',
       entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
       max_points: 25,
       current_round: null,
@@ -4911,7 +4913,28 @@ function ensureSlotMachineState() {
   }
 
   if (!Array.isArray(gameState.slot_machine.schedule_questions)) {
-    gameState.slot_machine.schedule_questions = [3, 8, 13];
+    gameState.slot_machine.schedule_questions = [4, 9, 14];
+  }
+
+  if (!gameState.slot_machine.schedule_version) {
+    gameState.slot_machine.schedule_version = 'zero_indexed';
+  }
+
+  if (gameState.slot_machine.schedule_version !== 'question_numbers') {
+    gameState.slot_machine.schedule_questions = gameState.slot_machine.schedule_questions
+      .map((value) => {
+        const numericValue = Number(value);
+        if (Number.isNaN(numericValue)) {
+          return null;
+        }
+        const questionNumber = numericValue + 1;
+        return Math.min(15, Math.max(1, questionNumber));
+      })
+      .filter((value) => typeof value === 'number');
+    if (!gameState.slot_machine.schedule_questions.length) {
+      gameState.slot_machine.schedule_questions = [4, 9, 14];
+    }
+    gameState.slot_machine.schedule_version = 'question_numbers';
   }
   gameState.slot_machine.entry_duration_ms = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
   gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
@@ -8955,8 +8978,9 @@ async function handleAPI(req, res, pathname) {
             const hotSeatMilestones = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
             ensureSlotMachineState();
             const slotMachineSchedule = gameState.slot_machine?.schedule_questions || [];
+            const currentQuestionNumber = gameState.current_question + 1;
             const isHotSeatMilestone = gameState.hot_seat_enabled && hotSeatMilestones.includes(gameState.current_question);
-            const isSlotMachineMilestone = gameState.slot_machine?.enabled && slotMachineSchedule.includes(gameState.current_question);
+            const isSlotMachineMilestone = gameState.slot_machine?.enabled && slotMachineSchedule.includes(currentQuestionNumber);
 
             if (isHotSeatMilestone || isSlotMachineMilestone) {
               if (isHotSeatMilestone) {
