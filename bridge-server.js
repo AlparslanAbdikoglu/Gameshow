@@ -14,6 +14,10 @@ const http = require('http');
 const fs = require('fs');
 const url = require('url');
 const WebSocket = require('ws');
+const { processJoinCommand } = require('./lib/join-handler');
+const TWITCH_EMOTES = require('./emotes-update.js');
+
+const POLLING_CONFIG_PATH = path.join(__dirname, 'polling-config.json');
 
 // Debug flags - set to false in production for performance
 const DEBUG_LIFELINE_VOTING = false; // Enable only when debugging voting issues
@@ -198,6 +202,16 @@ let gameState = {
   final_game_winners: [],     // Top winners from the most recent completed game
   finalLeaderboardShown: false,
   pending_endgame_sequence: false,
+  // Slot machine bonus mode state
+  slot_machine: {
+    enabled: true,
+    schedule_questions: [4, 9, 14], // Question numbers (Q4, Q9, Q14) for automatic entry windows
+    schedule_version: 'question_numbers',
+    entry_duration_ms: 60000,
+    max_points: 25,
+    current_round: null,
+    last_round_result: null
+  },
   endgame_ready_timestamp: null,
   // Ask a Mod Feature States
   ask_a_mod_active: false,    // Is Ask a Mod lifeline currently active
@@ -298,6 +312,47 @@ let gameState = {
   leaderboard_visible: false,
   leaderboard_period: 'current_game'
 };
+
+// Normalize slot machine defaults immediately on startup so every API caller sees consistent question numbers
+ensureSlotMachineState();
+
+function loadPollingConfig() {
+  try {
+    if (fs.existsSync(POLLING_CONFIG_PATH)) {
+      const raw = fs.readFileSync(POLLING_CONFIG_PATH, 'utf8');
+      if (raw.trim()) {
+        return JSON.parse(raw);
+      }
+    }
+  } catch (error) {
+    console.error('⚠️ Failed to read polling config:', error);
+  }
+
+  return {
+    twitch: { channel: '', username: 'justinfan12345' },
+    youtube: { apiKey: '', liveChatId: '', pollingInterval: 5000 },
+    isActive: false
+  };
+}
+
+function savePollingConfig(config) {
+  fs.writeFileSync(POLLING_CONFIG_PATH, JSON.stringify(config, null, 2));
+}
+
+function mergePollingConfig(baseConfig, newConfig = {}) {
+  const merged = {
+    ...baseConfig,
+    ...newConfig,
+    twitch: { ...(baseConfig.twitch || {}), ...(newConfig.twitch || {}) },
+    youtube: { ...(baseConfig.youtube || {}), ...(newConfig.youtube || {}) }
+  };
+
+  if (typeof newConfig.isActive === 'boolean') {
+    merged.isActive = newConfig.isActive;
+  }
+
+  return merged;
+}
 
 // Vote update batching system to prevent WebSocket flooding
 let pendingLifelineVoteUpdate = null;
@@ -416,129 +471,7 @@ function hideLeaderboardOverlay() {
 let currentQuestionVotes = [];  // Array of {username, answer, timestamp, isCorrect}
 let firstCorrectVoters = [];    // Track first 3 correct voters for bonus points
 
-// Twitch Emote Definitions for chat display
-const TWITCH_EMOTES = {
-  // Original emotes from first list
-  'k1m6aClipit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c6a0b28a6a5548c8b64698444174173a/default/dark/2.0',
-  'k1m6aChef': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_24c6bfc0497a4c96892cf3c3bc01fe48/default/dark/2.0',
-  'k1m6aCo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5b17cf73d7d5417aa8f37b8bb9f6e0fe/default/dark/2.0',
-  'k1m6aHappyJam': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1e21c9ad16cf4ffa8f8e73df44d4e58f/default/dark/2.0',
-  'k1m6aHorse': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ef95fef0a0d74e6db614d4dac82b8f5f/default/dark/2.0',
-  'k1m6aHotel': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f3e5e68ba91c4fb3beeaaa69ad14e51f/default/dark/2.0',
-  'k1m6aLove': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_767294f4fbf14deaa65487efb5e11b55/default/dark/2.0',
-  'k1m6aJam': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e849d7766e9e4293a881e75f8139552c/default/dark/2.0',
-  'k1m6aLul': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_04f3c7fe0428460e855cbd6a62aa8b07/default/dark/2.0',
-  'k1m6aBaby': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e36e16f7e6304e949de83f92e4e7d8bb/default/dark/2.0',
-  'k1m6aLeech': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b40ba59b36084f7db37e88c0b4fce24f/default/dark/2.0',
-  'k1m6aSteer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7f852081c9a14efe9bde161c4359a528/default/dark/2.0',
-  'k1m6aKk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2e32b96c8e77461c857c0e90de1f9d4f/default/dark/2.0',
-  'k1m6aTrain': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4cf670d5fa8242ebab89a6ab5c616771/default/dark/2.0',
-  'k1m6aDj': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8cf31502415443788a03fe3aefc1a7af/default/dark/2.0',
-  'k1m6aBlock': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_45bbf656cd1c42e3ab9d2bb614dc6b2e/default/dark/2.0',
-  'k1m6aPalmtree': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a1dfffa070c6420d9b673b3b1f1f0acf/default/dark/2.0',
-  'k1m6aPizza': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ab88a0dbf28c486d8e079e23e973e83f/default/dark/2.0',
-  'k1m6aSunshine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e1f21e4e7fea439a9b36f0ba02b0e7ee/default/dark/2.0',
-  'k1m6aPsgjuice': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ea0ac815167448e7a1cafde20fe93427/default/dark/2.0',
-  'k1m6aSmile': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3fea13ba7b5e455a93cc959dfb0e0c86/default/dark/2.0',
-  'k1m6aGlizz': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b1a067c85b2349ffa1e1b6e39f8e4bc6/default/dark/2.0',
-  'k1m6aChin': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cae4cf9b3de842b995f5ba982f7bb370/default/dark/2.0',
-  'k1m6aNoshot': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e06de7c832b0440b8f96ba067b9fbb96/default/dark/2.0',
-  'k1m6aSalute': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b6e561b15bb1485683e3bdb862204b49/default/dark/3.0',
-  'k1m6aShotty': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f30f82c8e6de4b2e92797ab59f2df36e/default/dark/2.0',
-  'k1m6aMonkey': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d91f03c0cc35425db3cf7f8b83025595/default/dark/2.0',
-  'k1m6aShiba': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_63c1e5f3b8ca4c72827297e6f03bb53e/default/dark/2.0',
-  'k1m6aSpray': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1cf332c5e73b45e18d23f95c1c6cf2f5/default/dark/2.0',
-  'k1m6aRice': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_78ae7cdf89814354a09a50be08d9ea22/default/dark/2.0',
-  'k1m6aBowl': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f1322c73e93a4bb08897fb50802e0cd2/default/dark/2.0',
-  'k1m6aWine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1a0b4c33bb92417e855dc8cdb06d46da/default/dark/2.0',
-  'k1m6aCheer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d1ae4b977a2c40b5b6f8acef7fa17cd1/default/dark/2.0',
-  'k1m6aChew': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b3a97a6dea0e415993b5b666e5f69e95/default/dark/2.0',
-  'k1m6aDrop': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_83e1e1e0b09e46ed89802d98dc1c00ce/default/dark/2.0',
-  'k1m6aGreenscreen': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_30dcf8de63fb4b9fb891bbaf95cca80a/default/dark/2.0',
-  'k1m6aStupid': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_96c07f1a9c96426bbfdf1e1bc4f99c04/default/dark/2.0',
-  'k1m6aLongbeach': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9e012ced913a412a9cbfb973d8e5b3a7/default/dark/2.0',
-  'k1m6aNotb': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_24a1a1d0b2f64b659ca09b6e88d09fb1/default/dark/2.0',
-  'k1m6aMatcha': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3b26cf9fbe9f4bc58a860f7f5f616ef7/default/dark/2.0',
-  'k1m6aLetcook': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dbe732bb16254bb7876caf1b6b1c14f1/default/dark/2.0',
-  'k1m6aMuni': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f3c5f4f2bf9848b4851e5c7d30c10f76/default/dark/2.0',
-  'k1m6aFb': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_97b2b18b37e9485099ad7c12a8fa47f5/default/dark/2.0',
-  'k1m6aRamen': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1b2b93f1cf6543b495e969f51e6fda31/default/dark/2.0',
-  'k1m6aSoju': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7090e951f6a14bc5b7ef2e5ea37dc970/default/dark/2.0',
-  'k1m6aIce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ee70fe2c3e5948e09d973f4dd6c614f0/default/dark/2.0',
-  'k1m6aEarl': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2f2c957e3a2d4eb7849fc6e26fa2ec4b/default/dark/2.0',
-  'k1m6aCoomer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e088b65bb2cf472d9b4e6a52d616e6fa/default/dark/2.0',
-  'k1m6aFunkycoomer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_fd7ee96c00ef4063825f9b48eceeed66/default/dark/2.0',
-  'k1m6aObo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4fefa69bb6db469097eeb8bb99987c2a/default/dark/2.0',
-  'k1m6aOk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d63f079b08ee4dffbc44e73dcff2b10f/default/dark/2.0',
-  'k1m6aSnore': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f26e1f8b15ad49c7afd18c89abaab22f/default/dark/2.0',
-  'k1m6aRun': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3b0ad39b67fa4c57ac7f4f87f2cc2b4f/default/dark/2.0',
-  'k1m6aCake': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d7f0b4e5aa174fc3a19e646c4c8aa48f/default/dark/2.0',
-  'k1m6aEgg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e2a7e67a7e914c97a9bb646d8e7c62e3/default/dark/2.0',
-  'k1m6aJj': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7a9f670b0cf54b5c9cf6f7b5ad0a4f42/default/dark/2.0',
-  'k1m6aFrog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_fad59febe61647e099b1e81e1fdb8a8f/default/dark/2.0',
-  'k1m6aHeart': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d088de4a03514f59a566f0ad97de0595/default/dark/2.0',
-  'k1m6aChamp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dca4c5f1b0b943c7849d5a85fb6c2dcc/default/dark/2.0',
-  'k1m6aBoom': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_aff4b7cb58094f6fb95f95e2bdf3f7f8/default/dark/2.0',
-  'k1m6aSick': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c4e3c7c67c2a495198ea9cc982e31dd7/default/dark/2.0',
-  'k1m6aFr': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e1cf1c28f98d49c6bfba50c80ee82b5f/default/dark/2.0',
-  'k1m6aFrr': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1e25e5c8eeb04e839d34c1b0ea58a6a5/default/dark/2.0',
-  'k1m6aPink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b0e35b17a63d4dd78ac1cf6d14f9cf5e/default/dark/2.0',
-  'k1m6aReally': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_66f27cd5cf764bb2ad4e8d52bfa3c9ba/default/dark/2.0',
-  'k1m6aStand': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_96f1e74bb7fc4d42ad842a9c0e7fb1e9/default/dark/2.0',
-  'k1m6aShip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a860feac7bff4e7587e6e8bb2b6aac68/default/dark/2.0',
-  'k1m6aWoody': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_67feaf4b70224bc4adff7db8b893bf37/default/dark/2.0',
-  'k1m6aWiggle': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b1bf32c01cf146ba83da3b4b8c5ced17/default/dark/2.0',
-  'k1m6aWink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4b1c6e88c6254c129ed64e4ea3b69e1b/default/dark/2.0',
-  'k1m6aWow': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f7ef5bfe0c3942c89f35f2a6b9c42c7e/default/dark/2.0',
-  'k1m6aZen': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4896b4cd0b26433abc0f09bb04a72de1/default/dark/2.0',
-  // Additional emotes from updated list
-  'k1m6aCarried': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_68877ffd62914c0baf656683a56885e3/default/dark/2.0',
-  'k1m6aBonk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_6d4a3720c4ca4553a9f7d09ecc228d1c/default/dark/2.0',
-  'k1m6aBlind': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_008fc17538c54d7baf69325b406d421b/default/dark/2.0',
-  'k1m6aBlade': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d4688e604455438e990eda8bfe386621/default/dark/2.0',
-  'k1m6aBan': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a09c3654c25f4a9194ac04951e867285/default/dark/2.0',
-  'k1m6aAstronaut': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c261a2bf5aef4f20a05876f12acfde0b/default/dark/2.0',
-  'k1m6a1010': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8948832ab3834d34bd62ade32a697858/default/dark/2.0',
-  'k1m6aCrab': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5bcd86cb8351436c84a5a90927e91d2a/default/dark/2.0',
-  'k1m6aCozy': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_10002a6ae9cc4f50a5ca94949ca4a096/default/dark/2.0',
-  'k1m6aCopium': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5eca88a8751f4a04b5882b70304e4053/default/dark/2.0',
-  'k1m6aCool': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_19d1d2370d7e49d08926d9c40f1cf699/default/dark/2.0',
-  'k1m6aConfused': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1d50d00f2a1444f4a4952f3aaf562ede/default/dark/2.0',
-  'k1m6aCoffeesip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_116a23cc11734b41b27f6f922b62f630/default/dark/2.0',
-  'k1m6aCoffee': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_413469c842154f72853b651c6db8c0f4/default/dark/2.0',
-  'k1m6aClown': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b289f3411b9b4ccc862385d4d20c26a0/default/dark/2.0',
-  'k1m6aDerp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_681daf912abc479980401475f6b9c082/default/dark/2.0',
-  'k1m6aDevil': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a370f93b4f9744989b2ab2d357dd061c/default/dark/2.0',
-  'k1m6aDoit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f6971cbe0867419085814dd09ba3ee2f/default/dark/2.0',
-  'k1m6aFacepalm': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5db4850780504895ab219bdcd03339ab/default/dark/2.0',
-  'k1m6aFail': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0435ef9b206b459aae88657265db15a8/default/dark/2.0',
-  'k1m6aFine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e9eaecce2b094260b0f4b39bc95b70d0/default/dark/2.0',
-  'k1m6aFlower': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9440e8eae9e44659b39c3380007b05cd/default/dark/2.0',
-  'k1m6aGasm': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_26ae96c88de64ecab0f5deab4643caff/default/dark/2.0',
-  'k1m6aGasp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8ee142074d2f41429ffc803ff890a290/default/dark/2.0',
-  'k1m6aGg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_6d97ed643b5a4e19a7ce156a02dede7c/default/dark/2.0',
-  'k1m6aGhost': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ec96872a82c34e32bf3d9729647ed717/default/dark/2.0',
-  'k1m6aGift': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b0b9ae66f2b74b6fbdab36669ab9a25e/default/dark/2.0',
-  'k1m6aGrinch': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4dea8452193446d3bc8abe1ae9d79095/default/dark/2.0',
-  'k1m6aHotdog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3dd3518f01584e1b89401adebc037035/default/dark/2.0',
-  'k1m6aHug': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2650294ab5c14ad789210a5002178c6b/default/dark/2.0',
-  'k1m6aHydrate': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c1b78e615a1e4cf9b84566d1e00eebd2/default/dark/2.0',
-  'k1m6aHype': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8aa322d7459e4f86aa65fef5fe5880fb/default/dark/2.0',
-  'k1m6aJason': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_85afabbfc15e49c69c9064ae5b8bd6bd/default/dark/2.0',
-  'k1m6aKekw': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_48b672a057f74de0b953f7004c66d8b9/default/dark/2.0',
-  'k1m6aL': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a383d8c68a0444dd8e2bf1b9ee0b3c30/default/dark/2.0',
-  'k1m6aLearn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_95fb44fddcaf48069e02f4ef5d84ff82/default/dark/2.0',
-  'k1m6aLettuce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_33109ae4e55d45838bf0895d226a8a8c/default/dark/2.0',
-  'k1m6aLurk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dbcaac379c324382b41b6fbc716f3966/default/dark/2.0',
-  'k1m6aMod': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ca20669eb3d9410dbe6907d3fb427fd5/default/dark/2.0',
-  'k1m6aMoney': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e84f0755bec84b8da286011bcf9503d1/default/dark/2.0',
-  'k1m6aNo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e555a2b5667e4a73bc55f163ff1a6fc9/default/dark/2.0',
-  'k1m6aPat': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_300ed456269c49928bc5d0db072a9c95/default/dark/2.0',
-  'k1m6aPew': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d763ee290c774744a6b006754ae6b52b/default/dark/2.0',
-  'k1m6aPixel': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cc583397b8d14507af71592fc3b15c2b/default/dark/2.0',
-  'k1m6aPog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_03b9318aa256404590085b7aad65eb82/default/dark/2.0',
-  'k1m6aPopcorn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_bfdfdcf6304e4ec4a4890449601cc0ba/default/dark/2.0'
-};
+// Twitch emote definitions for chat display are loaded from emotes-update.js.
 
 // Function to replace Twitch emote keywords with HTML img tags
 
@@ -893,6 +826,15 @@ function startGiveawayTimer() {
     giveawayTimerInterval = null;
   }
 
+  ensureSlotMachineState();
+  if (gameState.slot_machine && gameState.slot_machine.current_round) {
+    cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+    gameState.slot_machine.current_round = null;
+  }
+  if (gameState.slot_machine) {
+    gameState.slot_machine.last_round_result = null;
+  }
+
   if (pendingEndgameInterval) {
     clearInterval(pendingEndgameInterval);
     pendingEndgameInterval = null;
@@ -1209,6 +1151,25 @@ const server = http.createServer(async (req, res) => {
       });
       res.end(data);
       console.log(`📂 Served static file: ${fileName}`);
+    });
+    return;
+  }
+
+  if (pathname === '/emotes-update.js') {
+    const filePath = path.join(__dirname, 'emotes-update.js');
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        console.error('❌ Emotes definition file not found:', filePath, err);
+        res.writeHead(404);
+        res.end('Emotes file not found');
+        return;
+      }
+
+      res.writeHead(200, {
+        'Content-Type': 'text/javascript',
+        'Cache-Control': 'public, max-age=300'
+      });
+      res.end(data);
     });
     return;
   }
@@ -1844,16 +1805,13 @@ wss.on('connection', (ws, req) => {
   // Detect potential reconnection patterns
   detectReconnection(clientIP, clientId);
   
-  // Add connection stability improvements for development environment
-  const isDevelopment = clientIP === '::1' || clientIP === '127.0.0.1' || clientIP === '::ffff:127.0.0.1';
-  
-  // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-  const cleanGameState = { ...gameState };
-  delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-  delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-  delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-  delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+    // Add connection stability improvements for development environment
+    const isDevelopment = clientIP === '::1' || clientIP === '127.0.0.1' || clientIP === '::ffff:127.0.0.1';
+
+    const cleanGameState = createSerializableGameState({
+      includeQuestionData: true,
+      includePrizes: true
+    });
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -2008,25 +1966,10 @@ wss.on('connection', (ws, req) => {
           console.log('🔄 Sending full state sync to newly registered browser_source');
           
           // Send current game state immediately
-          const cleanGameState = { ...gameState };
-          delete cleanGameState.lifeline_countdown_interval;
-          delete cleanGameState.hot_seat_timer_interval;
-          delete cleanGameState.hot_seat_entry_timer_interval;
-          delete cleanGameState.hot_seat_prestart_interval;
-          delete cleanGameState.hot_seat_entry_lookup;
-
-          // Convert Set to Array for JSON serialization
-          if (cleanGameState.processed_mod_messages instanceof Set) {
-            cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
-          }
-          
-          // Include current question data if a question is visible
-          if (cleanGameState.question_visible && questions[cleanGameState.current_question]) {
-            cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
-          }
-          
-          // Include prize amounts for money ladder
-          cleanGameState.prizes = prizeAmounts;
+          const cleanGameState = createSerializableGameState({
+            includeQuestionData: true,
+            includePrizes: true
+          });
           
           const stateMessage = JSON.stringify({
             type: 'state',
@@ -2185,41 +2128,26 @@ wss.on('connection', (ws, req) => {
         
         // Check for hot seat entry (JOIN command)
         const messageText = typeof data.text === 'string' ? data.text : '';
-        const normalizedUsername = (data.username || '').trim();
-        const lowerUsername = normalizedUsername.toLowerCase();
-        const joinDetected = gameState.hot_seat_entry_active &&
-          normalizedUsername &&
-          /\bjoin\b/i.test(messageText);
 
-        if (joinDetected) {
-          if (!(gameState.hot_seat_entry_lookup instanceof Set)) {
-            const existingEntries = Array.isArray(gameState.hot_seat_entries)
-              ? gameState.hot_seat_entries
-              : [];
-            gameState.hot_seat_entry_lookup = new Set(
-              existingEntries
-                .map(name => (name || '').toLowerCase())
-                .filter(Boolean)
-            );
-          }
-
-          if (!gameState.hot_seat_entry_lookup.has(lowerUsername)) {
-            gameState.hot_seat_entry_lookup.add(lowerUsername);
-            gameState.hot_seat_entries.push(normalizedUsername);
-            console.log(`🎯 Hot Seat Entry: ${normalizedUsername} joined! (Total entries: ${gameState.hot_seat_entries.length})`);
-
-            // Broadcast entry count update
+        processJoinCommand({
+          gameState,
+          username: data.username,
+          messageText,
+          addSlotMachineEntry: (entryName) => addSlotMachineEntry(entryName),
+          onHotSeatEntryAdded: ({ username, totalEntries }) => {
+            console.log(`🎯 Hot Seat Entry: ${username} joined! (Total entries: ${totalEntries})`);
             broadcastToClients({
               type: 'hot_seat_entry_update',
-              entries: gameState.hot_seat_entries.length,
-              username: normalizedUsername,
+              entries: totalEntries,
+              username,
               timestamp: Date.now()
             });
-          } else {
-            console.log(`ℹ️ Ignoring duplicate hot seat entry from ${normalizedUsername}`);
+          },
+          onHotSeatDuplicate: (username) => {
+            console.log(`ℹ️ Ignoring duplicate hot seat entry from ${username}`);
           }
-        }
-        
+        });
+
         // Add to gameshow participants for hot seat selection (chat activity)
         if (data.username && !gameState.gameshow_participants.includes(data.username)) {
           gameState.gameshow_participants.push(data.username);
@@ -2669,6 +2597,56 @@ wss.on('connection', (ws, req) => {
 let lastBroadcastTime = 0;
 const BROADCAST_THROTTLE_MS = 100; // Minimum 100ms between broadcasts
 
+function createSerializableGameState(options = {}) {
+  const {
+    includeQuestions = false,
+    includeCurrentQuestion = false,
+    includeQuestionData = false,
+    includePrizes = false
+  } = options;
+
+  const cleanGameState = { ...gameState };
+  delete cleanGameState.lifeline_countdown_interval;
+  delete cleanGameState.hot_seat_timer_interval;
+  delete cleanGameState.hot_seat_entry_timer_interval;
+  delete cleanGameState.hot_seat_prestart_interval;
+  delete cleanGameState.hot_seat_entry_lookup;
+
+  if (cleanGameState.processed_mod_messages instanceof Set) {
+    cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
+  }
+
+  if (cleanGameState.slot_machine) {
+    cleanGameState.slot_machine = { ...cleanGameState.slot_machine };
+    if (cleanGameState.slot_machine.current_round) {
+      const sanitizedRound = { ...cleanGameState.slot_machine.current_round };
+      delete sanitizedRound.entry_lookup;
+      delete sanitizedRound.entry_interval;
+      delete sanitizedRound.entry_timeout;
+      delete sanitizedRound.auto_spin_timeout;
+      cleanGameState.slot_machine.current_round = sanitizedRound;
+    }
+  }
+
+  if (includeQuestionData && cleanGameState.question_visible && questions[cleanGameState.current_question]) {
+    cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
+  }
+
+  if (includeCurrentQuestion && questions[cleanGameState.current_question]) {
+    cleanGameState.currentQuestion = questions[cleanGameState.current_question];
+  }
+
+  if (includeQuestions) {
+    cleanGameState.questions = questions;
+  }
+
+  if (includePrizes) {
+    cleanGameState.prizes = prizeAmounts;
+  }
+
+  return cleanGameState;
+}
+
 // Broadcast state updates to all connected clients
 function broadcastState(force = false, critical = false) {
   // Throttle broadcasts to prevent browser overload (unless forced or critical)
@@ -2677,51 +2655,29 @@ function broadcastState(force = false, critical = false) {
     return; // Skip this broadcast to prevent spam
   }
   lastBroadcastTime = now;
-  
+
   // Log critical broadcasts for debugging
   if (critical) {
     console.log('🚨 CRITICAL broadcast bypassing throttle');
   }
-  
+
   // DEBUG: Log when broadcasting with answer_locked_in = true
   if (DEBUG_BROADCAST_LOGGING && gameState.answer_locked_in) {
     console.log(`📡 broadcastState() called with answer_locked_in = true, selected_answer = ${gameState.selected_answer}`);
   }
-  
-  // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-  const cleanGameState = { ...gameState };
-  delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-  delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-  delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-  delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
 
-  // Convert Set to Array for JSON serialization
-  if (cleanGameState.processed_mod_messages instanceof Set) {
-    cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
-  }
-  
-  // Include current question data if a question is visible
-  if (cleanGameState.question_visible && questions[cleanGameState.current_question]) {
-    cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
-  }
-  
-  // Include ALL questions for control panel (fixes questions disappearing after votes)
-  cleanGameState.questions = questions;
-  
-  // Include current question for control panel display
-  if (questions && questions[cleanGameState.current_question]) {
-    cleanGameState.currentQuestion = questions[cleanGameState.current_question];
-  }
-  
-  // Include prize amounts for money ladder
-  cleanGameState.prizes = prizeAmounts;
-  
+  const cleanGameState = createSerializableGameState({
+    includeQuestions: true,
+    includeCurrentQuestion: true,
+    includeQuestionData: true,
+    includePrizes: true
+  });
+
   const message = JSON.stringify({
     type: 'state',
     data: cleanGameState
   });
-  
+
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
@@ -4957,6 +4913,369 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
+// Slot Machine Bonus Mode Helpers
+const SLOT_MACHINE_FALLBACK_SYMBOLS = [
+  { id: 'leo', label: 'Leo', emoji: '🦁', emojiUrl: null },
+  { id: 'crown', label: 'Crown', emoji: '👑', emojiUrl: null },
+  { id: 'claw', label: 'Claw', emoji: '🐾', emojiUrl: null },
+  { id: 'star', label: 'Star', emoji: '⭐', emojiUrl: null }
+];
+const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code, url]) => ({
+  id: code,
+  label: code,
+  emoji: code,
+  emojiUrl: url
+}));
+
+function getSlotMachineSymbolPool() {
+  return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
+}
+
+function drawSlotMachineSymbol() {
+  const pool = getSlotMachineSymbolPool();
+  const symbol = pool[Math.floor(Math.random() * pool.length)];
+  return {
+    id: symbol.id,
+    label: symbol.label || symbol.id,
+    emoji: symbol.emoji || symbol.id,
+    emojiUrl: symbol.emojiUrl || symbol.url || null
+  };
+}
+
+function ensureSlotMachineState() {
+  if (!gameState.slot_machine) {
+    gameState.slot_machine = {
+      enabled: true,
+      schedule_questions: [4, 9, 14],
+      schedule_version: 'question_numbers',
+      entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
+      max_points: 25,
+      current_round: null,
+      last_round_result: null
+    };
+  }
+
+  const defaultSchedule = [4, 9, 14];
+  let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
+    ? [...gameState.slot_machine.schedule_questions]
+    : [...defaultSchedule];
+
+  schedule = schedule
+    .map((value) => {
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) ? numericValue : null;
+    })
+    .filter((value) => value != null);
+
+  if (gameState.slot_machine.schedule_version !== 'question_numbers') {
+    schedule = schedule.map((value) => value + 1);
+    gameState.slot_machine.schedule_version = 'question_numbers';
+  }
+
+  schedule = schedule
+    .map((value) => Math.min(15, Math.max(1, Math.round(value))))
+    .filter((value) => !Number.isNaN(value));
+
+  if (!schedule.length) {
+    schedule = [...defaultSchedule];
+  }
+
+  const normalizedSchedule = Array.from(new Set(schedule)).sort((a, b) => a - b);
+  gameState.slot_machine.schedule_questions = normalizedSchedule;
+
+  gameState.slot_machine.entry_duration_ms = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
+  gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
+}
+
+function broadcastSlotMachineEvent(event, payload = {}) {
+  broadcastToClients({
+    type: 'slot_machine_event',
+    event,
+    timestamp: Date.now(),
+    data: payload
+  });
+}
+
+function cleanupSlotMachineRoundTimers(round) {
+  if (!round) return;
+  if (round.entry_interval) {
+    clearInterval(round.entry_interval);
+    round.entry_interval = null;
+  }
+  if (round.entry_timeout) {
+    clearTimeout(round.entry_timeout);
+    round.entry_timeout = null;
+  }
+  if (round.auto_spin_timeout) {
+    clearTimeout(round.auto_spin_timeout);
+    round.auto_spin_timeout = null;
+  }
+}
+
+function startSlotMachineEntryRound(questionIndex) {
+  ensureSlotMachineState();
+
+  if (!gameState.slot_machine.enabled) {
+    console.log('🎰 Slot machine disabled - skipping entry round');
+    return;
+  }
+
+  if (gameState.slot_machine.current_round &&
+    ['collecting', 'awaiting_lever', 'spinning'].includes(gameState.slot_machine.current_round.status)) {
+    console.log('🎰 Slot machine round already active, skipping new start');
+    return;
+  }
+
+  const duration = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
+  const round = {
+    question_index: questionIndex,
+    status: 'collecting',
+    entry_started_at: Date.now(),
+    entry_duration_ms: duration,
+    entries: [],
+    entry_lookup: new Set(),
+    entry_interval: null,
+    entry_timeout: null,
+    lever_candidate: null,
+    spin_requested_by: null,
+    auto_spin_timeout: null,
+    is_test_round: false
+  };
+
+  gameState.slot_machine.current_round = round;
+
+  broadcastSlotMachineEvent('entry_started', {
+    questionNumber: questionIndex + 1,
+    duration,
+    isTestRound: false
+  });
+  broadcastState(true);
+
+  round.entry_interval = setInterval(() => {
+    const elapsed = Date.now() - round.entry_started_at;
+    const remaining = Math.max(0, round.entry_duration_ms - elapsed);
+
+    broadcastSlotMachineEvent('entry_tick', {
+      questionNumber: questionIndex + 1,
+      remaining,
+      entries: round.entries.length,
+      isTestRound: !!round.is_test_round
+    });
+
+    if (remaining <= 0) {
+      concludeSlotMachineEntryRound('timer');
+    }
+  }, 1000);
+
+  round.entry_timeout = setTimeout(() => concludeSlotMachineEntryRound('timer'), duration);
+}
+
+function addSlotMachineEntry(username) {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || round.status !== 'collecting' || !username) {
+    return false;
+  }
+
+  const normalized = username.toLowerCase();
+  if (!round.entry_lookup) {
+    round.entry_lookup = new Set(round.entries.map((name) => name.toLowerCase()));
+  }
+
+  if (round.entry_lookup.has(normalized)) {
+    return false;
+  }
+
+  round.entry_lookup.add(normalized);
+  round.entries.push(username);
+
+  broadcastSlotMachineEvent('entry_update', {
+    questionNumber: round.question_index + 1,
+    entries: round.entries.length,
+    latestEntry: username,
+    isTestRound: !!round.is_test_round
+  });
+
+  // Keep any state subscribers (like the SlotMachinePanel) up-to-date with
+  // the new entry count rather than only the slot_machine_event payload.
+  broadcastState(true);
+
+  return true;
+}
+
+function concludeSlotMachineEntryRound(reason = 'timer') {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || round.status !== 'collecting') {
+    return;
+  }
+
+  cleanupSlotMachineRoundTimers(round);
+  round.status = 'awaiting_lever';
+
+  if (round.entries.length === 0) {
+    broadcastSlotMachineEvent('no_entries', {
+      questionNumber: round.question_index + 1,
+      reason,
+      isTestRound: !!round.is_test_round
+    });
+    gameState.slot_machine.current_round = null;
+    broadcastState(true);
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * round.entries.length);
+  round.lever_candidate = round.entries[randomIndex];
+
+  broadcastSlotMachineEvent('lever_ready', {
+    questionNumber: round.question_index + 1,
+    leverUser: round.lever_candidate,
+    entries: round.entries.length,
+    isTestRound: !!round.is_test_round
+  });
+  broadcastState(true);
+
+  if (!round.is_test_round) {
+    round.auto_spin_timeout = setTimeout(() => spinSlotMachineRound('auto_lever'), 4000);
+  }
+}
+
+function spinSlotMachineRound(source = 'system') {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || (round.status !== 'awaiting_lever' && round.status !== 'collecting')) {
+    return;
+  }
+
+  cleanupSlotMachineRoundTimers(round);
+  round.status = 'spinning';
+  round.spin_requested_by = source;
+  round.auto_spin_timeout = null;
+
+  broadcastSlotMachineEvent('spin_started', {
+    questionNumber: round.question_index + 1,
+    entries: round.entries.length,
+    leverUser: round.lever_candidate || null,
+    isTestRound: !!round.is_test_round
+  });
+  broadcastState(true);
+
+  setTimeout(() => {
+    const symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
+    const firstSymbol = symbols[0];
+    const jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
+    let perParticipantPoints = 0;
+    let totalAwardedPoints = 0;
+
+    if (!round.is_test_round && jackpot && round.entries.length > 0) {
+      const maxPoints = gameState.slot_machine.max_points || 25;
+      const basePer = Math.floor(maxPoints / round.entries.length);
+      perParticipantPoints = basePer > 0 ? basePer : (round.entries.length <= maxPoints ? 1 : 0);
+
+      totalAwardedPoints = perParticipantPoints * round.entries.length;
+      if (totalAwardedPoints > maxPoints) {
+        perParticipantPoints = Math.floor(maxPoints / round.entries.length);
+        totalAwardedPoints = perParticipantPoints * round.entries.length;
+      }
+
+      if (perParticipantPoints > 0) {
+        round.entries.forEach((entryUsername) => {
+          addPointsToPlayer(entryUsername, perParticipantPoints, 'Slot Machine bonus');
+        });
+      }
+    }
+
+    const resultPayload = {
+      questionNumber: round.question_index + 1,
+      entries: round.entries.length,
+      leverUser: round.lever_candidate || null,
+      symbols: symbols.map((symbol) => ({
+        id: symbol.id,
+        label: symbol.label,
+        emoji: symbol.emoji,
+        emojiUrl: symbol.emojiUrl || null
+      })),
+      matched: jackpot,
+      perParticipantPoints,
+      totalAwardedPoints,
+      isTestRound: !!round.is_test_round
+    };
+
+    round.status = 'results';
+    round.results = resultPayload;
+    gameState.slot_machine.last_round_result = {
+      ...resultPayload,
+      timestamp: Date.now()
+    };
+
+    broadcastSlotMachineEvent('result', resultPayload);
+    broadcastState(true);
+
+    setTimeout(() => {
+      if (gameState.slot_machine && gameState.slot_machine.current_round === round) {
+        gameState.slot_machine.current_round = null;
+        broadcastState(true);
+      }
+    }, 15000);
+  }, 2500);
+}
+
+function triggerSlotMachineTestSpin() {
+  ensureSlotMachineState();
+
+  if (!gameState.slot_machine.enabled) {
+    console.log('🎰 Slot machine disabled - skipping test spin');
+    return;
+  }
+
+  if (gameState.slot_machine.current_round) {
+    cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+    gameState.slot_machine.current_round = null;
+  }
+
+  const sampleEntries = ['RoaryTest', 'NalaTest', 'SimbaTest'];
+  const round = {
+    question_index: Math.max(0, gameState.current_question || 0),
+    status: 'collecting',
+    entry_started_at: Date.now(),
+    entry_duration_ms: 5000,
+    entries: [...sampleEntries],
+    entry_lookup: new Set(sampleEntries.map((name) => name.toLowerCase())),
+    entry_interval: null,
+    entry_timeout: null,
+    lever_candidate: null,
+    spin_requested_by: null,
+    auto_spin_timeout: null,
+    is_test_round: true
+  };
+
+  gameState.slot_machine.current_round = round;
+
+  broadcastSlotMachineEvent('entry_started', {
+    questionNumber: round.question_index + 1,
+    duration: round.entry_duration_ms,
+    isTestRound: true
+  });
+  broadcastState(true);
+
+  sampleEntries.forEach((username, index) => {
+    broadcastSlotMachineEvent('entry_update', {
+      questionNumber: round.question_index + 1,
+      entries: index + 1,
+      latestEntry: username,
+      isTestRound: true
+    });
+  });
+
+  setTimeout(() => {
+    concludeSlotMachineEntryRound('test');
+    setTimeout(() => spinSlotMachineRound('host_test'), 800);
+  }, 1000);
+}
+
 function broadcastHotSeatCountdown(remaining, options = {}) {
   broadcastToClients({
     type: 'hot_seat_countdown',
@@ -5642,6 +5961,15 @@ function finalizeGameLeaderboard() {
     });
   }
 
+  const completeFinalStats = getCurrentGameLeaderboardEntries({ includeIgnored: true, limit: null });
+  const archiveIsoDate = csvFilename ? deriveIsoDateFromGameBaseId(path.parse(csvFilename).name) : new Date().toISOString();
+  updatePreviousWinnersFromFinalStats(completeFinalStats, {
+    csvFilename,
+    completedAt: archiveIsoDate,
+    questionsCompleted: gameState.current_question + 1,
+    contestant: gameState.contestant_name || null
+  });
+
   broadcastState(true);
 }
 
@@ -6077,15 +6405,147 @@ function loadPreviousWinners() {
   }
 }
 
+function getBaseGameId(gameId = '') {
+  if (typeof gameId !== 'string') {
+    return '';
+  }
+  const lastUnderscore = gameId.lastIndexOf('_');
+  return lastUnderscore > 0 ? gameId.slice(0, lastUnderscore) : gameId;
+}
+
+function deriveGameBaseId(context = {}) {
+  if (context.gameBaseId) {
+    return context.gameBaseId;
+  }
+  if (context.csvFilename) {
+    const parsed = path.parse(context.csvFilename).name;
+    if (parsed) {
+      return parsed;
+    }
+  }
+  if (context.completedAt) {
+    const completedDate = new Date(context.completedAt);
+    if (!Number.isNaN(completedDate.getTime())) {
+      return `game_${completedDate.toISOString().replace(/[:.]/g, '-').slice(0, -5)}`;
+    }
+  }
+  return `game_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}`;
+}
+
+function deriveIsoDateFromGameBaseId(baseId) {
+  const match = typeof baseId === 'string' && baseId.match(/^game_(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2})$/);
+  if (!match) {
+    return new Date().toISOString();
+  }
+  const [datePart, timePart] = match[1].split('T');
+  const isoTime = timePart.replace(/-/g, ':');
+  return `${datePart}T${isoTime}.000Z`;
+}
+
+function createWinnerEntryFromPlayer(player, options) {
+  if (!player) {
+    return null;
+  }
+
+  const username = player.username || 'unknown';
+  const totalAnswers = player.total_answers ?? player.total_votes ?? player.totalAnswers ?? 0;
+  const correctAnswers = player.correct_answers ?? player.correct_votes ?? 0;
+  const accuracy = totalAnswers > 0 ? Math.round((correctAnswers / totalAnswers) * 100) : 0;
+  const finalPoints = player.points ?? player.total_points ?? player.totalPoints ?? 0;
+
+  return {
+    game_id: `${options.baseId}_${username.toLowerCase()}`,
+    date: options.isoDate,
+    username,
+    final_points: finalPoints,
+    correct_answers: correctAnswers,
+    total_answers: totalAnswers,
+    accuracy,
+    best_streak: player.best_streak ?? player.current_streak ?? 0,
+    fastest_correct_time: player.fastest_correct_time ?? player.fastest_response_ms ?? null,
+    hot_seat_appearances: player.hot_seat_appearances ?? 0,
+    hot_seat_correct: player.hot_seat_correct ?? 0,
+    questions_completed: options.questionsCompleted ?? 15,
+    total_points_all_games: player.total_points ?? finalPoints,
+    contestant_name: options.contestant || null
+  };
+}
+
+function updatePreviousWinnersFromFinalStats(finalStats, context = {}) {
+  if (!Array.isArray(finalStats) || finalStats.length === 0) {
+    console.log('ℹ️ No final stats available for previous winners update');
+    return;
+  }
+
+  try {
+    const winnersData = loadPreviousWinners();
+    const baseId = deriveGameBaseId(context);
+    const isoDate = context.completedAt
+      ? new Date(context.completedAt).toISOString()
+      : deriveIsoDateFromGameBaseId(baseId);
+    const questionsCompleted = context.questionsCompleted || gameState.current_question + 1;
+    const topPlayers = finalStats.slice(0, 3);
+    const newEntries = topPlayers
+      .map((player) => createWinnerEntryFromPlayer(player, {
+        baseId,
+        isoDate,
+        questionsCompleted,
+        contestant: context.contestant || gameState.contestant_name || null
+      }))
+      .filter(Boolean);
+
+    if (newEntries.length === 0) {
+      console.log('ℹ️ No winner entries generated from final stats');
+      return;
+    }
+
+    const prefix = `${baseId}_`;
+    winnersData.winners = winnersData.winners.filter((entry) => !(entry?.game_id || '').startsWith(prefix));
+    winnersData.winners.unshift(...newEntries);
+
+    savePreviousWinners(winnersData);
+
+    broadcastToClients({
+      type: 'previous_winners_updated',
+      winners: winnersData.winners.slice(0, 10),
+      metadata: winnersData.metadata,
+      timestamp: Date.now()
+    });
+
+    console.log(`🏆 Previous winners updated for ${baseId} (${newEntries.length} entries)`);
+  } catch (error) {
+    console.error('❌ Failed to update previous winners from final stats:', error);
+  }
+}
+
 function savePreviousWinners(winnersData) {
   try {
     const winnersPath = path.join(__dirname, 'previous-winners.json');
     const tempFile = path.join(__dirname, 'previous-winners.json.tmp');
-    
+
     // Update metadata
-    winnersData.metadata.last_updated = new Date().toISOString();
-    winnersData.metadata.total_games = winnersData.winners.length;
-    
+    const metadata = { ...(winnersData.metadata || {}) };
+    metadata.last_updated = new Date().toISOString();
+    const uniqueGameDates = new Set();
+    const uniquePlayers = new Set();
+    winnersData.winners.forEach((entry) => {
+      if (!entry) return;
+      if (entry.date) {
+        const canonicalDate = new Date(entry.date);
+        if (!Number.isNaN(canonicalDate.getTime())) {
+          uniqueGameDates.add(canonicalDate.toISOString());
+        }
+      } else if (entry.game_id) {
+        uniqueGameDates.add(getBaseGameId(entry.game_id));
+      }
+      if (entry.username) {
+        uniquePlayers.add(entry.username.toLowerCase());
+      }
+    });
+    metadata.total_games = uniqueGameDates.size;
+    metadata.total_players = uniquePlayers.size;
+    winnersData.metadata = metadata;
+
     // Atomic write: write to temp file first, then rename
     fs.writeFileSync(tempFile, JSON.stringify(winnersData, null, 2));
     fs.renameSync(tempFile, winnersPath);
@@ -6250,43 +6710,59 @@ function importPreviousWinners(importData) {
 }
 
 // Get formatted leaderboard statistics
+function getCurrentGameLeaderboardEntries(options = {}) {
+  const { includeIgnored = false, limit = 10 } = options;
+  const ignoredUsers = includeIgnored ? [] : getCachedIgnoredList();
+  const entries = Object.entries(leaderboardData.current_game || {})
+    .filter(([username]) => includeIgnored || !ignoredUsers.includes(username.toLowerCase()))
+    .map(([username, stats]) => ({
+      username,
+      ...stats,
+      points: stats.points || stats.total_points || 0,
+      total_answers: stats.total_answers || stats.total_votes || 0,
+      total_votes: stats.total_votes || stats.total_answers || 0,
+      correct_answers: stats.correct_answers || stats.correct_votes || 0,
+      current_streak: stats.current_streak || 0,
+      best_streak: stats.best_streak || 0
+    }))
+    .sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  if (typeof limit === 'number') {
+    return entries.slice(0, limit);
+  }
+  return entries;
+}
+
 function getLeaderboardStats() {
   const ignoredUsers = getCachedIgnoredList();
-  
+
   const formatLeaderboard = (data, period) => {
-    // Use correct field based on period
-    const sortField = period === 'current_game' ? 'points' : 'total_points';
-    
+    const isCurrentGame = period === 'current_game';
+
     return Object.entries(data)
-      .filter(([username]) => !ignoredUsers.includes(username.toLowerCase())) // Filter out ignored users
+      .filter(([username]) => !ignoredUsers.includes(username.toLowerCase()))
       .map(([username, stats]) => ({
         username,
         ...stats,
-        // Normalize points field for display
         points: stats.points || stats.total_points || 0,
-        // Map total_answers to total_votes for display consistency
-        total_votes: period === 'current_game' ? (stats.total_answers || 0) : (stats.total_votes || 0),
-        // Ensure correct_answers is properly mapped
-        correct_answers: period === 'current_game' ? (stats.correct_answers || 0) : (stats.correct_votes || 0),
-        // Map streaks properly based on period
-        current_streak: period === 'current_game' ? (stats.current_streak || 0) : 0,
+        total_votes: isCurrentGame ? (stats.total_answers || 0) : (stats.total_votes || 0),
+        correct_answers: isCurrentGame ? (stats.correct_answers || 0) : (stats.correct_votes || 0),
+        current_streak: isCurrentGame ? (stats.current_streak || 0) : 0,
         best_streak: stats.best_streak || 0,
-        // Include period-specific best streaks
         daily_best_streak: stats.daily_best_streak || 0,
         weekly_best_streak: stats.weekly_best_streak || 0,
         monthly_best_streak: stats.monthly_best_streak || 0
       }))
       .sort((a, b) => {
-        // Sort by the appropriate field
-        const aValue = period === 'current_game' ? (a.points || 0) : (a.total_points || 0);
-        const bValue = period === 'current_game' ? (b.points || 0) : (b.total_points || 0);
+        const aValue = isCurrentGame ? (a.points || 0) : (a.total_points || 0);
+        const bValue = isCurrentGame ? (b.points || 0) : (b.total_points || 0);
         return bValue - aValue;
       })
-      .slice(0, 10); // Top 10
+      .slice(0, 10);
   };
-  
+
   return {
-    current_game: formatLeaderboard(leaderboardData.current_game, 'current_game'),
+    current_game: getCurrentGameLeaderboardEntries({ includeIgnored: false, limit: 10 }),
     daily: formatLeaderboard(leaderboardData.daily, 'daily'),
     weekly: formatLeaderboard(leaderboardData.weekly, 'weekly'),
     monthly: formatLeaderboard(leaderboardData.monthly, 'monthly'),
@@ -7345,35 +7821,110 @@ async function handleAPI(req, res, pathname) {
   }
   
   if (pathname === '/api/state') {
-    // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-    const cleanGameState = { ...gameState };
-    delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-    delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-    delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-    delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-    delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+      const cleanGameState = createSerializableGameState({
+        includeQuestions: true,
+        includeCurrentQuestion: true,
+        includePrizes: true
+      });
 
-    // Convert Set to Array for JSON serialization
-    if (cleanGameState.processed_mod_messages instanceof Set) {
-      cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
-    }
-    
-    // Include current question data for control panel display
-    if (questions && questions[cleanGameState.current_question]) {
-      cleanGameState.currentQuestion = questions[cleanGameState.current_question];
-    }
-    
-    // Include all questions for the question manager
-    cleanGameState.questions = questions;
-    
-    // Include prize amounts
-    cleanGameState.prizes = prizeAmounts;
-    
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(cleanGameState));
     return;
   }
-  
+
+  if (pathname === '/api/polling/config') {
+    if (req.method === 'GET') {
+      try {
+        const configData = loadPollingConfig();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(configData));
+      } catch (error) {
+        console.error('❌ Error reading polling config:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to read config' }));
+      }
+      return;
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', (chunk) => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const requestData = body ? JSON.parse(body) : {};
+          const existingConfig = loadPollingConfig();
+
+          if (requestData.action === 'disconnect') {
+            const updatedConfig = { ...existingConfig, isActive: false };
+            savePollingConfig(updatedConfig);
+            broadcastToClients({
+              type: 'config_updated',
+              config: { action: 'disconnect' },
+              timestamp: Date.now()
+            });
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true }));
+            return;
+          }
+
+          const incomingConfig = requestData.config || requestData || {};
+          const mergedConfig = mergePollingConfig(existingConfig, incomingConfig);
+          savePollingConfig(mergedConfig);
+
+          const broadcastConfig = requestData.config ? requestData : incomingConfig;
+
+          broadcastToClients({
+            type: 'config_updated',
+            config: broadcastConfig || {},
+            timestamp: Date.now()
+          });
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true }));
+        } catch (error) {
+          console.error('❌ Error updating polling config:', error);
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Failed to update config' }));
+        }
+      });
+      return;
+    }
+
+    res.writeHead(405, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Method not allowed' }));
+    return;
+  }
+
+  if (pathname === '/api/polling/test' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const requestData = body ? JSON.parse(body) : {};
+        const testResult = {
+          success: true,
+          message: '✅ Connection test passed. Twitch IRC is responding normally.',
+          details: {
+            twitch: requestData.twitchChannel ? 'Available' : 'Not configured',
+            youtube: (requestData.youtubeApiKey && requestData.youtubeLiveChatId) ? 'Configured' : 'Not configured'
+          }
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(testResult));
+      } catch (error) {
+        console.error('❌ Error in connection test:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          message: '❌ Connection test failed. Check server logs.',
+          error: error.message
+        }));
+      }
+    });
+    return;
+  }
+
   // Performance metrics endpoint
   if (pathname === '/api/performance') {
     const avgProcessingTime = performanceMetrics.lifeline.processingTimes.length > 0
@@ -7635,669 +8186,17 @@ async function handleAPI(req, res, pathname) {
     return;
   }
   
-  // Enhanced Twitch Channel Emotes API - Optimized for chat display
+  // Shared Twitch emote API sourced from emotes-update.js
   if (pathname === '/api/twitch-emotes' && req.method === 'GET') {
-    try {
-      // Get channel parameter from query string
-      const urlParts = new URL(req.url, `http://${req.headers.host}`);
-      const channel = urlParts.searchParams.get('channel') || 'k1m6a';
-      const format = urlParts.searchParams.get('format') || 'full'; // 'full' or 'mapping'
-      
-      console.log(`🔍 Fetching Twitch emotes for channel: ${channel}, format: ${format}`);
-      
-      // Use built-in fetch or node-fetch
-      let fetch;
-      try {
-        // Try built-in fetch first (Node.js 18+)
-        fetch = globalThis.fetch;
-        if (!fetch) {
-          // Fall back to node-fetch v3 (ES modules)
-          const nodeFetch = await import('node-fetch');
-          fetch = nodeFetch.default;
-        }
-      } catch (error) {
-        throw new Error('No fetch implementation available');
-      }
-      
-      // Use public APIs instead of authenticated Twitch API
-      let allEmotes = [];
-      let sourceCounts = { twitch: 0, sevenTV: 0, fallback: 0 };
-      
-      // Try to get 7TV emotes first (public API, no auth required)
-      try {
-        console.log(`🔍 Fetching 7TV emotes for ${channel} using public API...`);
-        
-        // First, get the user ID using 7TV's public API
-        const userLookupResponse = await fetch(`https://7tv.io/v3/users/twitch?search=${channel}`);
-        if (userLookupResponse.ok) {
-          const userLookupData = await userLookupResponse.json();
-          if (userLookupData.items && userLookupData.items.length > 0) {
-            const user = userLookupData.items.find(u => u.display_name.toLowerCase() === channel.toLowerCase());
-            if (user && user.emote_set && user.emote_set.emotes) {
-              const sevenTVEmotes = user.emote_set.emotes.map(emote => ({
-                id: emote.id,
-                name: emote.name,
-                images: {
-                  url_1x: `https://cdn.7tv.app/emote/${emote.id}/1x.webp`,
-                  url_2x: `https://cdn.7tv.app/emote/${emote.id}/2x.webp`,
-                  url_4x: `https://cdn.7tv.app/emote/${emote.id}/4x.webp`
-                },
-                format: ['webp'],
-                scale: ['1.0', '2.0', '4.0'],
-                theme_mode: ['light', 'dark'],
-                source: '7tv'
-              }));
-              allEmotes.push(...sevenTVEmotes);
-              sourceCounts.sevenTV = sevenTVEmotes.length;
-              console.log(`✅ Successfully fetched ${sevenTVEmotes.length} 7TV emotes for channel ${channel}`);
-            }
-          }
-        }
-      } catch (sevenTVError) {
-        console.log(`⚠️ 7TV public API failed for ${channel}:`, sevenTVError.message);
-      }
-      
-      // Add known k1m6a emotes with working base64 SVG placeholder images  
-      // These will display as colorful placeholder images instead of falling back to text
-      const knownK1m6aEmotes = [
-        // Core k1m6a emotes that are used most frequently in chat
-        {
-          id: 'k1m6alove_placeholder',
-          name: 'k1m6aLove',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzk5NDdmZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj7wn5GJPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzk5NDdmZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GJPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzk5NDdmZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GJPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6apsgjuice_placeholder',
-          name: 'k1m6aPsgjuice',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzAwYzI1MSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn6e5PC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzAwYzI1MSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn6e5PC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzAwYzI1MSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn6e5PC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6awiggle_placeholder',
-          name: 'k1m6aWiggle',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmYzEwNyIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5qEPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmYzEwNyIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5qEPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmYzEwNyIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5qEPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6asalute_placeholder',
-          name: 'k1m6aSalute',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmNDQ0NCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn6ufPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmNDQ0NCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn6ufPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmNDQ0NCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn6ufPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6awave_placeholder',
-          name: 'k1m6aWave',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzJlY2M3MSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GBPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzJlY2M3MSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GBPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzJlY2M3MSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GBPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6adj_placeholder',
-          name: 'k1m6aDj',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzNmNTFiNSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn46nPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzNmNTFiNSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn46nPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzNmNTFiNSIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn46nPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        // Additional k1m6a emotes with base64 SVG placeholders for additional emotes found in chat logs
-        {
-          id: 'k1m6ahype_placeholder',
-          name: 'k1m6aHype',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmOWMwMCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5q4PC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmOWMwMCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5q4PC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmOWMwMCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5q4PC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6ajam_placeholder',
-          name: 'k1m6aJam',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzhhMmJlMiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn46kPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbDZubm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzhhMmJlMiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn46kPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzhhMmJlMiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn46kPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6aflower_placeholder',
-          name: 'k1m6aFlower',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2UzOWJkYiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn4yxPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2UzOWJkYiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn4yxPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2UzOWJkYiIvPho8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn4yxPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6arage_placeholder',
-          name: 'k1m6aRage',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2Q5NTM0ZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5iiPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2Q5NTM0ZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5iiPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2Q5NTM0ZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5iyPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        // Additional frequently used k1m6a emotes from chat logs
-        {
-          id: 'k1m6acoffee_placeholder',
-          name: 'k1m6aCoffee',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzc5NTU0OCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7imJVvZjwvdGV4dD4KPC9zdmc+',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzc5NTU0OCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7imJVvZjwvdGV4dD4KPC9zdmc+',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzc5NTU0OCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7imJVvZjwvdGV4dD4KPC9zdmc+'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6astab_placeholder',
-          name: 'k1m6aStab',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2NjNzgzMiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GPPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2NjNzgzMiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GPPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2NjNzgzMiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5GPPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6alearn_placeholder',
-          name: 'k1m6aLearn',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzRjYWY1MCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5SCPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzRjYWY1MCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5SCPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzRjYWY1MCIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5SCPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6agift_placeholder',
-          name: 'k1m6aGift',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmMDA3ZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn4ehPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmMDA3ZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn4ehPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iI2ZmMDA3ZiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn4ehPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6asteer_placeholder',
-          name: 'k1m6aSteer',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzYwN2Q4YiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5qXPC90ZXh0Pgo8L3N2Zz4K',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzYwN2Q4YiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5qXPC90ZXh0Pgo8L3N2Zz4K',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzYwN2Q4YiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7wn5qXPC90ZXh0Pgo8L3N2Zz4K'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        },
-        {
-          id: 'k1m6apsg_placeholder',
-          name: 'k1m6aPsg',
-          images: {
-            url_1x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzAwMzc4YiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7imb9vZjwvdGV4dD4KPC9zdmc+',
-            url_2x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzAwMzc4YiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7imb9vZjwvdGV4dD4KPC9zdmc+',
-            url_4x: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjI4IiBoZWlnaHQ9IjI4IiByeD0iNCIgZmlsbD0iIzAwMzc4YiIvPgo8dGV4dCB4PSIxNCIgeT0iMTciIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iMTIiIGZpbGw9IndoaXRlIj7imb9vZjwvdGV4dD4KPC9zdmc+'
-          },
-          format: ['svg'],
-          scale: ['1.0', '2.0', '4.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'placeholder'
-        }
-      ];
-      
-      // Add known emotes (don't duplicate if already found via 7TV)
-      knownK1m6aEmotes.forEach(knownEmote => {
-        const exists = allEmotes.some(emote => emote.name.toLowerCase() === knownEmote.name.toLowerCase());
-        if (!exists) {
-          allEmotes.push(knownEmote);
-          sourceCounts.twitch++;
-        }
-      });
-      
-      // Return the combined emotes data in requested format
-      res.writeHead(200, { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      
-      if (format === 'mapping') {
-        // Return simple name->url mapping for efficient chat processing
-        const emoteMapping = {};
-        allEmotes.forEach(emote => {
-          emoteMapping[emote.name] = emote.images.url_1x;
-        });
-        
-        res.end(JSON.stringify({
-          success: true,
-          channel: channel,
-          format: 'mapping',
-          emotes: emoteMapping,
-          count: allEmotes.length,
-          sources: sourceCounts
-        }));
-      } else {
-        // Return full emote data (default)
-        res.end(JSON.stringify({
-          success: true,
-          channel: channel,
-          format: 'full',
-          emotes: allEmotes,
-          count: allEmotes.length,
-          sources: sourceCounts
-        }));
-      }
-      
-    } catch (error) {
-      console.error('❌ Error fetching Twitch emotes:', error.message);
-      
-      // Enhanced fallback emotes for k1m6a channel (based on chat logs showing these emotes are used)
-      const fallbackEmotes = [
-        {
-          id: 'k1m6alove_fallback',
-          name: 'k1m6aLove',
-          images: {
-            url_1x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6alove/default/dark/1.0',
-            url_2x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6alove/default/dark/2.0',
-            url_4x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6alove/default/dark/3.0'
-          },
-          format: ['static'],
-          scale: ['1.0', '2.0', '3.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'fallback'
-        },
-        {
-          id: 'k1m6apsgjuice_fallback',
-          name: 'k1m6aPsgjuice',
-          images: {
-            url_1x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6apsgjuice/default/dark/1.0',
-            url_2x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6apsgjuice/default/dark/2.0',
-            url_4x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6apsgjuice/default/dark/3.0'
-          },
-          format: ['static'],
-          scale: ['1.0', '2.0', '3.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'fallback'
-        },
-        {
-          id: 'k1m6alettuce_fallback',
-          name: 'k1m6aLettuce',
-          images: {
-            url_1x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6alettuce/default/dark/1.0',
-            url_2x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6alettuce/default/dark/2.0',
-            url_4x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6alettuce/default/dark/3.0'
-          },
-          format: ['static'],
-          scale: ['1.0', '2.0', '3.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'fallback'
-        },
-        {
-          id: 'k1m6awiggle_fallback',
-          name: 'k1m6aWiggle',
-          images: {
-            url_1x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6awiggle/default/dark/1.0',
-            url_2x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6awiggle/default/dark/2.0',
-            url_4x: 'https://static-cdn.jtvnw.net/emoticons/v2/emoticons_v2_k1m6awiggle/default/dark/3.0'
-          },
-          format: ['static'],
-          scale: ['1.0', '2.0', '3.0'],
-          theme_mode: ['light', 'dark'],
-          source: 'fallback'
-        }
-      ];
-      
-      res.writeHead(200, { 
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET',
-        'Access-Control-Allow-Headers': 'Content-Type'
-      });
-      res.end(JSON.stringify({
-        success: false,
-        error: error.message,
-        channel: 'k1m6a', // Default channel when error occurs
-        fallback: true,
-        emotes: fallbackEmotes,
-        count: fallbackEmotes.length,
-        sources: {
-          twitch: 0,
-          sevenTV: 0,
-          fallback: fallbackEmotes.length
-        }
-      }));
-    }
-    return;
-  }
-  
-  // Chat messages API for HTTP polling
-  if (pathname.startsWith('/api/chat/messages')) {
-    const urlParams = new URLSearchParams(pathname.split('?')[1] || '');
-    const since = parseInt(urlParams.get('since')) || 0;
-    
-    // Filter messages since the given timestamp
-    const recentMessages = chatMessages.filter(msg => msg.timestamp > since);
-    
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      messages: recentMessages,
-      total: chatMessages.length,
-      since: since
+    res.end(JSON.stringify({
+      success: true,
+      emotes: TWITCH_EMOTES
     }));
-    console.log(`📡 LiveChatViewer polling: ${recentMessages.length} new messages since ${since}`);
-    return;
-  }
-  
-  // Host Chat API - Allow host to send test messages to chat
-  if (pathname === '/api/host-chat' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        
-        // Create host chat message
-        const hostChatMessage = {
-          type: 'chat_message',
-          username: data.username || 'Host',
-          text: data.message,
-          platform: data.platform || 'system',
-          timestamp: Date.now(),
-          channel: 'host',
-          isModerator: true,
-          isHost: true
-        };
-        
-        console.log('💬 Host sent message:', hostChatMessage);
-        
-        // Broadcast to all chat viewers
-        broadcastToClients(hostChatMessage);
-        
-        // Process host message for votes if voting is active
-        // Process as audience poll vote if poll is active (during revotes)
-        if (gameState.audience_poll_active) {
-          if (DEBUG_VERBOSE_LOGGING) console.log('🗳️ Processing host message as potential audience poll vote');
-          try {
-            processVoteFromChat(hostChatMessage);
-          } catch (error) {
-            console.error('❌ Error processing host audience poll vote:', error);
-          }
-        }
-        
-        // Process as lifeline vote if lifeline voting is active
-        if (gameState.lifeline_voting_active) {
-          if (DEBUG_VERBOSE_LOGGING) console.log('🗳️ Processing host message as potential lifeline vote');
-          console.log('📊 Lifeline voting state:', {
-            active: gameState.lifeline_voting_active,
-            availableLifelines: gameState.available_lifelines_for_vote,
-            currentVoteCounts: gameState.lifeline_vote_counts,
-            hostMessage: hostChatMessage.text,
-            hostUsername: hostChatMessage.username
-          });
-          try {
-            // Additional validation before processing
-            if (!hostChatMessage || !hostChatMessage.text || !hostChatMessage.username) {
-              console.error('❌ Invalid host chat message for lifeline vote:', hostChatMessage);
-              return;
-            }
-            processLifelineVoteFromChat(hostChatMessage);
-          } catch (error) {
-            console.error('❌ Error processing host lifeline vote:', error);
-            console.error('Stack trace:', error.stack);
-            // Continue execution - don't crash the server
-          }
-        } else {
-          console.log('⚠️ Lifeline voting not active, host message not processed for lifeline vote');
-        }
-        
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, message: 'Host message sent successfully' }));
-        
-      } catch (error) {
-        console.error('❌ Host chat API error:', error);
-        res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid host chat data' }));
-      }
-    });
-    return;
-  }
-  
-  // Timer Configuration API - Support for multiple timer types
-  if (pathname === '/api/timer-config') {
-    if (req.method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        audience_poll_duration: gameState.audience_poll_duration,
-        audience_poll_duration_seconds: Math.round(gameState.audience_poll_duration / 1000),
-        revote_duration: gameState.revote_duration || 60000, // Default 60 seconds for revotes
-        revote_duration_seconds: Math.round((gameState.revote_duration || 60000) / 1000),
-        ask_a_mod_duration: gameState.ask_a_mod_duration || 30000, // Default 30 seconds for Ask a Mod
-        ask_a_mod_duration_seconds: Math.round((gameState.ask_a_mod_duration || 30000) / 1000),
-        lifeline_voting_duration: gameState.lifeline_voting_duration || 30000, // Default 30 seconds for lifeline voting
-        lifeline_voting_duration_seconds: Math.round((gameState.lifeline_voting_duration || 30000) / 1000)
-      }));
-      return;
-    } else if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
-        try {
-          const requestData = JSON.parse(body);
-          let updated = false;
-          const updates = {};
-          
-          // Handle audience poll duration
-          const audiencePollSeconds = requestData.audience_poll_duration_seconds;
-          if (audiencePollSeconds && audiencePollSeconds >= 15 && audiencePollSeconds <= 300) {
-            gameState.audience_poll_duration = audiencePollSeconds * 1000;
-            updates.audience_poll_duration = gameState.audience_poll_duration;
-            updates.audience_poll_duration_seconds = audiencePollSeconds;
-            updated = true;
-            console.log(`⏱️ Audience poll timer updated: ${audiencePollSeconds} seconds`);
-          }
-          
-          // Handle revote duration
-          const revoteSeconds = requestData.revote_duration_seconds;
-          if (revoteSeconds && revoteSeconds >= 15 && revoteSeconds <= 300) {
-            gameState.revote_duration = revoteSeconds * 1000;
-            updates.revote_duration = gameState.revote_duration;
-            updates.revote_duration_seconds = revoteSeconds;
-            updated = true;
-            console.log(`⏱️ Revote timer updated: ${revoteSeconds} seconds`);
-          }
-          
-          // Handle Ask a Mod duration
-          const askAModSeconds = requestData.ask_a_mod_duration_seconds;
-          if (askAModSeconds && askAModSeconds >= 10 && askAModSeconds <= 120) { // 10-120 seconds for Ask a Mod
-            gameState.ask_a_mod_duration = askAModSeconds * 1000;
-            updates.ask_a_mod_duration = gameState.ask_a_mod_duration;
-            updates.ask_a_mod_duration_seconds = askAModSeconds;
-            updated = true;
-            console.log(`⏱️ Ask a Mod timer updated: ${askAModSeconds} seconds`);
-          }
-          
-          // Handle Lifeline Voting duration
-          const lifelineVotingSeconds = requestData.lifeline_voting_duration_seconds;
-          if (lifelineVotingSeconds && lifelineVotingSeconds >= 10 && lifelineVotingSeconds <= 120) { // 10-120 seconds for Lifeline Voting
-            gameState.lifeline_voting_duration = lifelineVotingSeconds * 1000;
-            updates.lifeline_voting_duration = gameState.lifeline_voting_duration;
-            updates.lifeline_voting_duration_seconds = lifelineVotingSeconds;
-            updated = true;
-            console.log(`⏱️ Lifeline voting timer updated: ${lifelineVotingSeconds} seconds`);
-          }
-          
-          if (updated) {
-            // Broadcast timer config update to all clients
-            broadcastToClients({
-              type: 'timer_config_updated',
-              ...updates,
-              timestamp: Date.now()
-            });
-            
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ 
-              success: true,
-              ...updates
-            }));
-          } else {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ 
-              error: 'No valid timer durations provided',
-              requirements: {
-                audience_poll_duration_seconds: '15-300 seconds',
-                revote_duration_seconds: '15-300 seconds',
-                ask_a_mod_duration_seconds: '10-120 seconds',
-                lifeline_voting_duration_seconds: '10-120 seconds'
-              },
-              received: requestData
-            }));
-          }
-        } catch (error) {
-          console.error('Error updating timer config:', error);
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        }
-      });
-      return;
-    }
-  }
-  
-  if (pathname === '/api/questions') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(questions));
-    return;
-  }
-  
-  // Performance Metrics API endpoint with enhanced analysis
-  if (pathname === '/api/performance') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(getEnhancedPerformanceSnapshot()));
-    return;
-  }
-  
-  // Metrics API endpoint (alias for performance)
-  if (pathname === '/api/metrics') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(getEnhancedPerformanceSnapshot()));
-    return;
-  }
-  
-  // Live Chat Configuration API
-  if (pathname === '/api/polling/config') {
-    if (req.method === 'GET') {
-      try {
-        const configPath = path.join(__dirname, 'polling-config.json');
-        const configData = fs.readFileSync(configPath, 'utf8');
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(configData);
-      } catch (error) {
-        console.error('Error reading polling config:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to read config' }));
-      }
-    } else if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk; });
-      req.on('end', () => {
-        try {
-          const requestData = JSON.parse(body);
-          const configPath = path.join(__dirname, 'polling-config.json');
-          
-          // Extract just the config data (remove the action wrapper if present)
-          const configToSave = requestData.config || requestData;
-          
-          fs.writeFileSync(configPath, JSON.stringify(configToSave, null, 2));
-          
-          // Notify all chat integration clients about config change
-          broadcastToClients({
-            type: 'config_updated',
-            config: requestData,
-            timestamp: Date.now()
-          });
-          
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-          console.log('📝 Polling config updated and broadcasted to chat clients');
-        } catch (error) {
-          console.error('Error updating polling config:', error);
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to update config' }));
-        }
-      });
-    }
     return;
   }
 
-  // API endpoint for testing live chat connections  
+  // API endpoint for testing live chat connections
   if (pathname === '/api/polling/test' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -9219,30 +9118,44 @@ async function handleAPI(req, res, pathname) {
               clearTimeout(global.typewriterTimeout);
             }
             
-            // Check if this is a milestone question for automatic hot seat (only if enabled)
-            const milestoneQuestions = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
-            if (gameState.hot_seat_enabled && milestoneQuestions.includes(gameState.current_question)) {
-              console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
-              
-              // Start entry period BEFORE showing the question
-              startHotSeatEntryPeriod();
-              
-              // Delay showing the actual question until entry period ends
-              // The entry period will automatically draw winners when it ends
-              console.log(`⏱️ Delaying question display for hot seat entry period (${gameState.hot_seat_entry_duration / 1000} seconds)`);
-              
-              // Hide the question temporarily
-              gameState.question_visible = false;
-              
-              // Show question after entry period
-              setTimeout(() => {
-                console.log(`📝 Hot seat entry period complete, now showing question ${gameState.current_question + 1}`);
-                gameState.question_visible = true;
-                broadcastState();
-                triggerHotSeatCountdownIfReady();
-              }, gameState.hot_seat_entry_duration + 2000); // Add 2 seconds after entry ends
-              
-              return; // Exit early - question will be shown after entry period
+            // Check if this is a milestone question for automatic hot seat or slot machine bonus
+            const hotSeatMilestones = [4, 9, 14]; // Questions 5, 10, 15 (0-indexed)
+            ensureSlotMachineState();
+            const slotMachineSchedule = gameState.slot_machine?.schedule_questions || [];
+            const currentQuestionNumber = gameState.current_question + 1;
+            const isHotSeatMilestone = gameState.hot_seat_enabled && hotSeatMilestones.includes(gameState.current_question);
+            const isSlotMachineMilestone = gameState.slot_machine?.enabled && slotMachineSchedule.includes(currentQuestionNumber);
+
+            if (isHotSeatMilestone || isSlotMachineMilestone) {
+              if (isHotSeatMilestone) {
+                console.log(`🌟 MILESTONE QUESTION ${gameState.current_question + 1} DETECTED - STARTING HOT SEAT ENTRY PERIOD`);
+                startHotSeatEntryPeriod();
+              }
+
+              if (isSlotMachineMilestone) {
+                console.log(`🎰 Slot machine entry starting before question ${gameState.current_question + 1}`);
+                startSlotMachineEntryRound(gameState.current_question);
+              }
+
+              const hotSeatDelay = isHotSeatMilestone ? gameState.hot_seat_entry_duration : 0;
+              const slotMachineDelay = isSlotMachineMilestone
+                ? (gameState.slot_machine.entry_duration_ms || hotSeatDelay || 60000)
+                : 0;
+              const entryDelay = Math.max(hotSeatDelay, slotMachineDelay);
+
+              if (entryDelay > 0) {
+                console.log(`⏱️ Delaying question display for entry period (${entryDelay / 1000} seconds)`);
+                gameState.question_visible = false;
+
+                setTimeout(() => {
+                  console.log(`📝 Entry period complete, now showing question ${gameState.current_question + 1}`);
+                  gameState.question_visible = true;
+                  broadcastState();
+                  triggerHotSeatCountdownIfReady();
+                }, entryDelay + 2000);
+
+                return; // Exit early - question will be shown after entry period
+              }
             }
             
             // Server-side failsafe: auto-enable Show Answers button after 8 seconds
@@ -10432,7 +10345,32 @@ async function handleAPI(req, res, pathname) {
             gameState.gameshow_participants = [...demoParticipants];
             console.log(`🎭 Added ${gameState.gameshow_participants.length} demo participants:`, gameState.gameshow_participants.join(', '));
             break;
-            
+
+          case 'slot_machine_test_spin':
+            console.log('🎰 Host requested a slot machine test spin');
+            triggerSlotMachineTestSpin();
+            break;
+
+          case 'set_slot_machine_enabled': {
+            ensureSlotMachineState();
+            const enabled = data.enabled !== false;
+
+            if (gameState.slot_machine.enabled === enabled) {
+              console.log(`🎰 Slot machine already ${enabled ? 'enabled' : 'disabled'} - no change`);
+              break;
+            }
+
+            gameState.slot_machine.enabled = enabled;
+            if (!enabled && gameState.slot_machine.current_round) {
+              cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+              gameState.slot_machine.current_round = null;
+            }
+
+            console.log(`🎰 Slot machine ${enabled ? 'enabled' : 'disabled'} via control panel`);
+            broadcastState(true);
+            break;
+          }
+
           case 'start_hot_seat_entry':
             console.log('📝 Starting hot seat entry period');
             startHotSeatEntryPeriod();
@@ -11313,16 +11251,10 @@ async function handleAPI(req, res, pathname) {
         broadcastState(false, true); // Critical broadcast for control panel actions
         console.log('DEBUG: broadcastState() completed successfully');
         
-        // Create a clean copy of gameState without non-serializable properties (like timer intervals)
-        const cleanGameState = { ...gameState };
-        delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
-        delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
-        delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
-        delete cleanGameState.hot_seat_prestart_interval; // Remove pre-start countdown interval
-        delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
+          const cleanGameState = createSerializableGameState();
 
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ success: true, state: cleanGameState }));
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, state: cleanGameState }));
         
       } catch (error) {
         console.error('ERROR in control API:', error);
@@ -11837,7 +11769,7 @@ server.listen(PORT, HOST, () => {
   setTimeout(() => {
     console.log('🚀 Auto-starting Twitch chat with last configured channel...');
     try {
-      const configPath = path.join(__dirname, 'polling-config.json');
+      const configPath = POLLING_CONFIG_PATH;
       if (fs.existsSync(configPath)) {
         const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
         if (config.twitch && config.twitch.channel && config.twitch.channel !== '') {

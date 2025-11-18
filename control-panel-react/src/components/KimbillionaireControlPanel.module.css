@@ -1154,3 +1154,100 @@
   padding: 6px 10px;
   font-size: 14px;
 }
+
+.slotMachinePanel {
+    background: rgba(16, 21, 36, 0.85);
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.slotMachineHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.slotMachineStatus {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 211, 105, 0.15);
+    color: #ffd369;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.slotMachineGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.slotMachineLabel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.slotMachineValue {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.slotMachineNote {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 4px;
+}
+
+.slotMachineEntries {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.slotMachineEntries span {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+}
+
+.slotMachineActions {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.slotMachineButton {
+    background: linear-gradient(135deg, #ff9a3c, #ffb347);
+    border: none;
+    border-radius: 999px;
+    color: #130c20;
+    font-weight: 700;
+    padding: 8px 18px;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.slotMachineButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.slotMachineButton:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+.slotMachineActionHelp {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}

@@ -126,6 +126,96 @@ let previousWinnersFetchPromise = null;
 let isShowingPreviousWinners = false;
 const PREVIOUS_WINNERS_CACHE_MS = 60 * 1000;
 
+function normalizeSlotMachineSymbol(symbol) {
+    if (!symbol) {
+        return { id: 'leo', emoji: '🦁', emojiUrl: null };
+    }
+
+    if (typeof symbol === 'string') {
+        return { id: symbol, emoji: symbol, emojiUrl: null };
+    }
+
+    return {
+        id: symbol.id || symbol.label || symbol.emoji || 'emoji',
+        emoji: symbol.emoji || symbol.label || '🦁',
+        emojiUrl: symbol.emojiUrl || symbol.url || null
+    };
+}
+
+function getPlaceholderSlotSymbols(count = 3) {
+    return Array.from({ length: count }).map((_, index) => ({
+        id: `placeholder-${index}`,
+        emoji: '🦁',
+        emojiUrl: null
+    }));
+}
+
+// Slot machine UI state
+const slotMachineUiState = {
+    entries: [],
+    status: 'Idle',
+    countdownMs: null,
+    leverUser: null,
+    symbols: getPlaceholderSlotSymbols(),
+    resultText: '',
+    resultType: 'idle',
+    isTestRound: false,
+    isVisible: false,
+    forceHideUntilNextRound: false
+};
+let slotMachineElements = null;
+let slotMachineAutoHideTimer = null;
+
+function enableSlotMachineOverlay(options = {}) {
+    const preserveAutoHide = options.preserveAutoHide === true;
+
+    if (!preserveAutoHide && slotMachineAutoHideTimer) {
+        clearTimeout(slotMachineAutoHideTimer);
+        slotMachineAutoHideTimer = null;
+    }
+
+    if (options.resetForceHide) {
+        slotMachineUiState.forceHideUntilNextRound = false;
+    }
+
+    slotMachineUiState.isVisible = true;
+}
+
+function hideSlotMachineOverlay(options = {}) {
+    if (slotMachineAutoHideTimer) {
+        clearTimeout(slotMachineAutoHideTimer);
+        slotMachineAutoHideTimer = null;
+    }
+
+    slotMachineUiState.isVisible = false;
+    if (options.keepForceHide) {
+        slotMachineUiState.forceHideUntilNextRound = true;
+    } else {
+        slotMachineUiState.forceHideUntilNextRound = false;
+    }
+}
+
+function scheduleSlotMachineAutoHide(delayMs = 3500) {
+    if (slotMachineAutoHideTimer) {
+        clearTimeout(slotMachineAutoHideTimer);
+    }
+
+    slotMachineAutoHideTimer = setTimeout(() => {
+        hideSlotMachineOverlay({ keepForceHide: true });
+        renderSlotMachineUi();
+    }, delayMs);
+}
+
+function handleSlotMachineTestCloseClick(event) {
+    event.preventDefault();
+    if (!slotMachineUiState.isTestRound) {
+        return;
+    }
+
+    hideSlotMachineOverlay({ keepForceHide: true });
+    renderSlotMachineUi();
+}
+
 // Initialize the gameshow when DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('🎮 Initializing Kimbillionaire gameshow...');
@@ -485,10 +575,13 @@ function handleWebSocketMessage(message) {
                 console.warn('⚠️ Game completed message received without leaderboard data');
             }
             break;
+        case 'slot_machine_event':
+            handleSlotMachineEvent(message);
+            break;
         case 'game_state':
             const prevContestant = currentState.contestant_name;
             const prevGameActive = currentState.game_active;
-            
+
             currentState = message;
             console.log('📡 Received game_state update:', {
                 audience_poll_active: currentState.audience_poll_active,
@@ -1147,6 +1240,344 @@ function updateDisplay(state) {
     } catch (error) {
         console.error('❌ Error updating info panel:', error);
     }
+
+    try {
+        updateSlotMachineDisplay(state);
+    } catch (error) {
+        console.error('❌ Error updating slot machine display:', error);
+    }
+}
+
+function getSlotMachineElements() {
+    if (slotMachineElements) {
+        return slotMachineElements;
+    }
+
+    slotMachineElements = {
+        root: document.getElementById('slot-machine-overlay'),
+        status: document.getElementById('slot-machine-status'),
+        countdown: document.getElementById('slot-machine-countdown'),
+        entryCount: document.getElementById('slot-machine-entry-count'),
+        entryList: document.getElementById('slot-machine-entry-list'),
+        leverUser: document.getElementById('slot-machine-lever-user'),
+        triggerCopy: document.getElementById('slot-machine-trigger-copy'),
+        result: document.getElementById('slot-machine-result'),
+        reels: Array.from(document.querySelectorAll('#slot-machine-reels .slot-machine-reel')),
+        closeTestButton: document.getElementById('slot-machine-close-test')
+    };
+
+    if (slotMachineElements.closeTestButton && !slotMachineElements.closeTestButton.dataset.bound) {
+        slotMachineElements.closeTestButton.addEventListener('click', handleSlotMachineTestCloseClick);
+        slotMachineElements.closeTestButton.dataset.bound = 'true';
+    }
+
+    return slotMachineElements;
+}
+
+function renderSlotMachineTriggerCopy(element) {
+    if (!element) {
+        return;
+    }
+
+    const statusLabel = (slotMachineUiState.status || '').toLowerCase();
+    element.innerHTML = '';
+
+    if (slotMachineUiState.isTestRound) {
+        element.textContent = 'Test spin in progress (no points awarded).';
+        return;
+    }
+
+    if (statusLabel.includes('entries')) {
+        element.textContent = 'Type JOIN in chat to enter. Spins automatically when the window closes.';
+        return;
+    }
+
+    if (statusLabel.includes('waiting')) {
+        element.textContent = 'Lever Lion chosen! Stand by for an automatic spin…';
+        return;
+    }
+
+    element.textContent = 'Slot machine activates on questions 4, 9, and 14. Just type JOIN.';
+}
+
+function renderSlotMachineUi() {
+    const elements = getSlotMachineElements();
+    if (!elements.root) {
+        return;
+    }
+
+    if (!slotMachineUiState.isVisible) {
+        elements.root.classList.add('hidden');
+        elements.root.classList.remove('active');
+        return;
+    }
+
+    elements.root.classList.remove('hidden');
+    elements.root.classList.add('active');
+
+    if (elements.status) {
+        elements.status.textContent = slotMachineUiState.status;
+    }
+
+    if (elements.countdown) {
+        if (slotMachineUiState.countdownMs != null) {
+            const seconds = Math.max(0, Math.ceil(slotMachineUiState.countdownMs / 1000));
+            elements.countdown.textContent = `${seconds}s`;
+        } else {
+            elements.countdown.textContent = '--';
+        }
+    }
+
+    if (elements.entryCount) {
+        elements.entryCount.textContent = slotMachineUiState.entries.length;
+    }
+
+    if (elements.entryList) {
+        const listMarkup = slotMachineUiState.entries.slice(0, 12)
+            .map((name) => `<span>${name}</span>`)
+            .join('');
+        elements.entryList.innerHTML = listMarkup;
+    }
+
+    if (elements.leverUser) {
+        elements.leverUser.textContent = slotMachineUiState.leverUser || 'Awaiting pick';
+    }
+
+    if (elements.triggerCopy) {
+        renderSlotMachineTriggerCopy(elements.triggerCopy);
+    }
+
+    if (elements.reels && elements.reels.length > 0) {
+        elements.reels.forEach((reelEl, index) => {
+            const fallbackSymbol = slotMachineUiState.symbols[0] || normalizeSlotMachineSymbol('🦁');
+            const symbolData = slotMachineUiState.symbols[index] || fallbackSymbol;
+            reelEl.innerHTML = '';
+
+            if (symbolData && typeof symbolData === 'object' && symbolData.emojiUrl) {
+                const img = document.createElement('img');
+                img.src = symbolData.emojiUrl;
+                img.alt = symbolData.emoji || symbolData.id || 'emoji';
+                reelEl.appendChild(img);
+            } else {
+                const text = typeof symbolData === 'string'
+                    ? symbolData
+                    : (symbolData?.emoji || symbolData?.id || '🦁');
+                reelEl.textContent = text;
+            }
+        });
+    }
+
+    if (elements.result) {
+        elements.result.textContent = slotMachineUiState.resultText || '';
+        elements.result.classList.remove('success', 'fail', 'test');
+        if (slotMachineUiState.resultType === 'success') {
+            elements.result.classList.add('success');
+        } else if (slotMachineUiState.resultType === 'fail') {
+            elements.result.classList.add('fail');
+        } else if (slotMachineUiState.resultType === 'test') {
+            elements.result.classList.add('test');
+        }
+    }
+
+    if (elements.closeTestButton) {
+        if (slotMachineUiState.isTestRound) {
+            elements.closeTestButton.classList.remove('hidden');
+        } else {
+            elements.closeTestButton.classList.add('hidden');
+        }
+    }
+}
+
+function updateSlotMachineDisplay(state) {
+    const elements = getSlotMachineElements();
+    if (!elements.root) {
+        return;
+    }
+
+    const slotState = state.slot_machine || {};
+    const round = slotState.current_round || null;
+    const roundStatus = round?.status || null;
+    const roundIsActive = ['collecting', 'awaiting_lever', 'spinning'].includes(roundStatus || '');
+
+    if (!round && !slotState.last_round_result) {
+        slotMachineUiState.status = 'Idle';
+        slotMachineUiState.entries = [];
+        slotMachineUiState.leverUser = null;
+        slotMachineUiState.countdownMs = null;
+        slotMachineUiState.symbols = getPlaceholderSlotSymbols();
+        slotMachineUiState.resultText = '';
+        slotMachineUiState.resultType = 'idle';
+        slotMachineUiState.isTestRound = false;
+        hideSlotMachineOverlay();
+        renderSlotMachineUi();
+        return;
+    }
+
+    if (round) {
+        if (roundIsActive) {
+            enableSlotMachineOverlay({ resetForceHide: true });
+        } else if (!slotMachineUiState.forceHideUntilNextRound) {
+            enableSlotMachineOverlay({ preserveAutoHide: true });
+        }
+        slotMachineUiState.entries = Array.isArray(round.entries) ? [...round.entries] : [];
+        slotMachineUiState.leverUser = round.lever_candidate || null;
+        slotMachineUiState.countdownMs = round.entry_started_at && round.entry_duration_ms
+            ? Math.max(0, round.entry_duration_ms - (Date.now() - round.entry_started_at))
+            : null;
+        slotMachineUiState.isTestRound = !!round.is_test_round;
+        slotMachineUiState.status = round.status === 'collecting'
+            ? (round.question_index != null ? `Entries Open · Q${round.question_index + 1}` : 'Entries Open')
+            : round.status === 'awaiting_lever'
+                ? 'Waiting for Lever'
+                : round.status === 'spinning'
+                    ? 'Spinning...'
+                    : 'Slot Machine';
+
+        if (round.results && Array.isArray(round.results.symbols)) {
+            slotMachineUiState.symbols = round.results.symbols.map(normalizeSlotMachineSymbol);
+            if (round.results.isTestRound) {
+                slotMachineUiState.resultText = 'Test spin complete (no points).';
+                slotMachineUiState.resultType = 'test';
+            } else {
+                slotMachineUiState.resultText = round.results.matched
+                    ? `Jackpot! +${round.results.perParticipantPoints || 0} pts each`
+                    : 'Meh… no bonus this time.';
+                slotMachineUiState.resultType = round.results.matched ? 'success' : 'fail';
+            }
+        } else {
+            slotMachineUiState.symbols = getPlaceholderSlotSymbols();
+            slotMachineUiState.resultText = '';
+            slotMachineUiState.resultType = 'idle';
+        }
+    } else if (slotState.last_round_result) {
+        slotMachineUiState.status = 'Previous Result';
+        slotMachineUiState.leverUser = slotState.last_round_result.leverUser || null;
+        slotMachineUiState.entries = [];
+        slotMachineUiState.countdownMs = null;
+        slotMachineUiState.isTestRound = !!slotState.last_round_result.isTestRound;
+        slotMachineUiState.symbols = (slotState.last_round_result.symbols || []).map(normalizeSlotMachineSymbol);
+        if (slotMachineUiState.isTestRound) {
+            slotMachineUiState.resultText = 'Test spin complete (no points).';
+            slotMachineUiState.resultType = 'test';
+        } else {
+            slotMachineUiState.resultText = slotState.last_round_result.matched
+                ? `Jackpot! +${slotState.last_round_result.perParticipantPoints || 0} pts each`
+                : 'Meh… no bonus this time.';
+            slotMachineUiState.resultType = slotState.last_round_result.matched ? 'success' : 'fail';
+        }
+        if (!slotMachineUiState.forceHideUntilNextRound) {
+            enableSlotMachineOverlay({ preserveAutoHide: true });
+        }
+    }
+
+    renderSlotMachineUi();
+}
+
+function handleSlotMachineEvent(message) {
+    const data = message.data || {};
+    const elements = getSlotMachineElements();
+    if (!elements.root) {
+        return;
+    }
+
+    switch (message.event) {
+        case 'entry_started':
+            enableSlotMachineOverlay({ resetForceHide: true });
+            slotMachineUiState.status = data.questionNumber
+                ? `Entries Open · Q${data.questionNumber}`
+                : 'Entries Open';
+            slotMachineUiState.entries = [];
+            slotMachineUiState.leverUser = null;
+            slotMachineUiState.symbols = getPlaceholderSlotSymbols();
+            slotMachineUiState.countdownMs = data.duration || 60000;
+            slotMachineUiState.resultText = '';
+            slotMachineUiState.resultType = 'idle';
+            slotMachineUiState.isTestRound = data.isTestRound === true;
+            break;
+        case 'entry_tick':
+            enableSlotMachineOverlay();
+            slotMachineUiState.countdownMs = data.remaining ?? slotMachineUiState.countdownMs;
+            if (typeof data.entries === 'number' && data.entries > slotMachineUiState.entries.length) {
+                const placeholderCount = data.entries - slotMachineUiState.entries.length;
+                slotMachineUiState.entries = slotMachineUiState.entries.concat(new Array(placeholderCount).fill('…'));
+            }
+            if (data.isTestRound !== undefined) {
+                slotMachineUiState.isTestRound = data.isTestRound;
+            }
+            break;
+        case 'entry_update':
+            enableSlotMachineOverlay();
+            if (data.latestEntry && !slotMachineUiState.entries.includes(data.latestEntry)) {
+                slotMachineUiState.entries = [...slotMachineUiState.entries, data.latestEntry];
+            }
+            slotMachineUiState.countdownMs = data.remaining ?? slotMachineUiState.countdownMs;
+            if (data.isTestRound !== undefined) {
+                slotMachineUiState.isTestRound = data.isTestRound;
+            }
+            break;
+        case 'lever_ready':
+            enableSlotMachineOverlay();
+            slotMachineUiState.status = 'Waiting for Lever';
+            slotMachineUiState.leverUser = data.leverUser || null;
+            slotMachineUiState.countdownMs = null;
+            if (data.isTestRound !== undefined) {
+                slotMachineUiState.isTestRound = data.isTestRound;
+            }
+            break;
+        case 'spin_started':
+            enableSlotMachineOverlay();
+            slotMachineUiState.status = 'Spinning...';
+            slotMachineUiState.resultText = '';
+            slotMachineUiState.resultType = 'idle';
+            slotMachineUiState.countdownMs = null;
+            if (data.isTestRound !== undefined) {
+                slotMachineUiState.isTestRound = data.isTestRound;
+            }
+            if (elements.reels) {
+                elements.reels.forEach((reel) => {
+                    reel.classList.add('spin');
+                    setTimeout(() => reel.classList.remove('spin'), 900);
+                });
+            }
+            break;
+        case 'result':
+            enableSlotMachineOverlay();
+            slotMachineUiState.status = 'Results';
+            slotMachineUiState.symbols = (data.symbols || []).map(normalizeSlotMachineSymbol);
+            slotMachineUiState.leverUser = data.leverUser || slotMachineUiState.leverUser;
+            slotMachineUiState.countdownMs = null;
+            slotMachineUiState.isTestRound = data.isTestRound === true;
+            if (slotMachineUiState.isTestRound) {
+                slotMachineUiState.resultText = 'Test spin complete (no points).';
+                slotMachineUiState.resultType = 'test';
+            } else {
+                slotMachineUiState.resultText = data.matched
+                    ? `Jackpot! +${data.perParticipantPoints || 0} pts each`
+                    : 'Meh… no bonus this time.';
+                slotMachineUiState.resultType = data.matched ? 'success' : 'fail';
+                const hideDelay = data.matched ? 6000 : 3500;
+                scheduleSlotMachineAutoHide(hideDelay);
+            }
+            break;
+        case 'no_entries':
+            enableSlotMachineOverlay();
+            slotMachineUiState.status = 'No entries';
+            slotMachineUiState.entries = [];
+            slotMachineUiState.leverUser = null;
+            slotMachineUiState.countdownMs = null;
+            slotMachineUiState.symbols = getPlaceholderSlotSymbols();
+            slotMachineUiState.resultText = 'Meh… no entries this time.';
+            slotMachineUiState.resultType = 'fail';
+            slotMachineUiState.isTestRound = data.isTestRound === true;
+            if (!slotMachineUiState.isTestRound) {
+                scheduleSlotMachineAutoHide(3000);
+            }
+            break;
+        default:
+            return;
+    }
+
+    renderSlotMachineUi();
 }
 
 // Update question display
@@ -3627,91 +4058,14 @@ function handleAskAModDisplayUpdate(message) {
     }
 }
 
-// Twitch Emote Definitions for mod response display - All 81 emotes
-const TWITCH_EMOTES = {
-  'k1m6aClipit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c6a0b28a6a5548c8b64698444174173a/default/dark/2.0',
-  'k1m6aCarried': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_68877ffd62914c0baf656683a56885e3/default/dark/2.0',
-  'k1m6aBonk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_6d4a3720c4ca4553a9f7d09ecc228d1c/default/dark/2.0',
-  'k1m6aBlind': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_008fc17538c54d7baf69325b406d421b/default/dark/2.0',
-  'k1m6aBlade': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d4688e604455438e990eda8bfe386621/default/dark/2.0',
-  'k1m6aBan': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a09c3654c25f4a9194ac04951e867285/default/dark/2.0',
-  'k1m6aAstronaut': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c261a2bf5aef4f20a05876f12acfde0b/default/dark/2.0',
-  'k1m6a1010': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8948832ab3834d34bd62ade32a697858/default/dark/2.0',
-  'k1m6aCrab': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5bcd86cb8351436c84a5a90927e91d2a/default/dark/2.0',
-  'k1m6aCozy': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_10002a6ae9cc4f50a5ca94949ca4a096/default/dark/2.0',
-  'k1m6aCopium': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5eca88a8751f4a04b5882b70304e4053/default/dark/2.0',
-  'k1m6aCool': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_19d1d2370d7e49d08926d9c40f1cf699/default/dark/2.0',
-  'k1m6aConfused': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1d50d00f2a1444f4a4952f3aaf562ede/default/dark/2.0',
-  'k1m6aCoffeesip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_116a23cc11734b41b27f6f922b62f630/default/dark/2.0',
-  'k1m6aCoffee': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_413469c842154f72853b651c6db8c0f4/default/dark/2.0',
-  'k1m6aClown': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b289f3411b9b4ccc862385d4d20c26a0/default/dark/2.0',
-  'k1m6aDerp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_681daf912abc479980401475f6b9c082/default/dark/2.0',
-  'k1m6aDevil': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a370f93b4f9744989b2ab2d357dd061c/default/dark/2.0',
-  'k1m6aDj': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8cf31502415443788a03fe3aefc1a7af/default/dark/2.0',
-  'k1m6aDoit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f6971cbe0867419085814dd09ba3ee2f/default/dark/2.0',
-  'k1m6aFacepalm': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_5db4850780504895ab219bdcd03339ab/default/dark/2.0',
-  'k1m6aFail': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0435ef9b206b459aae88657265db15a8/default/dark/2.0',
-  'k1m6aFine': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e9eaecce2b094260b0f4b39bc95b70d0/default/dark/2.0',
-  'k1m6aFlower': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_9440e8eae9e44659b39c3380007b05cd/default/dark/2.0',
-  'k1m6aGasm': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_26ae96c88de64ecab0f5deab4643caff/default/dark/2.0',
-  'k1m6aGasp': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8ee142074d2f41429ffc803ff890a290/default/dark/2.0',
-  'k1m6aGg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_6d97ed643b5a4e19a7ce156a02dede7c/default/dark/2.0',
-  'k1m6aGhost': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ec96872a82c34e32bf3d9729647ed717/default/dark/2.0',
-  'k1m6aGift': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b0b9ae66f2b74b6fbdab36669ab9a25e/default/dark/2.0',
-  'k1m6aGrinch': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_4dea8452193446d3bc8abe1ae9d79095/default/dark/2.0',
-  'k1m6aHotdog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3dd3518f01584e1b89401adebc037035/default/dark/2.0',
-  'k1m6aHug': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_2650294ab5c14ad789210a5002178c6b/default/dark/2.0',
-  'k1m6aHydrate': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c1b78e615a1e4cf9b84566d1e00eebd2/default/dark/2.0',
-  'k1m6aHype': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8aa322d7459e4f86aa65fef5fe5880fb/default/dark/2.0',
-  'k1m6aJam': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e849d7766e9e4293a881e75f8139552c/default/dark/2.0',
-  'k1m6aJason': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_85afabbfc15e49c69c9064ae5b8bd6bd/default/dark/2.0',
-  'k1m6aKekw': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_48b672a057f74de0b953f7004c66d8b9/default/dark/2.0',
-  'k1m6aL': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a383d8c68a0444dd8e2bf1b9ee0b3c30/default/dark/2.0',
-  'k1m6aLearn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_95fb44fddcaf48069e02f4ef5d84ff82/default/dark/2.0',
-  'k1m6aLettuce': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_33109ae4e55d45838bf0895d226a8a8c/default/dark/2.0',
-  'k1m6aLove': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_767294f4fbf14deaa65487efb5e11b55/default/dark/2.0',
-  'k1m6aLul': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_04f3c7fe0428460e855cbd6a62aa8b07/default/dark/2.0',
-  'k1m6aLurk': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_dbcaac379c324382b41b6fbc716f3966/default/dark/2.0',
-  'k1m6aMod': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ca20669eb3d9410dbe6907d3fb427fd5/default/dark/2.0',
-  'k1m6aMoney': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e84f0755bec84b8da286011bcf9503d1/default/dark/2.0',
-  'k1m6aNo': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e555a2b5667e4a73bc55f163ff1a6fc9/default/dark/2.0',
-  'k1m6aPat': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_300ed456269c49928bc5d0db072a9c95/default/dark/2.0',
-  'k1m6aPew': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_d763ee290c774744a6b006754ae6b52b/default/dark/2.0',
-  'k1m6aPixel': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_cc583397b8d14507af71592fc3b15c2b/default/dark/2.0',
-  'k1m6aPog': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_03b9318aa256404590085b7aad65eb82/default/dark/2.0',
-  'k1m6aPopcorn': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_bfdfdcf6304e4ec4a4890449601cc0ba/default/dark/2.0',
-  'k1m6aPray': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1b5460d0cb5043d3bb842b222188ac52/default/dark/2.0',
-  'k1m6aPride': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_081872353abf446d80cbe106d9755a61/default/dark/2.0',
-  'k1m6aPsg': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_57fc02265af64c63b30106e2b83fd75e/default/dark/2.0',
-  'k1m6aPsgjuice': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ea0ac815167448e7a1cafde20fe93427/default/dark/2.0',
-  'k1m6aPuke': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_27486795377745d8a237370db0d08501/default/dark/2.0',
-  'k1m6aRage': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_bc68594da22d4efc88c83016d7248eb6/default/dark/2.0',
-  'k1m6aRip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c7fb2c733dde4b898723521a606ff63e/default/dark/2.0',
-  'k1m6aSad': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_69b1ba54dc0a4d0890f85f3ab72e0e43/default/dark/2.0',
-  'k1m6aSalute': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_b6e561b15bb1485683e3bdb862204b49/default/dark/3.0',
-  'k1m6aShock': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_ffdf2bdc4405492798e761ad16617199/default/dark/2.0',
-  'k1m6aSip': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_3687a7632e6a489e9f951fa976947a1b/default/dark/2.0',
-  'k1m6aSleep': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_0ef29e6d15f2416a90d7fd4677b6b6e6/default/dark/2.0',
-  'k1m6aSmug': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_8a344f3f450944a7932025656003d66c/default/dark/2.0',
-  'k1m6aSniper': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f8bca68fd1b04ff4a662c65896f32c19/default/dark/2.0',
-  'k1m6aStab': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_076521534f724bec852d2ada23458216/default/dark/2.0',
-  'k1m6aStare': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a7ab8ce9904f4ebc8448e9aff4e7f25d/default/dark/2.0',
-  'k1m6aSteer': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7f852081c9a14efe9bde161c4359a528/default/dark/2.0',
-  'k1m6aSuit': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_a70b975f48634e2c856e06b4d8520534/default/dark/2.0',
-  'k1m6aTaptap': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_be90f6cee63445f290b0e03f9e43d43e/default/dark/2.0',
-  'k1m6aThink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c7461b2486334be587e6dc97f344eb32/default/dark/2.0',
-  'k1m6aTongue': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_e3685e6f62d5472b8c31714fde236039/default/dark/2.0',
-  'k1m6aUmbrella': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_f07b5d75ddf14638add815e7341b113f/default/dark/2.0',
-  'k1m6aW': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1ff0e62efa884e619e3bd8d8b05c5704/default/dark/2.0',
-  'k1m6aWave': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_eef8c2eca3974415b13dc80f291c2f96/default/dark/2.0',
-  'k1m6aWiggle': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_59d9e228421a43dcbdb44d58f2ce4866/default/dark/2.0',
-  'k1m6aWink': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_7cf3df4d43324e3d89c0c071fea2f8e4/default/dark/2.0',
-  'k1m6aWow': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_45b386bb9be44b0e8b3b72de2da02ce9/default/dark/2.0',
-  'k1m6aXmasgift': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_261341b67fe8409baced480af78130e2/default/dark/2.0',
-  'k1m6aYes': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_1f4eb7f1a0e64f0e91ede6be618e0760/default/dark/2.0',
-  'k1m6aZombie': 'https://static-cdn.jtvnw.net/emoticons/v2/emotesv2_c65f4314d1b94f1c8bd10ba7d139d6c1/default/dark/2.0'
-};
-
+// Twitch Emote Definitions for mod response display
+// Use a unique constant name so we don't redeclare the global TWITCH_EMOTES that
+// emotes-update.js places on window. Redeclaring the identifier caused
+// "Identifier 'TWITCH_EMOTES' has already been declared" which prevented the
+// rest of gameshow.js from executing inside OBS and other browsers.
+const OBS_TWITCH_EMOTES = (typeof window !== 'undefined' && window.TWITCH_EMOTES)
+  ? window.TWITCH_EMOTES
+  : {};
 // Function to replace Twitch emote text with images
 function replaceTwitchEmotes(text) {
   // HTML escape the text first for security
@@ -3723,12 +4077,12 @@ function replaceTwitchEmotes(text) {
     .replace(/'/g, '&#039;');
   
   // Sort emotes by length (longest first) to avoid partial replacements
-  const sortedEmotes = Object.keys(TWITCH_EMOTES).sort((a, b) => b.length - a.length);
+  const sortedEmotes = Object.keys(OBS_TWITCH_EMOTES).sort((a, b) => b.length - a.length);
   
   // Replace each emote with an img tag
   sortedEmotes.forEach(emote => {
     const regex = new RegExp(`\\b${emote}\\b`, 'g');
-    const imgTag = `<img src="${TWITCH_EMOTES[emote]}" alt="${emote}" style="display: inline-block; width: 24px; height: 24px; vertical-align: middle; margin: 0 2px;">`;
+    const imgTag = `<img src="${OBS_TWITCH_EMOTES[emote]}" alt="${emote}" style="display: inline-block; width: 24px; height: 24px; vertical-align: middle; margin: 0 2px;">`;
     processedText = processedText.replace(regex, imgTag);
   });
   
