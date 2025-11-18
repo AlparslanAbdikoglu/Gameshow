@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What does a “Break of Structure (BOS)” indicate on a chart?",
+    "text": "What is a liquidity pool in trading?",
     "answers": [
-      "A temporary sideways movement",
-      "A confirmation of trend continuation or reversal",
-      "A failed breakout",
-      "A low-volume anomaly"
+      "An area on the chart where many orders are resting",
+      "A long-term investment group",
+      "A government tax rule",
+      "A list of exchange outages"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 2,
+    "text": "What typically happens after a major liquidity sweep?",
+    "answers": [
+      "Funding payments stop",
+      "The market often reverses once stop orders are collected",
+      "All indicators reset automatically",
+      "Price goes sideways permanently"
     ],
     "correct": 1
   },
   {
-    "number": 2,
-    "text": "What does it typically mean when price stays above VWAP for most of the session?",
+    "number": 3,
+    "text": "When price is trading below VWAP with increasing sell volume, what bias is implied?",
     "answers": [
-      "Range bound",
-      "Sellers are in control",
-      "Bullish intraday sentiment",
-      "Funding is paused"
+      "Neutral indecision",
+      "Low-volatility market",
+      "Bearish sentiment",
+      "Bullish strength"
     ],
     "correct": 2
   },
   {
-    "number": 3,
-    "text": "What does a strong bearish divergence usually signal?",
-    "answers": [
-      "Momentum is strengthening upward",
-      "Potential trend exhaustion and reversal",
-      "Volume is irrelevant",
-      "Longs are gaining control"
-    ],
-    "correct": 1
-  },
-  {
     "number": 4,
-    "text": "What is the purpose of identifying an Order Block?",
+    "text": "What does CVD divergence signal?",
     "answers": [
-      "To find where retail traders lose",
-      "To locate institutional demand or supply zones",
-      "To track emotions",
-      "To calculate depth"
+      "Nothing important",
+      "A CPI news release",
+      "Possible imbalance between aggressive buyers and sellers",
+      "Price discovery is finished"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 5,
-    "text": "What is the key characteristic of a “Balanced Market”?",
+    "text": "In trading psychology, what is the most common cause of revenge trading?",
     "answers": [
-      "Wide ranges with large candles",
-      "Tight rotation and two-sided trade",
-      "Endless volatility",
-      "No volume"
+      "Too many winning streaks",
+      "Slow internet",
+      "Following a trading journal too strictly",
+      "Trying to immediately recover losses emotionally"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 6,
-    "text": "What does a spike in Open Interest with rapidly rising price usually suggest?",
+    "text": "What does an increase in Open Interest during a rapid price up-move typically indicate?",
     "answers": [
-      "Shorts capitulating",
-      "New long positions entering aggressively",
-      "Market freezing",
-      "No participation"
+      "Unreliable market data",
+      "New participation entering the trend",
+      "All shorts were liquidated already",
+      "The trend ending immediately"
     ],
     "correct": 1
   },
   {
     "number": 7,
-    "text": "What does it mean if volume is decreasing during a strong trend?",
+    "text": "What is a fair value gap (FVG)?",
     "answers": [
-      "Trend is strengthening",
-      "Potential weakness / momentum fading",
-      "Liquidity is unlimited",
-      "A full gap must fill"
+      "A gap visible only on daily charts",
+      "A price imbalance where no trading occurred between orders",
+      "A gap between weekend candles in crypto",
+      "A special zone created by bots"
     ],
     "correct": 1
   },
   {
     "number": 8,
-    "text": "What is a common reason gaps form on traditional equities charts?",
+    "text": "What does a trendline break with strong volume usually suggest?",
     "answers": [
-      "RSI resets automatically",
-      "Market closes overnight / weekend",
-      "Exchanges malfunction",
-      "Arbitrage disappears"
+      "Market is asleep",
+      "No participation",
+      "A false breakout",
+      "A potential trend reversal"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 9,
-    "text": "When price retests a Key Level after breaking it and holds, what does that often represent?",
+    "text": "What is the purpose of journaling trades?",
     "answers": [
-      "A random bounce",
-      "Support/resistance confirmation",
-      "No significance",
-      "Fake momentum"
+      "To post results publicly",
+      "To calculate brokerage fees",
+      "To collect tax deductions",
+      "To track performance and identify behavior patterns"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 10,
+    "text": "What is a Point of Control shift in Volume Profile?",
+    "answers": [
+      "When VWAP resets at midnight",
+      "When POC moves to a new price level indicating changing value",
+      "When the POC disappears",
+      "When wicks become shorter"
     ],
     "correct": 1
   },
   {
-    "number": 10,
-    "text": "What typically defines a Value Area in Market Profile analysis?",
-    "answers": [
-      "Highest open interest",
-      "Time spent at session high",
-      "The range where 70% of volume traded",
-      "The distance from VWAP"
-    ],
-    "correct": 2
-  },
-  {
     "number": 11,
-    "text": "In order-flow terms, what does absorption look like?",
+    "text": "What does imbalance in orderflow indicate?",
     "answers": [
-      "Thin order book with no execution",
-      "Large market orders unable to move price",
-      "High delta with strong breakout",
-      "Heavy imbalance"
+      "Balanced auction structure",
+      "Aggressive buying or selling pressure",
+      "Trading session closed",
+      "A misprint on the exchange feed"
     ],
     "correct": 1
   },
   {
     "number": 12,
-    "text": "What does a trader gain by maintaining a journal with screenshots?",
+    "text": "Which statement best describes a breakout failure?",
     "answers": [
-      "More followers on social media",
-      "Accountability and pattern identification",
-      "Automatic entries",
-      "Higher leverage"
+      "Price breaks a level and quickly returns back below or above it",
+      "All positions liquidate automatically",
+      "Price breaks a level and accelerates",
+      "Market closes temporarily"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 13,
-    "text": "Which session often creates the strongest impulse moves in crypto derivatives?",
+    "text": "What is the Fear & Greed Index used for?",
     "answers": [
-      "Tokyo open",
-      "London open",
-      "New York open",
-      "Sydney open"
+      "Gauges market sentiment extremes",
+      "Shows interest rate forecasts",
+      "Measures tax pressure",
+      "Measures funding rate levels"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 14,
-    "text": "What is the psychological danger of revenge trading?",
+    "text": "What does a high volume node represent?",
     "answers": [
-      "It strengthens discipline",
-      "It leads to irrational high-risk decisions",
-      "It always works",
-      "It lowers stress"
+      "Area of extreme rejection",
+      "Area of high participation and acceptance",
+      "A gap zone",
+      "A spot where price must reverse"
     ],
     "correct": 1
   },
   {
     "number": 15,
-    "text": "What is Bitcoin’s mysterious creator, Satoshi Nakamoto, most widely known for?",
+    "text": "What typically causes wicks on candlestick charts?",
     "answers": [
-      "Leading the New York Stock Exchange",
-      "Creating the first global stablecoin",
-      "Writing the Bitcoin whitepaper and inventing BTC",
-      "Running the first crypto hedge fund"
+      "Software malfunction",
+      "Automated chart redraw effect",
+      "Time travel delay",
+      "Temporary price rejection caused by aggressive order reactions"
     ],
-    "correct": 2
+    "correct": 3
   }
 ]

@@ -1,6 +1,0 @@
-{
-  "type": "unhandledRejection",
-  "reason": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'Timeout'\n    |     property '_idlePrev' -> object with constructor 'TimersList'\n    --- property '_idleNext' closes the circle",
-  "timestamp": 1763367631729,
-  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'Timeout'\n    |     property '_idlePrev' -> object with constructor 'TimersList'\n    --- property '_idleNext' closes the circle\n    at JSON.stringify (<anonymous>)\n    at handleAPI (C:\\Users\\MSI\\Desktop\\code\\Gameshow\\bridge-server.js:7894:18)\n    at Server.<anonymous> (C:\\Users\\MSI\\Desktop\\code\\Gameshow\\bridge-server.js:1133:5)\n    at Server.emit (node:events:524:28)\n    at parserOnIncoming (node:_http_server:1141:12)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:118:17)"
-}
