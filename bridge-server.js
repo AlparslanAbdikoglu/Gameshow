@@ -10347,6 +10347,26 @@ async function handleAPI(req, res, pathname) {
             triggerSlotMachineTestSpin();
             break;
 
+          case 'set_slot_machine_enabled': {
+            ensureSlotMachineState();
+            const enabled = data.enabled !== false;
+
+            if (gameState.slot_machine.enabled === enabled) {
+              console.log(`🎰 Slot machine already ${enabled ? 'enabled' : 'disabled'} - no change`);
+              break;
+            }
+
+            gameState.slot_machine.enabled = enabled;
+            if (!enabled && gameState.slot_machine.current_round) {
+              cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+              gameState.slot_machine.current_round = null;
+            }
+
+            console.log(`🎰 Slot machine ${enabled ? 'enabled' : 'disabled'} via control panel`);
+            broadcastState(true);
+            break;
+          }
+
           case 'start_hot_seat_entry':
             console.log('📝 Starting hot seat entry period');
             startHotSeatEntryPeriod();
