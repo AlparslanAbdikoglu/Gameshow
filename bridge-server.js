@@ -5097,6 +5097,10 @@ function addSlotMachineEntry(username) {
     isTestRound: !!round.is_test_round
   });
 
+  // Keep any state subscribers (like the SlotMachinePanel) up-to-date with
+  // the new entry count rather than only the slot_machine_event payload.
+  broadcastState(true);
+
   return true;
 }
 
