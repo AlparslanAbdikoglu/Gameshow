@@ -123,7 +123,7 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
           {round.entries.length > 6 && <span>+{round.entries.length - 6} more</span>}
         </div>
       ) : (
-        <p className={styles.slotMachineNote}>Prompt chat to type JOIN before questions 4, 9, and 14.</p>
+        <p className={styles.slotMachineNote}>Prompt chat to type JOIN after every question starting with Q2.</p>
       )}
       <div className={styles.slotMachineActions}>
         <button

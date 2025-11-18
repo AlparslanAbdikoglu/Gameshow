@@ -4380,6 +4380,7 @@ body.hot-seat-active .hot-seat-display.active {
     padding: 24px;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
     border-radius: 22px;
+    overflow: hidden;
 }
 
 .slot-machine-reel {
@@ -4391,10 +4392,16 @@ body.hot-seat-active .hot-seat-display.active {
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
     transition: transform 0.6s ease, filter 0.6s ease;
+    overflow: hidden;
+    --spin-duration: 900ms;
+    --spin-delay: 0ms;
+    --spin-distance: 48px;
+    transform-origin: center;
 }
 
 .slot-machine-reel.spin {
-    animation: reelSpin 0.9s ease;
+    animation: reelSpin var(--spin-duration) cubic-bezier(0.35, 0, 0.2, 1) forwards;
+    animation-delay: var(--spin-delay);
 }
 
 .slot-machine-reel img {
@@ -4405,9 +4412,18 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 @keyframes reelSpin {
-    0% { transform: translateY(-10px); filter: blur(6px); }
-    50% { transform: translateY(10px); filter: blur(2px); }
-    100% { transform: translateY(0); filter: blur(0); }
+    0% {
+        transform: translateY(calc(var(--spin-distance, 48px) * -1)) rotateX(38deg) scale(0.92);
+        filter: blur(8px) brightness(1.2);
+    }
+    55% {
+        transform: translateY(calc(var(--spin-distance, 48px) * 1)) rotateX(-32deg) scale(0.98);
+        filter: blur(4px) brightness(1.05);
+    }
+    100% {
+        transform: translateY(0) rotateX(0deg) scale(1);
+        filter: blur(0) brightness(1);
+    }
 }
 
 .slot-machine-info {

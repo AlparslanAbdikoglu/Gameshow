@@ -1297,7 +1297,7 @@ function renderSlotMachineTriggerCopy(element) {
         return;
     }
 
-    element.textContent = 'Slot machine activates on questions 4, 9, and 14. Just type JOIN.';
+    element.textContent = 'Slot machine activates after every question starting with Q2. Just type JOIN.';
 }
 
 function renderSlotMachineUi() {
@@ -1473,6 +1473,48 @@ function updateSlotMachineDisplay(state) {
     renderSlotMachineUi();
 }
 
+function triggerSlotMachineReelAnimation(mode = 'spin') {
+    const elements = getSlotMachineElements();
+    if (!elements.reels || elements.reels.length === 0) {
+        return;
+    }
+
+    const animationPresets = mode === 'result'
+        ? {
+            durations: [650, 850, 1200],
+            delays: [0, 140, 360],
+            distances: ['52px', '60px', '72px']
+        }
+        : {
+            durations: [900, 1050, 1400],
+            delays: [0, 120, 300],
+            distances: ['40px', '48px', '60px']
+        };
+
+    elements.reels.forEach((reel, index) => {
+        const duration = animationPresets.durations[Math.min(index, animationPresets.durations.length - 1)];
+        const delay = animationPresets.delays[Math.min(index, animationPresets.delays.length - 1)];
+        const distance = animationPresets.distances[Math.min(index, animationPresets.distances.length - 1)];
+
+        reel.classList.remove('spin');
+        // Force reflow so the animation restarts
+        void reel.offsetWidth;
+
+        reel.style.setProperty('--spin-duration', `${duration}ms`);
+        reel.style.setProperty('--spin-delay', `${delay}ms`);
+        reel.style.setProperty('--spin-distance', distance);
+        reel.classList.add('spin');
+
+        const total = duration + delay + 50;
+        setTimeout(() => {
+            reel.classList.remove('spin');
+            reel.style.removeProperty('--spin-duration');
+            reel.style.removeProperty('--spin-delay');
+            reel.style.removeProperty('--spin-distance');
+        }, total);
+    });
+}
+
 function handleSlotMachineEvent(message) {
     const data = message.data || {};
     const elements = getSlotMachineElements();
@@ -1533,12 +1575,7 @@ function handleSlotMachineEvent(message) {
             if (data.isTestRound !== undefined) {
                 slotMachineUiState.isTestRound = data.isTestRound;
             }
-            if (elements.reels) {
-                elements.reels.forEach((reel) => {
-                    reel.classList.add('spin');
-                    setTimeout(() => reel.classList.remove('spin'), 900);
-                });
-            }
+            triggerSlotMachineReelAnimation('spin');
             break;
         case 'result':
             enableSlotMachineOverlay();
@@ -1558,6 +1595,7 @@ function handleSlotMachineEvent(message) {
                 const hideDelay = data.matched ? 6000 : 3500;
                 scheduleSlotMachineAutoHide(hideDelay);
             }
+            triggerSlotMachineReelAnimation('result');
             break;
         case 'no_entries':
             enableSlotMachineOverlay();
