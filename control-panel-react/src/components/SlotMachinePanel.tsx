@@ -9,6 +9,7 @@ interface SlotMachinePanelProps {
 
 const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
   const [testingSpin, setTestingSpin] = React.useState(false);
+  const [togglingEnabled, setTogglingEnabled] = React.useState(false);
 
   const handleTestSpin = React.useCallback(async () => {
     if (testingSpin) {
@@ -25,6 +26,23 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
     }
   }, [testingSpin]);
 
+  const handleToggleEnabled = React.useCallback(async () => {
+    if (!slotMachine || togglingEnabled) {
+      return;
+    }
+
+    setTogglingEnabled(true);
+    try {
+      await gameApi.sendCommand('set_slot_machine_enabled', {
+        enabled: !slotMachine.enabled,
+      });
+    } catch (error) {
+      console.error('Failed to toggle slot machine state', error);
+    } finally {
+      setTogglingEnabled(false);
+    }
+  }, [slotMachine, togglingEnabled]);
+
   if (!slotMachine) {
     return (
       <div className={styles.slotMachinePanel}>
@@ -37,6 +55,8 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
     );
   }
 
+  const toggleButtonLabel = slotMachine.enabled ? 'Disable Slot Machine' : 'Enable Slot Machine';
+
   if (!slotMachine.enabled) {
     return (
       <div className={styles.slotMachinePanel}>
@@ -45,6 +65,16 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
           <span className={styles.slotMachineStatus}>Disabled</span>
         </div>
         <p>Enable the slot machine bonus in bridge-server to show live status.</p>
+        <div className={styles.slotMachineActions}>
+          <button
+            type="button"
+            className={styles.slotMachineButton}
+            onClick={handleToggleEnabled}
+            disabled={togglingEnabled}
+          >
+            {togglingEnabled ? 'Updating…' : toggleButtonLabel}
+          </button>
+        </div>
       </div>
     );
   }
@@ -103,6 +133,14 @@ const SlotMachinePanel: React.FC<SlotMachinePanelProps> = ({ slotMachine }) => {
           disabled={testingSpin}
         >
           {testingSpin ? 'Triggering…' : 'Test Spin'}
+        </button>
+        <button
+          type="button"
+          className={styles.slotMachineButton}
+          onClick={handleToggleEnabled}
+          disabled={togglingEnabled}
+        >
+          {togglingEnabled ? 'Updating…' : toggleButtonLabel}
         </button>
         <span className={styles.slotMachineActionHelp}>Runs a rehearsal spin without affecting live scores.</span>
       </div>
