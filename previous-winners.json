@@ -1,6 +1,54 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-11-19T23-04-12_jhoalx",
+      "date": "2025-11-19T23:04:12.000Z",
+      "username": "jhoalx",
+      "final_points": 215,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 8360,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 215,
+      "contestant_name": "Leo Juice"
+    },
+    {
+      "game_id": "game_2025-11-19T23-04-12_cucadeliciosa",
+      "date": "2025-11-19T23:04:12.000Z",
+      "username": "cucadeliciosa",
+      "final_points": 195,
+      "correct_answers": 11,
+      "total_answers": 11,
+      "accuracy": 100,
+      "best_streak": 11,
+      "fastest_correct_time": 10193,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 195,
+      "contestant_name": "Leo Juice"
+    },
+    {
+      "game_id": "game_2025-11-19T23-04-12_thetakingprophet",
+      "date": "2025-11-19T23:04:12.000Z",
+      "username": "thetakingprophet",
+      "final_points": 189,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 10819,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 189,
+      "contestant_name": "Leo Juice"
+    },
+    {
       "game_id": "game_2025-11-17T23-13-08_inkyderanged",
       "date": "2025-11-17T23:13:08.000Z",
       "username": "inkyderanged",
@@ -424,10 +472,10 @@
     }
   ],
   "metadata": {
-    "total_games": 9,
-    "last_updated": "2025-11-17T23:13:08.866Z",
+    "total_games": 10,
+    "last_updated": "2025-11-19T23:04:12.814Z",
     "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
-    "total_players": 17,
+    "total_players": 20,
     "total_source_entries": 25,
     "source_range": "2025-10-20 to 2025-11-12"
   }
