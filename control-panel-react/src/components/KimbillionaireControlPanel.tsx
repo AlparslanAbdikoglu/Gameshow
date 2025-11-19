@@ -16,6 +16,11 @@ import PrizeConfiguration from './PrizeConfiguration';
 import { obsIntegration } from '../utils/obs-integration';
 import { gameApi } from '../utils/api';
 import {
+  HotSeatProfileData,
+  parseHotSeatProfilesFile,
+  escapeProfileHtml
+} from '../utils/hotSeatProfiles';
+import {
   Question,
   GameState,
   OBSConnectionStatus,
@@ -72,156 +77,6 @@ const useKeybinds = (handlers: Record<string, () => void>, dependencies: any[] =
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
-};
-
-interface HotSeatProfileData {
-  username: string;
-  displayName: string;
-  storyHtml?: string;
-  storyText?: string;
-  lastUpdated?: number;
-}
-
-interface HotSeatProfileParseResult {
-  profiles: Record<string, HotSeatProfileData>;
-  errors: string[];
-}
-
-const applyInlineProfileFormatting = (text: string) =>
-  text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    .replace(/(?<!\\)\*(?!\s)([^*]+?)\*(?!\s)/g, '<em>$1</em>')
-    .replace(/_(?!\s)([^_]+?)_(?!\s)/g, '<em>$1</em>');
-
-const escapeProfileHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-const convertProfileStoryToHtml = (raw: string) => {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return { html: '', text: '' };
-  }
-
-  const blocks = trimmed.split(/\n{2,}/);
-  const htmlBlocks = blocks
-    .map((block) => {
-      const lines = block
-        .split(/\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      if (lines.length === 0) {
-        return '';
-      }
-
-      if (lines.every((line) => /^[-*]\s+/.test(line))) {
-        const items = lines
-          .map((line) => line.replace(/^[-*]\s+/, ''))
-          .map((line) => `<li>${applyInlineProfileFormatting(escapeProfileHtml(line))}</li>`)
-          .join('');
-        return `<ul>${items}</ul>`;
-      }
-
-      const paragraph = lines.join(' ');
-      return `<p>${applyInlineProfileFormatting(escapeProfileHtml(paragraph))}</p>`;
-    })
-    .filter(Boolean)
-    .join('');
-
-  return {
-    html: htmlBlocks,
-    text: trimmed
-  };
-};
-
-const parseHotSeatProfilesMarkdown = (markdown: string): HotSeatProfileParseResult => {
-  const lines = markdown.split(/\r?\n/);
-  const profiles: Record<string, HotSeatProfileData> = {};
-  const errors: string[] = [];
-
-  let currentIdentifier: string | null = null;
-  let currentDisplayName: string | null = null;
-  let buffer: string[] = [];
-
-  const flushCurrent = () => {
-    if (!currentIdentifier) {
-      buffer = [];
-      return;
-    }
-
-    const storyRaw = buffer.join('\n');
-    const { html, text } = convertProfileStoryToHtml(storyRaw);
-    const normalized = currentIdentifier.trim().toLowerCase();
-
-    if (!normalized) {
-      errors.push('Skipped profile with empty username.');
-      buffer = [];
-      currentIdentifier = null;
-      currentDisplayName = null;
-      return;
-    }
-
-    profiles[normalized] = {
-      username: currentIdentifier.trim(),
-      displayName: (currentDisplayName || currentIdentifier).trim(),
-      storyHtml: html,
-      storyText: text
-    };
-
-    buffer = [];
-    currentIdentifier = null;
-    currentDisplayName = null;
-  };
-
-  lines.forEach((line, index) => {
-    const headingMatch = line.match(/^##\s+(.+)/);
-    if (headingMatch) {
-      flushCurrent();
-
-      let headingText = headingMatch[1].trim();
-      if (!headingText) {
-        errors.push(`Line ${index + 1}: heading is missing a username.`);
-        return;
-      }
-
-      let usernamePart = headingText;
-      let displayNamePart = headingText;
-
-      if (headingText.includes('|')) {
-        const [userSegment, displaySegment] = headingText.split('|');
-        usernamePart = userSegment.trim();
-        displayNamePart = (displaySegment || userSegment).trim();
-      }
-
-      if (usernamePart.startsWith('@')) {
-        usernamePart = usernamePart.slice(1).trim();
-      }
-
-      if (!usernamePart) {
-        errors.push(`Line ${index + 1}: heading must include a username.`);
-        return;
-      }
-
-      currentIdentifier = usernamePart;
-      currentDisplayName = displayNamePart;
-      buffer = [];
-      return;
-    }
-
-    if (currentIdentifier) {
-      buffer.push(line);
-    }
-  });
-
-  flushCurrent();
-
-  return { profiles, errors };
 };
 
 const KimbillionaireControlPanel: React.FC = () => {
@@ -1172,11 +1027,12 @@ const KimbillionaireControlPanel: React.FC = () => {
 
     try {
       const fileContents = await file.text();
-      const { profiles, errors } = parseHotSeatProfilesMarkdown(fileContents);
+      const { profiles, errors, format } = parseHotSeatProfilesFile(fileContents, file.name);
       const profileCount = Object.keys(profiles).length;
 
       if (profileCount === 0) {
-        setHotSeatProfileError('No valid profiles were found in the uploaded markdown file.');
+        const formatLabel = format === 'json' ? 'JSON' : 'markdown';
+        setHotSeatProfileError(`No valid profiles were found in the uploaded ${formatLabel} file.`);
         return;
       }
 
@@ -1186,7 +1042,8 @@ const KimbillionaireControlPanel: React.FC = () => {
 
       setHotSeatProfilesMap(profiles);
       setHotSeatProfilesCount(uploadedCount);
-      setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name}.`);
+      const formatLabel = format === 'json' ? 'JSON' : 'markdown';
+      setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name} (${formatLabel}).`);
       setHotSeatProfileFileName(file.name);
 
       if (errors.length > 0) {
@@ -2305,15 +2162,19 @@ const KimbillionaireControlPanel: React.FC = () => {
                 <span className={styles.creditsStatusSubtext}>
                   {hotSeatProfileFileName
                     ? `Last upload: ${hotSeatProfileFileName}`
-                    : 'Upload markdown to spotlight players'}
+                    : 'Upload markdown or JSON to spotlight players'}
                 </span>
               </div>
             </div>
 
             <div className={styles.hotSeatUpload}>
               <label htmlFor="hotSeatProfileUpload" className={styles.uploadLabel}>
-                Upload hot seat background stories (accepting:.md .txt)
+                Upload hot seat background stories (.md, .txt, or .json)
               </label>
+              <p className={styles.uploadHint}>
+                Supports Markdown sections (e.g. <code>## username | Display Name</code>) or JSON where each username maps to a
+                <code>{{ story: "..." }}</code> entry.
+              </p>
 
               {/* Custom-styled upload button */}
               <label className={styles.customUploadButton}>
@@ -2321,7 +2182,7 @@ const KimbillionaireControlPanel: React.FC = () => {
                 <input
                   id="hotSeatProfileUpload"
                   type="file"
-                  accept=".md,.markdown,.txt"
+                  accept=".md,.markdown,.txt,.json,application/json"
                   onChange={handleHotSeatProfileUpload}
                   disabled={isUploadingHotSeatProfiles}
                   style={{ display: 'none' }}
