@@ -4927,6 +4927,8 @@ const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code,
   emojiUrl: url
 }));
 
+const SLOT_MACHINE_BLOCKED_QUESTIONS = new Set([5, 10, 15]);
+
 function getSlotMachineSymbolPool() {
   return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
 }
@@ -4956,7 +4958,8 @@ function ensureSlotMachineState() {
     };
   }
 
-  const defaultSchedule = Array.from({ length: 14 }, (_, index) => index + 2);
+  const defaultSchedule = Array.from({ length: 14 }, (_, index) => index + 2)
+    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value));
   let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
     ? [...gameState.slot_machine.schedule_questions]
     : [...defaultSchedule];
@@ -4981,7 +4984,9 @@ function ensureSlotMachineState() {
     schedule = [...defaultSchedule];
   }
 
-  const normalizedSchedule = Array.from(new Set(schedule)).sort((a, b) => a - b);
+  const normalizedSchedule = Array.from(new Set(schedule))
+    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value))
+    .sort((a, b) => a - b);
   gameState.slot_machine.schedule_questions = normalizedSchedule;
 
   gameState.slot_machine.entry_duration_ms = 30000;
