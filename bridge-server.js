@@ -17,6 +17,9 @@ const WebSocket = require('ws');
 const { processJoinCommand } = require('./lib/join-handler');
 const TWITCH_EMOTES = require('./emotes-update.js');
 
+// Slot machine rounds must skip questions that host the hot seat to avoid UI overlap
+const SLOT_MACHINE_BLOCKED_QUESTIONS = new Set([5, 10, 15]);
+
 const POLLING_CONFIG_PATH = path.join(__dirname, 'polling-config.json');
 
 // Debug flags - set to false in production for performance
@@ -4926,8 +4929,6 @@ const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code,
   emoji: code,
   emojiUrl: url
 }));
-
-const SLOT_MACHINE_BLOCKED_QUESTIONS = new Set([5, 10, 15]);
 
 function getSlotMachineSymbolPool() {
   return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
