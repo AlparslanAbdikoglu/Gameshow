@@ -17,6 +17,9 @@ const WebSocket = require('ws');
 const { processJoinCommand } = require('./lib/join-handler');
 const TWITCH_EMOTES = require('./emotes-update.js');
 
+// Slot machine rounds must skip questions that host the hot seat to avoid UI overlap
+const SLOT_MACHINE_BLOCKED_QUESTIONS = new Set([5, 10, 15]);
+
 const POLLING_CONFIG_PATH = path.join(__dirname, 'polling-config.json');
 
 // Debug flags - set to false in production for performance
@@ -4946,16 +4949,18 @@ function ensureSlotMachineState() {
   if (!gameState.slot_machine) {
     gameState.slot_machine = {
       enabled: true,
-      schedule_questions: [4, 9, 14],
+      schedule_questions: [],
       schedule_version: 'question_numbers',
-      entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
+      entry_duration_ms: 30000,
       max_points: 25,
       current_round: null,
-      last_round_result: null
+      last_round_result: null,
+      round_count: 0
     };
   }
 
-  const defaultSchedule = [4, 9, 14];
+  const defaultSchedule = Array.from({ length: 14 }, (_, index) => index + 2)
+    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value));
   let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
     ? [...gameState.slot_machine.schedule_questions]
     : [...defaultSchedule];
@@ -4976,15 +4981,18 @@ function ensureSlotMachineState() {
     .map((value) => Math.min(15, Math.max(1, Math.round(value))))
     .filter((value) => !Number.isNaN(value));
 
-  if (!schedule.length) {
+  if (!schedule.length || schedule.length < defaultSchedule.length) {
     schedule = [...defaultSchedule];
   }
 
-  const normalizedSchedule = Array.from(new Set(schedule)).sort((a, b) => a - b);
+  const normalizedSchedule = Array.from(new Set(schedule))
+    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value))
+    .sort((a, b) => a - b);
   gameState.slot_machine.schedule_questions = normalizedSchedule;
 
-  gameState.slot_machine.entry_duration_ms = gameState.slot_machine.entry_duration_ms || gameState.hot_seat_entry_duration || 60000;
+  gameState.slot_machine.entry_duration_ms = 30000;
   gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
+  gameState.slot_machine.round_count = gameState.slot_machine.round_count || 0;
 }
 
 function broadcastSlotMachineEvent(event, payload = {}) {
@@ -5164,9 +5172,17 @@ function spinSlotMachineRound(source = 'system') {
   broadcastState(true);
 
   setTimeout(() => {
-    const symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
+    const roundNumber = (gameState.slot_machine.round_count || 0) + 1;
+    const shouldForceJackpot = !round.is_test_round && round.entries.length > 0 && roundNumber % 2 === 0;
+    let symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
     const firstSymbol = symbols[0];
-    const jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
+    let jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
+
+    if (shouldForceJackpot && !jackpot) {
+      const forcedSymbol = firstSymbol || drawSlotMachineSymbol();
+      symbols = [forcedSymbol, forcedSymbol, forcedSymbol];
+      jackpot = true;
+    }
     let perParticipantPoints = 0;
     let totalAwardedPoints = 0;
 
@@ -5210,6 +5226,9 @@ function spinSlotMachineRound(source = 'system') {
       ...resultPayload,
       timestamp: Date.now()
     };
+    if (!round.is_test_round) {
+      gameState.slot_machine.round_count = roundNumber;
+    }
 
     broadcastSlotMachineEvent('result', resultPayload);
     broadcastState(true);
