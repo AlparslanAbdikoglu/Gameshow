@@ -4150,7 +4150,7 @@ let hotSeatEntryState = {
 
 let hotSeatProfileHideTimeout = null;
 
-function normalizeHotSeatUsername(username) {
+function stripHotSeatDecorators(username) {
     if (typeof username !== 'string') {
         return '';
     }
@@ -4160,7 +4160,14 @@ function normalizeHotSeatUsername(username) {
         return '';
     }
 
-    return trimmed.replace(/^@+/, '').toLowerCase();
+    const withoutAt = trimmed.replace(/^@+/, '');
+    return withoutAt.split(/[:|]/)[0].trim();
+}
+
+function normalizeHotSeatUsername(username) {
+    const usernameOnly = stripHotSeatDecorators(username);
+
+    return usernameOnly.toLowerCase();
 }
 
 function escapeHtml(unsafe = '') {
@@ -4195,7 +4202,7 @@ function getHotSeatProfileFromState(username) {
     const profile = profiles[normalized];
     const usernameDisplay = typeof profile.username === 'string' && profile.username.trim().length > 0
         ? profile.username.trim()
-        : username.replace(/^@+/, '').trim();
+        : stripHotSeatDecorators(username);
 
     const displayName = typeof profile.displayName === 'string' && profile.displayName.trim().length > 0
         ? profile.displayName.trim()

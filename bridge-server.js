@@ -64,7 +64,7 @@ function trackVoteProcessing(processingTime, rejected = false, duplicate = false
   }
 }
 
-function normalizeUsername(username) {
+function stripDecoratedUsername(username) {
   if (typeof username !== 'string') {
     return '';
   }
@@ -74,7 +74,13 @@ function normalizeUsername(username) {
     return '';
   }
 
-  return trimmed.replace(/^@+/, '').toLowerCase();
+  const withoutAt = trimmed.replace(/^@+/, '');
+  return withoutAt.split(/[:|]/)[0].trim();
+}
+
+function normalizeUsername(username) {
+  const usernameOnly = stripDecoratedUsername(username);
+  return usernameOnly.toLowerCase();
 }
 
 function sanitizeProfileHtml(html = '') {
@@ -4935,15 +4941,19 @@ function startHotSeatEntryPeriod() {
 }
 
 function initializeHotSeatSession(selectedUsers, options = {}) {
-  const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
+  const cleanedUsers = Array.from(new Set(
+    (selectedUsers || [])
+      .map((user) => stripDecoratedUsername(typeof user === 'string' ? user : ''))
+      .filter(Boolean)
+  ));
 
-  if (uniqueUsers.length === 0) {
+  if (cleanedUsers.length === 0) {
     console.warn('⚠️ HOT SEAT activation skipped - no valid users provided');
     return false;
   }
 
   const selectionMethod = options.selectionMethod || 'manual';
-  const primaryUser = uniqueUsers[0];
+  const primaryUser = cleanedUsers[0];
   const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
 
   // End any lingering entry countdown now that a session is beginning
@@ -4955,7 +4965,7 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   gameState.hot_seat_entry_lookup = new Set();
 
   gameState.hot_seat_active = true;
-  gameState.hot_seat_users = uniqueUsers;
+  gameState.hot_seat_users = cleanedUsers;
   gameState.hot_seat_user = primaryUser;
   gameState.hot_seat_timer = timerDuration;
   gameState.hot_seat_answered = false;
@@ -4964,8 +4974,8 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   gameState.hot_seat_spotlight_until = Date.now() + 20000;
 
   console.log(`🔥 HOT SEAT ACTIVATED for user: ${primaryUser} (Method: ${selectionMethod})`);
-  if (uniqueUsers.length > 1) {
-    console.log(`👥 Additional hot seat participants: ${uniqueUsers.slice(1).join(', ')}`);
+    if (cleanedUsers.length > 1) {
+      console.log(`👥 Additional hot seat participants: ${cleanedUsers.slice(1).join(', ')}`);
   }
   console.log('⏱️ Enforcing 20 second spotlight hold before next question can start');
   console.log(`⏱️ ${primaryUser} has ${timerDuration} seconds to submit their answer`);
@@ -4975,7 +4985,7 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     console.log(`🧾 Found uploaded profile for hot seat player ${primaryUser}`);
   }
 
-  const alternateProfiles = uniqueUsers
+  const alternateProfiles = cleanedUsers
     .slice(1)
     .map(username => ({ username, profile: getHotSeatProfile(username) }))
     .filter(entry => entry.profile && entry.profile.storyHtml);
@@ -4985,7 +4995,7 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
     gameState.audience_poll_active = false;
   }
 
-  uniqueUsers.forEach(user => {
+  cleanedUsers.forEach(user => {
     addPointsToPlayer(user, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
     ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
       const player = initializePlayerInLeaderboard(user, period);
@@ -4998,10 +5008,10 @@ function initializeHotSeatSession(selectedUsers, options = {}) {
   broadcastToClients({
     type: 'hot_seat_activated',
     user: primaryUser,
-    users: uniqueUsers,
+      users: cleanedUsers,
     timer: timerDuration,
     questionNumber: gameState.current_question + 1,
-    message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
+    message: options.message || `Hot seat activated for: ${cleanedUsers.join(', ')}`,
     selectionMethod,
     profile: primaryProfile || null,
     alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
