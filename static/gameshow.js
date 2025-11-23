@@ -4151,6 +4151,11 @@ let hotSeatEntryState = {
 let hotSeatProfileHideTimeout = null;
 let hotSeatStartCountdownInterval = null;
 let hotSeatStartCountdownTimeout = null;
+let hotSeatProfileCountdownInterval = null;
+let hotSeatProfileCountdownRemainingMs = 0;
+let hotSeatStoryHoldTimeout = null;
+let hotSeatStoryHoldActive = false;
+const HOT_SEAT_PROFILE_DISPLAY_MS = 25000;
 
 function stripHotSeatDecorators(username) {
     if (typeof username !== 'string') {
@@ -4311,11 +4316,40 @@ function formatHotSeatSelectionMethod(method) {
     }
 }
 
-function hideHotSeatProfileCard(instant = false) {
+function clearHotSeatProfileCountdown() {
+    if (hotSeatProfileCountdownInterval) {
+        clearInterval(hotSeatProfileCountdownInterval);
+        hotSeatProfileCountdownInterval = null;
+    }
+
+    hotSeatProfileCountdownRemainingMs = 0;
+
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
+    if (countdownEl) {
+        countdownEl.classList.add('hidden');
+        countdownEl.textContent = '';
+    }
+}
+
+function clearHotSeatStoryHold() {
+    if (hotSeatStoryHoldTimeout) {
+        clearTimeout(hotSeatStoryHoldTimeout);
+        hotSeatStoryHoldTimeout = null;
+    }
+
+    hotSeatStoryHoldActive = false;
+}
+
+function hideHotSeatProfileCard(instant = false, preserveStoryHold = false) {
     const overlay = document.getElementById('hot-seat-profile-overlay');
     if (!overlay) {
         return;
     }
+
+    if (!preserveStoryHold) {
+        clearHotSeatStoryHold();
+    }
+    clearHotSeatProfileCountdown();
 
     if (hotSeatProfileHideTimeout) {
         clearTimeout(hotSeatProfileHideTimeout);
@@ -4353,6 +4387,7 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     const dividerEl = document.getElementById('hot-seat-profile-divider');
     const storyEl = document.getElementById('hot-seat-profile-story');
     const alternatesEl = document.getElementById('hot-seat-profile-alternates');
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
 
     if (nameEl) {
         nameEl.textContent = (profileData && profileData.displayName) || primaryUser;
@@ -4399,6 +4434,29 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
 
+    clearHotSeatProfileCountdown();
+
+    if (countdownEl) {
+        countdownEl.classList.remove('hidden');
+        hotSeatProfileCountdownRemainingMs = HOT_SEAT_PROFILE_DISPLAY_MS;
+
+        const updateCountdown = () => {
+            const secondsRemaining = Math.max(0, Math.ceil(hotSeatProfileCountdownRemainingMs / 1000));
+            countdownEl.textContent = `${secondsRemaining}s`;
+        };
+
+        updateCountdown();
+
+        hotSeatProfileCountdownInterval = setInterval(() => {
+            hotSeatProfileCountdownRemainingMs -= 1000;
+            if (hotSeatProfileCountdownRemainingMs <= 0) {
+                clearHotSeatProfileCountdown();
+            } else {
+                updateCountdown();
+            }
+        }, 1000);
+    }
+
     requestAnimationFrame(() => {
         overlay.classList.add('show');
     });
@@ -4408,8 +4466,8 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     }
 
     hotSeatProfileHideTimeout = setTimeout(() => {
-        hideHotSeatProfileCard();
-    }, 30000);
+        hideHotSeatProfileCard(false, true);
+    }, HOT_SEAT_PROFILE_DISPLAY_MS);
 }
 
 function clearHotSeatStartCountdown() {
@@ -4422,6 +4480,8 @@ function clearHotSeatStartCountdown() {
         clearTimeout(hotSeatStartCountdownTimeout);
         hotSeatStartCountdownTimeout = null;
     }
+
+    clearHotSeatStoryHold();
 }
 
 function mergeHotSeatEntryState(partial = {}) {
@@ -4632,24 +4692,14 @@ function handleHotSeatActivated(message) {
         timerEl.textContent = `${timerValue}s`;
         timerEl.className = "hot-seat-timer";
         statusEl.style.color = "";
+        statusEl.textContent = 'Showing their story...';
 
-        let countdownSeconds = 3;
-        statusEl.textContent = `Starting in ${countdownSeconds}...`;
-
-        hotSeatStartCountdownInterval = setInterval(() => {
-            countdownSeconds -= 1;
-
-            if (countdownSeconds > 0) {
-                statusEl.textContent = `Starting in ${countdownSeconds}...`;
-            } else {
-                statusEl.textContent = 'Go!';
-            }
-        }, 1000);
-
-        hotSeatStartCountdownTimeout = setTimeout(() => {
+        hotSeatStoryHoldActive = true;
+        hotSeatStoryHoldTimeout = setTimeout(() => {
+            hotSeatStoryHoldActive = false;
             applyActiveHotSeatUi();
             clearHotSeatStartCountdown();
-        }, 3000);
+        }, HOT_SEAT_PROFILE_DISPLAY_MS);
     }
 
     const infoMessage = document.getElementById('info-message');
@@ -4706,7 +4756,7 @@ function handleHotSeatActivated(message) {
 }
 
 function handleHotSeatTimerUpdate(message) {
-    if (hotSeatStartCountdownTimeout || hotSeatStartCountdownInterval) {
+    if (hotSeatStartCountdownTimeout || hotSeatStartCountdownInterval || hotSeatStoryHoldActive) {
         return;
     }
 

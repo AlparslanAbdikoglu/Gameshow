@@ -3660,6 +3660,7 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-card {
+    position: relative;
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.95), rgba(0, 22, 60, 0.92));
     border: 2px solid rgba(255, 160, 0, 0.65);
     border-radius: 24px;
@@ -3671,6 +3672,22 @@ body.hot-seat-active .hot-seat-display.active {
     transform: translateY(24px);
     transition: transform 0.4s ease, box-shadow 0.4s ease;
     pointer-events: auto;
+}
+
+.hot-seat-profile-countdown {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 215, 0, 0.65);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffe082;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .hot-seat-profile-overlay.show .hot-seat-profile-card {
