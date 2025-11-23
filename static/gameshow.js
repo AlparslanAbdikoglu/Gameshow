@@ -4179,6 +4179,54 @@ function escapeHtml(unsafe = '') {
         .replace(/'/g, '&#39;');
 }
 
+function convertStoryTextToHtml(text = '') {
+    const safeText = escapeHtml(text || '');
+    const paragraphs = safeText
+        .split(/\n\n+/)
+        .map(block => block.trim())
+        .filter(Boolean);
+
+    if (paragraphs.length === 0) {
+        return '';
+    }
+
+    return paragraphs.map(p => `<p>${p}</p>`).join('');
+}
+
+function coerceHotSeatProfile(profile, usernameFallback = '') {
+    if (!profile || typeof profile !== 'object') {
+        return null;
+    }
+
+    const username = typeof profile.username === 'string' && profile.username.trim().length > 0
+        ? profile.username.trim()
+        : stripHotSeatDecorators(usernameFallback);
+
+    const displayName = typeof profile.displayName === 'string' && profile.displayName.trim().length > 0
+        ? profile.displayName.trim()
+        : username;
+
+    const storyHtml = typeof profile.storyHtml === 'string' && profile.storyHtml.trim().length > 0
+        ? profile.storyHtml.trim()
+        : typeof profile.storyText === 'string' && profile.storyText.trim().length > 0
+            ? convertStoryTextToHtml(profile.storyText)
+            : '';
+
+    const storyText = typeof profile.storyText === 'string' && profile.storyText.trim().length > 0
+        ? profile.storyText.trim()
+        : storyHtml
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    return {
+        username,
+        displayName,
+        storyHtml,
+        storyText
+    };
+}
+
 function buildHotSeatFallbackStory(playerName = 'This contestant') {
     const safeName = escapeHtml(playerName && playerName.length > 0 ? playerName : 'This contestant');
     return `<p>${safeName} is ready for the spotlight. Upload a hot seat story to share their background.</p>`;
@@ -4199,20 +4247,17 @@ function getHotSeatProfileFromState(username) {
         return null;
     }
 
-    const profile = profiles[normalized];
-    const usernameDisplay = typeof profile.username === 'string' && profile.username.trim().length > 0
-        ? profile.username.trim()
-        : stripHotSeatDecorators(username);
+    const coerced = coerceHotSeatProfile(profiles[normalized], username);
+    if (coerced) {
+        return coerced;
+    }
 
-    const displayName = typeof profile.displayName === 'string' && profile.displayName.trim().length > 0
-        ? profile.displayName.trim()
-        : usernameDisplay;
-
+    const usernameDisplay = stripHotSeatDecorators(username);
     return {
         username: usernameDisplay,
-        displayName,
-        storyHtml: typeof profile.storyHtml === 'string' ? profile.storyHtml : '',
-        storyText: typeof profile.storyText === 'string' ? profile.storyText : ''
+        displayName: usernameDisplay,
+        storyHtml: '',
+        storyText: ''
     };
 }
 
@@ -4452,12 +4497,30 @@ function handleHotSeatActivated(message) {
 
     const alternateNames = participants.slice(1);
 
-    const profileFromMessage = message && typeof message.profile === 'object' ? message.profile : null;
-    const fallbackProfile = profileFromMessage && profileFromMessage.storyHtml
+    const profileFromMessage = message && typeof message.profile === 'object' ? coerceHotSeatProfile(message.profile, primaryUser) : null;
+    const fallbackProfile = profileFromMessage && (profileFromMessage.storyHtml || profileFromMessage.storyText)
         ? profileFromMessage
         : getHotSeatProfileFromState(primaryUser) || profileFromMessage;
 
-    const messageAlternateProfiles = Array.isArray(message.alternateProfiles) ? message.alternateProfiles : [];
+    const messageAlternateProfiles = Array.isArray(message.alternateProfiles)
+        ? message.alternateProfiles
+            .map(entry => {
+                if (!entry || typeof entry !== 'object') {
+                    return null;
+                }
+
+                const coercedProfile = coerceHotSeatProfile(entry.profile, entry.username || '');
+                if (!coercedProfile || !coercedProfile.storyHtml) {
+                    return null;
+                }
+
+                return {
+                    username: entry.username || coercedProfile.username,
+                    profile: coercedProfile
+                };
+            })
+            .filter(Boolean)
+        : [];
     const fallbackAlternateProfiles = alternateNames
         .map((username) => {
             const profile = getHotSeatProfileFromState(username);
