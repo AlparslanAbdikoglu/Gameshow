@@ -4149,6 +4149,8 @@ let hotSeatEntryState = {
 };
 
 let hotSeatProfileHideTimeout = null;
+let hotSeatStartCountdownInterval = null;
+let hotSeatStartCountdownTimeout = null;
 
 function stripHotSeatDecorators(username) {
     if (typeof username !== 'string') {
@@ -4410,6 +4412,18 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     }, 30000);
 }
 
+function clearHotSeatStartCountdown() {
+    if (hotSeatStartCountdownInterval) {
+        clearInterval(hotSeatStartCountdownInterval);
+        hotSeatStartCountdownInterval = null;
+    }
+
+    if (hotSeatStartCountdownTimeout) {
+        clearTimeout(hotSeatStartCountdownTimeout);
+        hotSeatStartCountdownTimeout = null;
+    }
+}
+
 function mergeHotSeatEntryState(partial = {}) {
     hotSeatEntryState = {
         active: partial.active !== undefined ? partial.active : hotSeatEntryState.active,
@@ -4580,6 +4594,31 @@ function handleHotSeatActivated(message) {
     const timerEl = document.getElementById("hot-seat-timer");
     const statusEl = document.getElementById("hot-seat-status");
 
+    clearHotSeatStartCountdown();
+
+    const applyActiveHotSeatUi = () => {
+        if (display && userEl && timerEl && statusEl) {
+            display.classList.remove("hidden");
+            display.classList.remove('entry-open');
+            display.classList.add("active");
+            display.setAttribute('aria-hidden', 'false');
+            display.setAttribute('role', 'dialog');
+            display.setAttribute('aria-modal', 'true');
+            display.setAttribute('aria-label', `Hot seat active for ${primaryUser}`);
+
+            userEl.textContent = primaryUser;
+            timerEl.textContent = `${timerValue}s`;
+            timerEl.className = "hot-seat-timer";
+            statusEl.style.color = "";
+
+            if (participants.length > 1) {
+                statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
+            } else {
+                statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+            }
+        }
+    };
+
     if (display && userEl && timerEl && statusEl) {
         display.classList.remove("hidden");
         display.classList.remove('entry-open');
@@ -4594,11 +4633,23 @@ function handleHotSeatActivated(message) {
         timerEl.className = "hot-seat-timer";
         statusEl.style.color = "";
 
-        if (participants.length > 1) {
-            statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
-        } else {
-            statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
-        }
+        let countdownSeconds = 3;
+        statusEl.textContent = `Starting in ${countdownSeconds}...`;
+
+        hotSeatStartCountdownInterval = setInterval(() => {
+            countdownSeconds -= 1;
+
+            if (countdownSeconds > 0) {
+                statusEl.textContent = `Starting in ${countdownSeconds}...`;
+            } else {
+                statusEl.textContent = 'Go!';
+            }
+        }, 1000);
+
+        hotSeatStartCountdownTimeout = setTimeout(() => {
+            applyActiveHotSeatUi();
+            clearHotSeatStartCountdown();
+        }, 3000);
     }
 
     const infoMessage = document.getElementById('info-message');
@@ -4655,6 +4706,10 @@ function handleHotSeatActivated(message) {
 }
 
 function handleHotSeatTimerUpdate(message) {
+    if (hotSeatStartCountdownTimeout || hotSeatStartCountdownInterval) {
+        return;
+    }
+
     const timerEl = document.getElementById("hot-seat-timer");
     const hudTimer = document.getElementById("hot-seat-hud-timer");
 
@@ -4678,6 +4733,8 @@ function handleHotSeatTimerUpdate(message) {
 
 function handleHotSeatAnswered(message) {
     console.log("🎯 HOT SEAT ANSWER:", message.user, "selected", message.answer);
+
+    clearHotSeatStartCountdown();
 
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
@@ -4705,6 +4762,8 @@ function handleHotSeatAnswered(message) {
 function handleHotSeatTimeout(message) {
     console.log("⏰ HOT SEAT TIMEOUT for", message.user);
 
+    clearHotSeatStartCountdown();
+
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
         statusEl.textContent = "TIME IS UP! No answer submitted.";
@@ -4730,6 +4789,8 @@ function handleHotSeatTimeout(message) {
 
 function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
+
+    clearHotSeatStartCountdown();
 
     // Hide hot seat display
     const display = document.getElementById("hot-seat-display");
