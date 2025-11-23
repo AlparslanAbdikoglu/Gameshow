@@ -109,18 +109,20 @@ function buildHotSeatProfileMap(profiles = {}) {
     return sanitizedProfiles;
   }
 
-  Object.values(profiles).forEach((profile) => {
+  Object.entries(profiles).forEach(([entryKey, profile]) => {
     if (!profile || typeof profile !== 'object') {
       return;
     }
 
     const sourceUsername = typeof profile.username === 'string' && profile.username.trim()
       ? profile.username.trim()
-      : typeof profile.displayName === 'string' && profile.displayName.trim()
-        ? profile.displayName.trim()
-        : typeof profile.id === 'string' && profile.id.trim()
-          ? profile.id.trim()
-          : '';
+      : typeof entryKey === 'string' && entryKey.trim()
+        ? entryKey.trim()
+        : typeof profile.displayName === 'string' && profile.displayName.trim()
+          ? profile.displayName.trim()
+          : typeof profile.id === 'string' && profile.id.trim()
+            ? profile.id.trim()
+            : '';
 
     const normalized = normalizeUsername(sourceUsername);
     if (!normalized) {
