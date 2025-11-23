@@ -2173,7 +2173,7 @@ const KimbillionaireControlPanel: React.FC = () => {
               </label>
               <p className={styles.uploadHint}>
                 Supports Markdown sections (e.g. <code>## username | Display Name</code>) or JSON where each username maps to a
-                <code>{{ story: "..." }}</code> entry.
+                <code>{'{ story: "..." }'}</code> entry.
               </p>
 
               {/* Custom-styled upload button */}
