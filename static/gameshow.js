@@ -4170,6 +4170,46 @@ function normalizeHotSeatUsername(username) {
     return usernameOnly.toLowerCase();
 }
 
+function findHotSeatProfileMatch(username) {
+    const normalizedCandidate = normalizeHotSeatUsername(username);
+
+    if (!normalizedCandidate || !currentState || typeof currentState !== 'object') {
+        return null;
+    }
+
+    const profiles = currentState.hot_seat_profiles;
+    if (!profiles || typeof profiles !== 'object') {
+        return null;
+    }
+
+    if (profiles[normalizedCandidate]) {
+        return { key: normalizedCandidate, profile: profiles[normalizedCandidate] };
+    }
+
+    const collapsedCandidate = normalizedCandidate.replace(/[^a-z0-9]/g, '');
+    let fallbackMatch = null;
+
+    for (const [key, profile] of Object.entries(profiles)) {
+        if (!profile) {
+            continue;
+        }
+
+        if (normalizedCandidate.startsWith(key)) {
+            return { key, profile };
+        }
+
+        const collapsedKey = key.replace(/[^a-z0-9]/g, '');
+        if (
+            collapsedKey
+            && (collapsedCandidate.startsWith(collapsedKey) || collapsedKey.startsWith(collapsedCandidate))
+        ) {
+            fallbackMatch = { key, profile };
+        }
+    }
+
+    return fallbackMatch;
+}
+
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
         .replace(/&/g, '&amp;')
@@ -4233,21 +4273,12 @@ function buildHotSeatFallbackStory(playerName = 'This contestant') {
 }
 
 function getHotSeatProfileFromState(username) {
-    if (!username || !currentState || typeof currentState !== 'object') {
+    const match = findHotSeatProfileMatch(username);
+    if (!match) {
         return null;
     }
 
-    const profiles = currentState.hot_seat_profiles;
-    if (!profiles || typeof profiles !== 'object') {
-        return null;
-    }
-
-    const normalized = normalizeHotSeatUsername(username);
-    if (!normalized || !profiles[normalized]) {
-        return null;
-    }
-
-    const coerced = coerceHotSeatProfile(profiles[normalized], username);
+    const coerced = coerceHotSeatProfile(match.profile, username);
     if (coerced) {
         return coerced;
     }

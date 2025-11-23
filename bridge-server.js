@@ -145,16 +145,49 @@ function buildHotSeatProfileMap(profiles = {}) {
   return sanitizedProfiles;
 }
 
-function getHotSeatProfile(username) {
-  const normalized = normalizeUsername(username);
-  if (!normalized || !gameState.hot_seat_profiles) {
+function findHotSeatProfileMatch(username) {
+  const normalizedCandidate = normalizeUsername(username);
+  const profiles = gameState.hot_seat_profiles;
+
+  if (!normalizedCandidate || !profiles || typeof profiles !== 'object') {
     return null;
   }
 
-  const profile = gameState.hot_seat_profiles[normalized];
-  if (!profile) {
+  if (profiles[normalizedCandidate]) {
+    return { key: normalizedCandidate, profile: profiles[normalizedCandidate] };
+  }
+
+  const collapsedCandidate = normalizedCandidate.replace(/[^a-z0-9]/g, '');
+
+  let fallbackMatch = null;
+  for (const [key, profile] of Object.entries(profiles)) {
+    if (!profile) {
+      continue;
+    }
+
+    if (normalizedCandidate.startsWith(key)) {
+      return { key, profile };
+    }
+
+    const collapsedKey = key.replace(/[^a-z0-9]/g, '');
+    if (
+      collapsedKey &&
+      (collapsedCandidate.startsWith(collapsedKey) || collapsedKey.startsWith(collapsedCandidate))
+    ) {
+      fallbackMatch = { key, profile };
+    }
+  }
+
+  return fallbackMatch;
+}
+
+function getHotSeatProfile(username) {
+  const match = findHotSeatProfileMatch(username);
+  if (!match) {
     return null;
   }
+
+  const { profile } = match;
 
   return {
     username: profile.username || username.replace(/^@+/, ''),
