@@ -10197,6 +10197,10 @@ async function handleAPI(req, res, pathname) {
 
             console.log(`📝 Loaded ${profileCount} hot seat profile${profileCount === 1 ? '' : 's'} from control panel upload`);
 
+            // Immediately broadcast the refreshed state so overlays can render the uploaded stories
+            // without waiting for another state-changing action (e.g., next question).
+            broadcastState();
+
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               success: true,
