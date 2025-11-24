@@ -9137,9 +9137,17 @@ async function handleAPI(req, res, pathname) {
             
             // Check if hot seat mode is active and log the result
             if (gameState.hot_seat_active) {
-              if (gameState.hot_seat_answered) {
-                const currentQuestion = questions[gameState.current_question];
-                const isCorrect = gameState.selected_answer === currentQuestion.correct;
+              const currentQuestion = questions[gameState.current_question];
+              const hostLockedAnswer = gameState.selected_answer !== null && gameState.selected_answer !== undefined;
+              const hotSeatHasAnswer = gameState.hot_seat_answered || hostLockedAnswer;
+
+              if (hotSeatHasAnswer) {
+                if (!gameState.hot_seat_answered && hostLockedAnswer) {
+                  gameState.hot_seat_answered = true;
+                  gameState.hot_seat_answer = gameState.selected_answer;
+                }
+
+                const isCorrect = hostLockedAnswer && gameState.selected_answer === currentQuestion.correct;
                 gameState.hot_seat_correct = isCorrect;
 
                 // LEADERBOARD: Award hot seat points
