@@ -3499,6 +3499,10 @@ function startPostLifelineRevote(lifelineType) {
         const answerIndex = ['A', 'B', 'C', 'D'].indexOf(results.winner);
         gameState.selected_answer = answerIndex;
         gameState.answer_locked_in = true;
+
+        if (gameState.hot_seat_active) {
+          stopHotSeatCountdown('lifeline_revote_auto_lock');
+        }
         
         console.log(`🔒 AUTO-LOCKED ${lifelineType} winner: ${results.winner} (index ${answerIndex}) - Host hadn't locked manually`);
         
@@ -3616,10 +3620,14 @@ function startPostLifelineRevoteForTakeAnotherVote() {
       // Only auto-lock if host hasn't already locked manually (HYBRID CONTROL)
       if (!gameState.answer_locked_in) {
         console.log(`🔄 Auto-locking Take Another Vote winner: ${winningAnswer} (${totalVotes} votes, ${percentages[winningAnswer]}%)`);
-        
+
         // Set the selected answer and lock it
         gameState.selected_answer = ['A', 'B', 'C', 'D'].indexOf(winningAnswer);
         gameState.answer_locked_in = true;
+
+        if (gameState.hot_seat_active) {
+          stopHotSeatCountdown('take_another_vote_auto_lock');
+        }
         
         // NOTE: Do NOT evaluate answer_is_wrong during lock-in - only during reveal_answer
         // This prevents red highlighting of locked answers before they are revealed
@@ -4608,10 +4616,14 @@ function startRevoteAfterAskAMod() {
       // Only auto-lock if host hasn't already locked manually
       if (!gameState.answer_locked_in) {
         console.log(`🔄 Auto-locking audience winner: ${winningAnswer} (${totalVotes} votes, ${percentages[winningAnswer]}%)`);
-        
+
         // Set the selected answer and lock it
         gameState.selected_answer = ['A', 'B', 'C', 'D'].indexOf(winningAnswer);
         gameState.answer_locked_in = true;
+
+        if (gameState.hot_seat_active) {
+          stopHotSeatCountdown('ask_a_mod_auto_lock');
+        }
         
         // NOTE: Do NOT evaluate answer_is_wrong during lock-in - only during reveal_answer
         // This prevents red highlighting of locked answers before they are revealed
@@ -4921,6 +4933,27 @@ function handleVoteUpdate(data) {
 
 // Hot Seat Feature Functions
 const HOT_SEAT_PROFILE_DISPLAY_MS = 25000;
+
+// Stop any active or pending hot seat timers when the answer is locked or otherwise resolved
+function stopHotSeatCountdown(reason = 'answer_locked') {
+  let stopped = false;
+
+  if (gameState.hot_seat_timer_interval) {
+    clearInterval(gameState.hot_seat_timer_interval);
+    gameState.hot_seat_timer_interval = null;
+    stopped = true;
+  }
+
+  if (gameState.hot_seat_timer_start_timeout) {
+    clearTimeout(gameState.hot_seat_timer_start_timeout);
+    gameState.hot_seat_timer_start_timeout = null;
+    stopped = true;
+  }
+
+  if (stopped) {
+    console.log(`⏸️ Hot seat timer stopped (${reason})`);
+  }
+}
 
 // Start the entry period for hot seat
 function startHotSeatEntryPeriod() {
@@ -5248,16 +5281,8 @@ function processHotSeatAnswer(username, answer) {
     return false;
   }
   
-  // Stop the timer
-  if (gameState.hot_seat_timer_interval) {
-    clearInterval(gameState.hot_seat_timer_interval);
-    gameState.hot_seat_timer_interval = null;
-  }
-
-  if (gameState.hot_seat_timer_start_timeout) {
-    clearTimeout(gameState.hot_seat_timer_start_timeout);
-    gameState.hot_seat_timer_start_timeout = null;
-  }
+  // Stop the timer once the hot seat player answers
+  stopHotSeatCountdown('hot_seat_player_answer');
   
   // Record the answer
   gameState.hot_seat_answered = true;
@@ -6747,6 +6772,10 @@ function lockInAudienceChoice(showWinnerAnnouncement = true) {
       // Set the audience's choice AND lock it in
       gameState.selected_answer = answerIndex;
       gameState.answer_locked_in = true;
+
+      if (gameState.hot_seat_active) {
+        stopHotSeatCountdown('audience_choice_lock');
+      }
       
       console.log(`📡 DEBUG: Setting answer_locked_in = true, selected_answer = ${answerIndex} (${result.winner})`);
       
@@ -6784,6 +6813,10 @@ function lockInAudienceChoice(showWinnerAnnouncement = true) {
     gameState.answer_locked_in = true;
     gameState.audience_poll_active = false;
     gameState.show_voting_activity = false;
+
+    if (gameState.hot_seat_active) {
+      stopHotSeatCountdown('audience_choice_lock');
+    }
     
     // Play lock-in sound effect
     console.log('🎵 Broadcasting lock-in audio command for poll result');
@@ -9522,6 +9555,10 @@ async function handleAPI(req, res, pathname) {
             if (gameState.audience_poll_active || isRevote) {
               gameState.answer_locked_in = true;
               console.log(`🔒 Auto-locked answer ${selectedLetter} due to manual host selection during ${isRevote ? 'revote' : 'polling'}`);
+
+              if (gameState.hot_seat_active) {
+                stopHotSeatCountdown('host_selection_auto_lock');
+              }
             }
             
             if (isRevote) {
@@ -9602,6 +9639,10 @@ async function handleAPI(req, res, pathname) {
             
             const wasLocked = gameState.answer_locked_in;
             gameState.answer_locked_in = true; // Always lock, don't toggle
+
+            if (gameState.hot_seat_active) {
+              stopHotSeatCountdown('host_lock');
+            }
             const isRevoteActive = gameState.is_revote_active;
             const currentSelectedLetter = gameState.selected_answer !== null ? 
               String.fromCharCode(65 + gameState.selected_answer) : 'NONE';
@@ -10994,6 +11035,10 @@ async function handleAPI(req, res, pathname) {
             const answerIndex = ['A', 'B', 'C', 'D'].indexOf(selectedAnswer);
             gameState.selected_answer = answerIndex;
             gameState.answer_locked_in = true;
+
+            if (gameState.hot_seat_active) {
+              stopHotSeatCountdown('poll_tie_break');
+            }
             
             // Broadcast the resolution
             broadcastToClients({
