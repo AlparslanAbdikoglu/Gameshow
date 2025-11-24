@@ -8804,6 +8804,12 @@ async function handleAPI(req, res, pathname) {
         gameState.hot_seat_spotlight_until = null;
     }
 
+    // Always clear hot seat mode when advancing, even if timer time remains
+    if (gameState.hot_seat_active) {
+        stopHotSeatCountdown('next_question');
+        endHotSeat(gameState.hot_seat_correct, false);
+    }
+
     if (gameState.current_question < questions.length - 1) {
         // Track game flow metrics
         performanceMetrics.gameFlow.questionTransitions++;
@@ -9130,28 +9136,34 @@ async function handleAPI(req, res, pathname) {
             console.log('Answer revealed - state updated');
             
             // Check if hot seat mode is active and log the result
-            if (gameState.hot_seat_active && gameState.hot_seat_answered) {
-              const currentQuestion = questions[gameState.current_question];
-              const isCorrect = gameState.selected_answer === currentQuestion.correct;
-              gameState.hot_seat_correct = isCorrect;
-              
-              // LEADERBOARD: Award hot seat points
-              if (isCorrect) {
-                addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_correct, 'hot seat correct answer! 🎯');
-                
-                // Quick response bonus
-                if (gameState.hot_seat_timer > 50) {
-                  addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_quick, 'hot seat quick response! ⚡');
+            if (gameState.hot_seat_active) {
+              if (gameState.hot_seat_answered) {
+                const currentQuestion = questions[gameState.current_question];
+                const isCorrect = gameState.selected_answer === currentQuestion.correct;
+                gameState.hot_seat_correct = isCorrect;
+
+                // LEADERBOARD: Award hot seat points
+                if (isCorrect) {
+                  addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_correct, 'hot seat correct answer! 🎯');
+
+                  // Quick response bonus
+                  if (gameState.hot_seat_timer > 50) {
+                    addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_quick, 'hot seat quick response! ⚡');
+                  }
+
+                  // Update hot seat correct stats
+                  ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
+                    const player = initializePlayerInLeaderboard(gameState.hot_seat_user, period);
+                    player.hot_seat_correct++;
+                  });
                 }
-                
-                // Update hot seat correct stats
-                ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-                  const player = initializePlayerInLeaderboard(gameState.hot_seat_user, period);
-                  player.hot_seat_correct++;
-                });
+
+                endHotSeat(isCorrect, false);
+              } else {
+                // No hot seat answer was given before reveal; end mode and reset timers
+                stopHotSeatCountdown('answer_revealed');
+                endHotSeat(null, false);
               }
-              
-              endHotSeat(isCorrect, false);
             }
             
             // LEADERBOARD: Process voting results and award points
