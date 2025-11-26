@@ -3706,7 +3706,7 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-name {
-    font-size: 48px;
+    font-size: 42px;
     font-weight: 800;
     color: #FFD700;
     text-transform: uppercase;
@@ -3737,9 +3737,9 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-story {
-    font-size: 20px;
+    font-size: 22px;
     color: rgba(255, 255, 255, 0.9);
-    line-height: 1.7;
+    line-height: 1.8;
     display: flex;
     flex-direction: column;
     gap: 12px;
