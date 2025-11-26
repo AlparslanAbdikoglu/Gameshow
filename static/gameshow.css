@@ -3279,7 +3279,7 @@ body {
     padding: 28px 32px;
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.4), rgba(0, 20, 60, 0.65));
     backdrop-filter: blur(24px);
-    border-radius: 24px;
+    border-radius: 22px;
     border: 2px solid rgba(255, 215, 0, 0.35);
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
     display: flex;
@@ -3487,6 +3487,18 @@ body {
     font-family: "Orbitron", monospace;
 }
 
+.hot-seat-timer.countdown {
+    color: #FFE082;
+    font-size: 40px;
+    letter-spacing: 1px;
+    animation: hotSeatCountdownPulse 1s ease-in-out infinite;
+}
+
+.hot-seat-timer.countdown.go {
+    color: #76FF03;
+    animation: hotSeatCountdownLaunch 0.5s ease-in-out 2;
+}
+
 .hot-seat-timer.entry-countdown {
     color: #FFE082;
     font-size: 28px;
@@ -3510,6 +3522,32 @@ body {
 @keyframes timerCritical {
     0%, 100% { transform: scale(1); color: #FF4500; }
     50% { transform: scale(1.2); color: #FFF; }
+}
+
+@keyframes hotSeatCountdownPulse {
+    0%, 100% {
+        transform: scale(1);
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    }
+    50% {
+        transform: scale(1.15);
+        text-shadow: 0 4px 18px rgba(0, 0, 0, 0.95);
+    }
+}
+
+@keyframes hotSeatCountdownLaunch {
+    0% {
+        transform: scale(1);
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.9);
+    }
+    50% {
+        transform: scale(1.25);
+        text-shadow: 0 4px 20px rgba(118, 255, 3, 0.9);
+    }
+    100% {
+        transform: scale(1.1);
+        text-shadow: 0 3px 14px rgba(118, 255, 3, 0.7);
+    }
 }
 
 .hot-seat-status {
@@ -3830,9 +3868,63 @@ body.hot-seat-active .hot-seat-display.active {
     flex-direction: column;
 }
 
+#previous-winners-overlay {
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: auto;
+    height: auto;
+    padding: clamp(20px, 4vw, 60px);
+    border-radius: 0;
+    border: none;
+    background: rgba(4, 16, 38, 0.92);
+    box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(30px) saturate(180%);
+}
+
+#previous-winners-overlay .leaderboard-overlay-content {
+    width: min(1200px, 100%);
+    height: calc(100vh - clamp(40px, 8vw, 120px));
+    margin: 0 auto;
+    padding: clamp(24px, 4vh, 40px) clamp(26px, 6vw, 48px);
+    border-radius: 28px;
+    border: 2px solid rgba(255, 215, 0, 0.4);
+    background: linear-gradient(135deg, rgba(6, 37, 82, 0.95), rgba(3, 18, 46, 0.92));
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
+    display: flex;
+    flex-direction: column;
+}
+
+#previous-winners-overlay .leaderboard-overlay-header {
+    text-align: left;
+    align-items: flex-start;
+}
+
+#previous-winners-overlay .leaderboard-overlay-header h2 {
+    font-size: clamp(32px, 5vw, 48px);
+    letter-spacing: 3px;
+}
+
+#previous-winners-overlay .leaderboard-overlay-list {
+    padding-right: clamp(8px, 1.5vw, 18px);
+    margin-right: -6px;
+}
+
+#previous-winners-overlay .leaderboard-overlay-footer {
+    margin-top: clamp(16px, 4vh, 28px);
+}
+
 .leaderboard-overlay:not(.hidden) {
     opacity: 1;
     animation: slideInRight 0.5s ease-out;
+}
+
+#previous-winners-overlay:not(.hidden) {
+    animation: fadeInRise 0.5s ease-out;
 }
 
 @keyframes slideInRight {
@@ -3842,6 +3934,17 @@ body.hot-seat-active .hot-seat-display.active {
     }
     to {
         transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInRise {
+    from {
+        transform: translateY(40px) scale(0.98);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
         opacity: 1;
     }
 }
@@ -3984,6 +4087,146 @@ body.hot-seat-active .hot-seat-display.active {
     font-size: 14px;
 }
 
+.previous-winners-meta {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.previous-winners-note {
+    margin: 6px 0 10px 0;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+}
+
+.previous-winners-row {
+    display: grid;
+    grid-template-columns: 60px minmax(0, 1.6fr) minmax(0, 0.9fr) minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 0.85fr) minmax(0, 0.95fr);
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.previous-winners-row.previous-winners-header {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    font-weight: 700;
+    color: #FFD700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.previous-winners-row.rank-1 {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.28), rgba(255, 215, 0, 0.08));
+    border-color: rgba(255, 215, 0, 0.45);
+}
+
+.previous-winners-row.rank-2 {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.22), rgba(192, 192, 192, 0.08));
+    border-color: rgba(192, 192, 192, 0.4);
+}
+
+.previous-winners-row.rank-3 {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.22), rgba(205, 127, 50, 0.08));
+    border-color: rgba(205, 127, 50, 0.4);
+}
+
+.previous-winners-row:not(.previous-winners-header):hover {
+    transform: translateX(-6px);
+    border-color: rgba(255, 215, 0, 0.35);
+    background: rgba(255, 215, 0, 0.14);
+}
+
+.previous-winners-col {
+    font-size: 14px;
+    color: #FFFFFF;
+}
+
+.previous-winners-col.rank {
+    text-align: center;
+    font-weight: 700;
+    font-size: 18px;
+    color: #FFD700;
+}
+
+.previous-winners-col.champion {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.previous-winner-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #4FC3F7;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.previous-winner-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.previous-winners-col.points,
+.previous-winners-col.correct,
+.previous-winners-col.votes,
+.previous-winners-col.streak,
+.previous-winners-col.hot-seat {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.previous-winners-col.points {
+    font-weight: 700;
+    color: #FFD700;
+    font-size: 18px;
+}
+
+.previous-winners-col.hot-seat {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+}
+
+.hot-seat-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 87, 34, 0.2);
+    color: #FFAB91;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.wins-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(79, 195, 247, 0.25);
+    color: #4FC3F7;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
 /* Scrollbar styling for leaderboard */
 .leaderboard-overlay-list::-webkit-scrollbar {
     width: 6px;
@@ -4001,4 +4244,227 @@ body.hot-seat-active .hot-seat-display.active {
 
 .leaderboard-overlay-list::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 215, 0, 0.6);
+}
+
+/* Slot Machine Overlay */
+
+.slot-machine-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background: rgba(2, 4, 16, 0.86);
+    backdrop-filter: blur(16px) saturate(120%);
+    z-index: 2600;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.slot-machine-overlay.active {
+    pointer-events: auto;
+}
+
+.slot-machine-panel {
+    width: min(92%, 960px);
+    max-width: 960px;
+    max-height: 90vh;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 28px;
+    background: rgba(9, 12, 25, 0.94);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 40px 70px rgba(0, 0, 0, 0.6);
+    border-radius: 28px;
+}
+
+.slot-machine-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.slot-machine-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffd369;
+}
+
+.slot-machine-status {
+    font-size: 14px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255, 211, 105, 0.18);
+    color: #ffd369;
+    flex-shrink: 0;
+}
+
+.slot-machine-close-test {
+    margin-left: auto;
+    border: none;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.slot-machine-close-test:hover,
+.slot-machine-close-test:focus-visible {
+    background: rgba(255, 211, 105, 0.25);
+    color: #ffd369;
+}
+
+.slot-machine-body {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1;
+}
+
+.slot-machine-reels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    padding: 24px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    border-radius: 22px;
+    overflow: hidden;
+}
+
+.slot-machine-reel {
+    font-size: clamp(48px, 6vw, 88px);
+    text-align: center;
+    padding: 28px 0;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+    transition: transform 0.6s ease, filter 0.6s ease;
+    overflow: hidden;
+    --spin-duration: 900ms;
+    --spin-delay: 0ms;
+    --spin-distance: 48px;
+    transform-origin: center;
+}
+
+.slot-machine-reel.spin {
+    animation: reelSpin var(--spin-duration) cubic-bezier(0.35, 0, 0.2, 1) forwards;
+    animation-delay: var(--spin-delay);
+}
+
+.slot-machine-reel img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 8px;
+}
+
+@keyframes reelSpin {
+    0% {
+        transform: translateY(calc(var(--spin-distance, 48px) * -1)) rotateX(38deg) scale(0.92);
+        filter: blur(8px) brightness(1.2);
+    }
+    55% {
+        transform: translateY(calc(var(--spin-distance, 48px) * 1)) rotateX(-32deg) scale(0.98);
+        filter: blur(4px) brightness(1.05);
+    }
+    100% {
+        transform: translateY(0) rotateX(0deg) scale(1);
+        filter: blur(0) brightness(1);
+    }
+}
+
+.slot-machine-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.slot-machine-info .label {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.slot-machine-info .value {
+    font-size: 20px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.slot-machine-entry-list {
+    margin-top: 8px;
+    max-height: 110px;
+    overflow-y: auto;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    scrollbar-width: thin;
+}
+
+.slot-machine-entry-list span {
+    display: inline-block;
+    margin-right: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 6px;
+}
+
+.slot-machine-trigger {
+    margin-top: 6px;
+    font-size: 13px;
+    color: rgba(255, 211, 105, 0.9);
+}
+
+.slot-machine-trigger img {
+    width: 32px;
+    height: 32px;
+    margin: 0 6px;
+    vertical-align: middle;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.slot-machine-footer {
+    margin-top: 10px;
+}
+
+.slot-machine-note {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 8px;
+}
+
+.slot-machine-result {
+    font-size: 16px;
+    font-weight: 600;
+    min-height: 24px;
+}
+
+.slot-machine-result.success {
+    color: #6df5a4;
+}
+
+.slot-machine-result.fail {
+    color: #ff8fa3;
+}
+
+.slot-machine-result.test {
+    color: #4fc3f7;
 }

@@ -161,6 +161,46 @@
         </div>
     </div>
     
+    <!-- Slot Machine Overlay -->
+    <div class="slot-machine-overlay hidden" id="slot-machine-overlay">
+        <div class="slot-machine-panel glass-panel">
+            <div class="slot-machine-header">
+                <div class="slot-machine-title">Leo Slot Machine</div>
+                <div class="slot-machine-status" id="slot-machine-status">Idle</div>
+                <button class="slot-machine-close-test hidden" id="slot-machine-close-test" type="button" aria-label="Close test spin">
+                    ✕ Close Test
+                </button>
+            </div>
+            <div class="slot-machine-body">
+                <div class="slot-machine-reels" id="slot-machine-reels">
+                    <div class="slot-machine-reel" data-index="0">🦁</div>
+                    <div class="slot-machine-reel" data-index="1">🦁</div>
+                    <div class="slot-machine-reel" data-index="2">🦁</div>
+                </div>
+                <div class="slot-machine-info">
+                    <div class="slot-machine-countdown">
+                        <span class="label">Countdown</span>
+                        <span class="value" id="slot-machine-countdown">--</span>
+                    </div>
+                    <div class="slot-machine-entries">
+                        <span class="label">Entries</span>
+                        <span class="value" id="slot-machine-entry-count">0</span>
+                        <div class="slot-machine-entry-list" id="slot-machine-entry-list"></div>
+                    </div>
+                    <div class="slot-machine-lever">
+                        <span class="label">Lever Lion</span>
+                        <span class="value" id="slot-machine-lever-user">Awaiting pick</span>
+                        <div class="slot-machine-trigger" id="slot-machine-trigger-copy">Type JOIN in chat to enter</div>
+                    </div>
+                </div>
+            </div>
+            <div class="slot-machine-footer">
+                    <div class="slot-machine-note">Type JOIN after each question (starting after Q1) for a shot at the Leo bonus (max 25 pts shared).</div>
+                <div class="slot-machine-result" id="slot-machine-result"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Overlays -->
     <div class="overlay hidden" id="winner-overlay">
         <div class="winner-content">
@@ -185,23 +225,24 @@
                     <div class="credits-subtitle">Thank you for playing!</div>
                 </div>
 
-               <div class="credits-section">
+                <div class="credits-section">
                     <h2 class="credits-heading">Powered By</h2>
                     <p class="credits-name">CoinWise</p>
+                    <p class="credits-subtitle">Redeem your winnings in the CoinWise Discord redeem channel.</p>
                 </div>
 
                 <div class="credits-section">
-                    <h2 class="credits-heading">Game Host</h2>
-                    <p class="credits-name">Cyper22</p>
-                    <p class="credits-role">Juice</p>
-                </div>
-
-
-                <div class="credits-section">
-                    <h2 class="credits-heading">Special Thanks to</h2>
+                    <h2 class="credits-heading">Special Thanks To</h2>
                     <p class="credits-name">Our Amazing Community</p>
                     <p class="credits-name">All Players &amp; Participants</p>
                     <p class="credits-name">The guys in PSG</p>
+                </div>
+
+                <div class="credits-section credits-winners-section">
+                    <h2 class="credits-heading">Today's Winners</h2>
+                    <div class="credits-winners" id="credits-winners">
+                        <!-- Winner entries populated by JavaScript -->
+                    </div>
                 </div>
 
                 <div class="credits-section">
@@ -209,11 +250,6 @@
                     <div class="credits-participants" id="credits-participants">
                         <!-- Participant names will be populated here -->
                     </div>
-                </div>
-
-                <div class="credits-section">
-                    <h2 class="credits-heading">Powered By</h2>
-                    <p class="credits-name">CoinWise</p>
                 </div>
 
                 <div class="credits-section">
@@ -382,8 +418,24 @@
             </div>
         </div>
     </div>
+    <!-- Previous Winners Overlay -->
+    <div class="leaderboard-overlay hidden" id="previous-winners-overlay">
+        <div class="leaderboard-overlay-content">
+            <div class="leaderboard-overlay-header">
+                <h2>🏆 PREVIOUS WINNERS</h2>
+                <div class="previous-winners-meta" id="previous-winners-meta"></div>
+            </div>
+            <div class="previous-winners-note" id="previous-winners-note"></div>
+            <div class="leaderboard-overlay-list" id="previous-winners-list"></div>
+            <div class="leaderboard-overlay-footer">
+                <div class="leaderboard-total-players" id="previous-winners-total">0 Winners</div>
+            </div>
+        </div>
+    </div>
+
     
     <!-- Include JavaScript -->
+    <script src="/emotes-update.js"></script>
     <script src="/static/gameshow.js"></script>
 </body>
 </html>
