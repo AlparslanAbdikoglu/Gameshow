@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "In technical analysis, what’s a “liquidity grab”?",
+    "text": "What is a liquidity pool in trading?",
     "answers": [
-      "A whale selling everything",
-      "A gap in chart data",
-      "A random candle spike",
-      "A short (or long) squeeze where stop-losses get triggered"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 2,
-    "text": "What’s the primary role of VWAP in intraday trading?",
-    "answers": [
-      "It calculates open interest",
-      "It identifies RSI divergences",
-      "It shows the average price weighted by volume",
-      "It shows good and poor highs and lows"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 3,
-    "text": "What’s a “stop hunt”?",
-    "answers": [
-      "When the market purposely moves to trigger trader stop-losses",
-      "When an exchange stops orders for maintenance",
-      "A type of futures funding event",
-      "A rare pattern on RSI"
+      "An area on the chart where many orders are resting",
+      "A long-term investment group",
+      "A government tax rule",
+      "A list of exchange outages"
     ],
     "correct": 0
   },
   {
-    "number": 4,
-    "text": "What is the 80% setup rule based on?",
+    "number": 2,
+    "text": "What typically happens after a major liquidity sweep?",
     "answers": [
-      "My friends 80% sure what they doing",
-      "Price rotating through value once accepting back within",
-      "Profit target reached",
-      "Candle size reaching 80%"
+      "Funding payments stop",
+      "The market often reverses once stop orders are collected",
+      "All indicators reset automatically",
+      "Price goes sideways permanently"
     ],
     "correct": 1
   },
   {
-    "number": 5,
-    "text": "What happens when funding rates are deeply negative?",
+    "number": 3,
+    "text": "When price is trading below VWAP with increasing sell volume, what bias is implied?",
     "answers": [
-      "The market is balanced",
-      "Shorts are paying longs, meaning selling pressure is extreme",
-      "Funding has paused",
-      "Longs are paying shorts"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 6,
-    "text": "What does Open Interest (OI) increasing while price drops often mean?",
-    "answers": [
-      "Market is consolidating",
-      "Shorts are being closed",
-      "New short positions entering the market",
-      "No one’s trading"
+      "Neutral indecision",
+      "Low-volatility market",
+      "Bearish sentiment",
+      "Bullish strength"
     ],
     "correct": 2
   },
   {
-    "number": 7,
-    "text": "Why is the 106–107K range on BTC considered a key level in market structure?",
+    "number": 4,
+    "text": "What does CVD divergence signal?",
     "answers": [
-      "It’s the highest open interest level ever recorded",
-      "It has acted as a critical resistance/support zone for nearly a year",
-      "It’s where all gaps get filled",
-      "It represents a Fibonacci 100% retracement"
+      "Nothing important",
+      "A CPI news release",
+      "Possible imbalance between aggressive buyers and sellers",
+      "Price discovery is finished"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 5,
+    "text": "In trading psychology, what is the most common cause of revenge trading?",
+    "answers": [
+      "Too many winning streaks",
+      "Slow internet",
+      "Following a trading journal too strictly",
+      "Trying to immediately recover losses emotionally"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 6,
+    "text": "What does an increase in Open Interest during a rapid price up-move typically indicate?",
+    "answers": [
+      "Unreliable market data",
+      "New participation entering the trend",
+      "All shorts were liquidated already",
+      "The trend ending immediately"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 7,
+    "text": "What is a fair value gap (FVG)?",
+    "answers": [
+      "A gap visible only on daily charts",
+      "A price imbalance where no trading occurred between orders",
+      "A gap between weekend candles in crypto",
+      "A special zone created by bots"
     ],
     "correct": 1
   },
   {
     "number": 8,
-    "text": "What is a “pivot zone” in technical analysis?",
+    "text": "What does a trendline break with strong volume usually suggest?",
     "answers": [
-      "A random candle that reverses",
-      "A price area that often acts as both support and resistance",
-      "A single data point on the RSI",
-      "A point where open interest resets"
+      "Market is asleep",
+      "No participation",
+      "A false breakout",
+      "A potential trend reversal"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 9,
-    "text": "If a daily close happens above 103,500 (BTC) level after multiple rejections, what does it generally suggest?",
+    "text": "What is the purpose of journaling trades?",
     "answers": [
-      "The trend is weakening",
-      "The level remains insignificant",
-      "A potential shift in market bias to bullish",
-      "That trading volume is low"
+      "To post results publicly",
+      "To calculate brokerage fees",
+      "To collect tax deductions",
+      "To track performance and identify behavior patterns"
     ],
-    "correct": 2
+    "correct": 3
   },
   {
     "number": 10,
-    "text": "What is typically indicated when price returns into the weekly Value Area after a breakout?",
+    "text": "What is a Point of Control shift in Volume Profile?",
     "answers": [
-      "The breakout is strengthening",
-      "The move might be losing momentum",
-      "The market is entering price discovery",
-      "A liquidity grab just occurred"
+      "When VWAP resets at midnight",
+      "When POC moves to a new price level indicating changing value",
+      "When the POC disappears",
+      "When wicks become shorter"
     ],
     "correct": 1
   },
   {
     "number": 11,
-    "text": "In Volume Profile, what does the Point of Control (POC) represent?",
+    "text": "What does imbalance in orderflow indicate?",
     "answers": [
-      "The level with the highest traded volume",
-      "The level with the lowest liquidity",
-      "A moving average line",
-      "The highest candle wick of the session"
+      "Balanced auction structure",
+      "Aggressive buying or selling pressure",
+      "Trading session closed",
+      "A misprint on the exchange feed"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 12,
+    "text": "Which statement best describes a breakout failure?",
+    "answers": [
+      "Price breaks a level and quickly returns back below or above it",
+      "All positions liquidate automatically",
+      "Price breaks a level and accelerates",
+      "Market closes temporarily"
     ],
     "correct": 0
   },
   {
-    "number": 12,
-    "text": "What’s the difference between RTH and ETH gaps?",
-    "answers": [
-      "There is no difference",
-      "ETH gaps occur during high volume",
-      "RTH gaps appear only in crypto markets",
-      "RTH gaps happen during regular trading hours, ETH gaps occur overnight"
-    ],
-    "correct": 3
-  },
-  {
     "number": 13,
-    "text": "What’s a “Gap Fill and Go” setup?",
+    "text": "What is the Fear & Greed Index used for?",
     "answers": [
-      "Price fills the gap fully, then continues in the same direction",
-      "Price never touches the gap",
-      "Price fills halfway and reverses",
-      "Gaps are ignored in this scenario"
+      "Gauges market sentiment extremes",
+      "Shows interest rate forecasts",
+      "Measures tax pressure",
+      "Measures funding rate levels"
     ],
     "correct": 0
   },
   {
     "number": 14,
-    "text": "What’s a “Gap Fill and Reverse”?",
+    "text": "What does a high volume node represent?",
     "answers": [
-      "Market halts during fill",
-      "Gap never gets filled",
-      "Price fills the gap, rejects, and moves back opposite direction",
-      "Volume disappears completely"
+      "Area of extreme rejection",
+      "Area of high participation and acceptance",
+      "A gap zone",
+      "A spot where price must reverse"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 15,
-    "text": "What’s one of the best ways to cope with market swings and portfolio drawdowns?",
+    "text": "What typically causes wicks on candlestick charts?",
     "answers": [
-      "Revenge trade to win it back fast",
-      "Reduce position size, review journal, and stay consistent",
-      "Watch every tick and overanalyze each move",
-      "Double down until it recovers"
+      "Software malfunction",
+      "Automated chart redraw effect",
+      "Time travel delay",
+      "Temporary price rejection caused by aggressive order reactions"
     ],
-    "correct": 1
+    "correct": 3
   }
 ]
