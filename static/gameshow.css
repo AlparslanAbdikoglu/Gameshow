@@ -3664,7 +3664,7 @@ body.hot-seat-active .hot-seat-display.active {
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.95), rgba(0, 22, 60, 0.92));
     border: 2px solid rgba(255, 160, 0, 0.65);
     border-radius: 24px;
-    padding: 38px 48px;
+    padding: 32px 48px 30px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
     max-width: 560px;
     width: min(90%, 560px);
