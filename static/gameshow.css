@@ -3691,7 +3691,7 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-overlay.show .hot-seat-profile-card {
-    transform: translateY(0);
+    transform: translateY(-20px);
     box-shadow: 0 40px 100px rgba(255, 120, 0, 0.35);
 }
 
