@@ -3737,7 +3737,7 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-story {
-    font-size: 22px;
+    font-size: 32px;
     color: rgba(255, 255, 255, 0.9);
     line-height: 1.8;
     display: flex;
