@@ -4700,13 +4700,18 @@ function findHotSeatProfileMatch(username) {
     return fallbackMatch;
 }
 
-function escapeHtml(unsafe = '') {
-    return (unsafe || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+function stripHotSeatDecorators(username) {
+    if (typeof username !== 'string') {
+        return '';
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    const withoutAt = trimmed.replace(/^@+/, '');
+    return withoutAt.split(/[:|]/)[0].trim();
 }
 
 function convertStoryTextToHtml(text = '') {
@@ -5187,12 +5192,6 @@ function handleHotSeatActivated(message) {
 
         userEl.textContent = primaryUser;
         timerEl.className = "hot-seat-timer";
-        if (countdownSeconds > 0) {
-            timerEl.textContent = `${countdownSeconds}`;
-            timerEl.className = "hot-seat-timer countdown";
-        } else {
-            timerEl.textContent = `${timerValue}s`;
-        }
         statusEl.style.color = "";
         statusEl.textContent = 'Showing their story...';
 
@@ -5296,6 +5295,8 @@ function handleHotSeatCountdown(message) {
     const remaining = typeof message.remaining === 'number'
         ? Math.max(0, Math.round(message.remaining))
         : null;
+
+    clearHotSeatStartCountdown();
 
     clearHotSeatStartCountdown();
 
