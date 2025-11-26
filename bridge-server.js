@@ -271,6 +271,11 @@ let gameState = {
   hot_seat_timer_interval: null, // Reference to timer interval for cleanup
   hot_seat_timer_start_timeout: null, // Timeout to delay hot seat timer start until spotlight completes
   hot_seat_spotlight_until: null, // Timestamp enforcing spotlight hold before advancing
+  hot_seat_prestart_interval: null, // Countdown interval that runs before the main timer
+  hot_seat_prestart_seconds: 0,     // Remaining seconds in the pre-start countdown
+  hot_seat_prestart_total: 0,       // Total seconds configured for the pre-start countdown
+  hot_seat_timer_pending_start: false, // Whether we are waiting to begin the hot seat timer
+  hot_seat_countdown_started: false,   // Tracks if the pre-start countdown has started
   // Hot Seat Entry Collection
   hot_seat_entry_active: false,  // Is entry collection period active
   hot_seat_entries: [],          // Array of usernames who typed "JOIN"
@@ -1883,6 +1888,7 @@ wss.on('connection', (ws, req) => {
   delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
   delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
   delete cleanGameState.hot_seat_timer_start_timeout; // Remove hot seat timer start timeout
+  delete cleanGameState.hot_seat_prestart_interval; // Remove hot seat pre-start interval
   delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
   delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
   
@@ -2796,6 +2802,17 @@ function cleanupAllTimers() {
     gameState.hot_seat_timer_start_timeout = null;
     console.log('✅ Cleared hot seat timer start timeout');
   }
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    console.log('✅ Cleared hot seat pre-start interval');
+  }
+
+  gameState.hot_seat_timer_pending_start = false;
+  gameState.hot_seat_prestart_seconds = 0;
+  gameState.hot_seat_prestart_total = 0;
+  gameState.hot_seat_countdown_started = false;
   
   if (gameState.hot_seat_entry_timer_interval) {
     clearInterval(gameState.hot_seat_entry_timer_interval);
@@ -4950,6 +4967,19 @@ function stopHotSeatCountdown(reason = 'answer_locked') {
     stopped = true;
   }
 
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    stopped = true;
+  }
+
+  if (stopped || gameState.hot_seat_timer_pending_start) {
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_prestart_seconds = 0;
+    gameState.hot_seat_prestart_total = 0;
+    gameState.hot_seat_countdown_started = false;
+  }
+
   if (stopped) {
     console.log(`⏸️ Hot seat timer stopped (${reason})`);
   }
@@ -5339,6 +5369,16 @@ function endHotSeat(wasCorrect = null, timeout = false) {
     clearTimeout(gameState.hot_seat_timer_start_timeout);
     gameState.hot_seat_timer_start_timeout = null;
   }
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  gameState.hot_seat_timer_pending_start = false;
+  gameState.hot_seat_prestart_seconds = 0;
+  gameState.hot_seat_prestart_total = 0;
+  gameState.hot_seat_countdown_started = false;
   
   // Broadcast hot seat end
   broadcastToClients({
