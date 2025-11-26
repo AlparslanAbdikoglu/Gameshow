@@ -1,0 +1,19 @@
+{
+  "type": "uncaughtException",
+  "error": "Converting circular structure to JSON\n    --> starting at object with constructor 'Timeout'\n    |     property '_idlePrev' -> object with constructor 'TimersList'\n    --- property '_idleNext' closes the circle",
+  "stack": "TypeError: Converting circular structure to JSON\n    --> starting at object with constructor 'Timeout'\n    |     property '_idlePrev' -> object with constructor 'TimersList'\n    --- property '_idleNext' closes the circle\n    at JSON.stringify (<anonymous>)\n    at broadcastState (C:\\Users\\MSI\\Desktop\\code\\Gameshow\\bridge-server.js:2756:24)\n    at Timeout._onTimeout (C:\\Users\\MSI\\Desktop\\code\\Gameshow\\bridge-server.js:9018:17)\n    at listOnTimeout (node:internal/timers:581:17)\n    at process.processTimers (node:internal/timers:519:7)",
+  "timestamp": 1764196596588,
+  "serverHealth": {
+    "startTime": 1764193867069,
+    "crashCount": 1,
+    "lastCrash": 1764196596578,
+    "memoryWarnings": 0,
+    "connectionCount": 7,
+    "lastHeartbeat": 1764196429588
+  },
+  "gameState": {
+    "active": true,
+    "question": 9,
+    "contestant": "November"
+  }
+}

@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "In technical analysis, what’s a “liquidity grab”?",
+    "text": "What is the main difference between a market order and a limit order?",
     "answers": [
-      "A whale selling everything",
-      "A gap in chart data",
-      "A random candle spike",
-      "A short (or long) squeeze where stop-losses get triggered"
+      "Limit orders can only be used for long positions",
+      "Executes immediately at the best available price, while a limit order waits for a specific price",
+      "Executes only when price hits support",
+      "Market orders are only available on futures contracts"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 2,
-    "text": "What’s the primary role of VWAP in intraday trading?",
+    "text": "Which tab within the gameshow allows users to view previous leaderboard winners?",
     "answers": [
-      "It calculates open interest",
-      "It identifies RSI divergences",
-      "It shows the average price weighted by volume",
-      "It shows good and poor highs and lows"
+      "Previous Winners Tab",
+      "The kimba.tv Dashboard",
+      "Kimba’s Den on Discord",
+      "Merch Store !merch"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 3,
-    "text": "What’s a “stop hunt”?",
+    "text": "What is the main difference between custodial and non-custodial wallets?",
     "answers": [
-      "When the market purposely moves to trigger trader stop-losses",
-      "When an exchange stops orders for maintenance",
-      "A type of futures funding event",
-      "A rare pattern on RSI"
+      "Custodial holds private keys for you, non-custodial means you control them",
+      "Non-custodial wallets are only for NFTs",
+      "Custodial wallets cannot be mobile",
+      "Custodial wallets allow unlimited leverage"
     ],
     "correct": 0
   },
   {
     "number": 4,
-    "text": "What is the 80% setup rule based on?",
+    "text": "What is the main objective in the KimbaTV Talent Show 'Liquania’s Got Talent'?",
     "answers": [
-      "My friends 80% sure what they doing",
-      "Price rotating through value once accepting back within",
-      "Profit target reached",
-      "Candle size reaching 80%"
+      "Sing along with the Mods",
+      "To showcase mining rigs",
+      "To trade live on stream",
+      "To vote for your favorite music while appreciating the tunes by useless lines"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 5,
-    "text": "What happens when funding rates are deeply negative?",
+    "text": "Which Discord channel is used for redeeming The Kimbillionaire gameshow prizes?",
     "answers": [
-      "The market is balanced",
-      "Shorts are paying longs, meaning selling pressure is extreme",
-      "Funding has paused",
-      "Longs are paying shorts"
+      "#Jerome Powell fan club",
+      "#memes-only",
+      "Coinwise #redeem channel",
+      "General Chat"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 6,
-    "text": "What does Open Interest (OI) increasing while price drops often mean?",
+    "text": "Difference between spot, margin & futures trading?",
     "answers": [
-      "Market is consolidating",
-      "Shorts are being closed",
-      "New short positions entering the market",
-      "No one’s trading"
+      "Futures only allow long positions",
+      "Spot uses leverage, others do not",
+      "Spot = real assets, margin = borrow funds, futures = trade with leverage",
+      "Margin trading has no liquidation risk"
     ],
     "correct": 2
   },
   {
     "number": 7,
-    "text": "Why is the 106–107K range on BTC considered a key level in market structure?",
+    "text": "Why do stablecoins like USDT/USDC trade above or below $1?",
     "answers": [
-      "It’s the highest open interest level ever recorded",
-      "It has acted as a critical resistance/support zone for nearly a year",
-      "It’s where all gaps get filled",
-      "It represents a Fibonacci 100% retracement"
+      "Blockchain nodes stop working",
+      "Supply & demand imbalances create temporary premium/discount",
+      "The Fed directly controls the peg",
+      "Daily automatic re-peg"
     ],
     "correct": 1
   },
   {
     "number": 8,
-    "text": "What is a “pivot zone” in technical analysis?",
+    "text": "In the new Kimba Dashboard you can do what?",
     "answers": [
-      "A random candle that reverses",
-      "A price area that often acts as both support and resistance",
-      "A single data point on the RSI",
-      "A point where open interest resets"
+      "It hosts live mining charts",
+      "It tracks your CPU temperature while getting liquidated",
+      "It converts NFTs to SOL",
+      "It connects Lions accounts, UIDs, view NFTs and stream schedule"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 9,
-    "text": "If a daily close happens above 103,500 (BTC) level after multiple rejections, what does it generally suggest?",
+    "text": "How do funding rates work in perpetual futures?",
     "answers": [
-      "The trend is weakening",
-      "The level remains insignificant",
-      "A potential shift in market bias to bullish",
-      "That trading volume is low"
+      "Payments between longs & shorts to align price with spot",
+      "Permanently lower leverage",
+      "Act as insurance for exchanges",
+      "Guarantee equal profits"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 10,
+    "text": "Who is known as the 'King' of Market Nerdouts?",
+    "answers": [
+      "Pipelinsk with Kerviz",
+      "Elon Musk",
+      "Professor Mandalo",
+      "Hujhuxin Sato working with PSG"
     ],
     "correct": 2
   },
   {
-    "number": 10,
-    "text": "What is typically indicated when price returns into the weekly Value Area after a breakout?",
-    "answers": [
-      "The breakout is strengthening",
-      "The move might be losing momentum",
-      "The market is entering price discovery",
-      "A liquidity grab just occurred"
-    ],
-    "correct": 1
-  },
-  {
     "number": 11,
-    "text": "In Volume Profile, what does the Point of Control (POC) represent?",
+    "text": "Key difference between Proof-of-Work and Proof-of-Stake?",
     "answers": [
-      "The level with the highest traded volume",
-      "The level with the lowest liquidity",
-      "A moving average line",
-      "The highest candle wick of the session"
+      "PoW uses energy hardware, PoS uses staked tokens",
+      "PoS has no security",
+      "PoS gives infinite income",
+      "PoW can’t support smart contracts"
     ],
     "correct": 0
   },
   {
     "number": 12,
-    "text": "What’s the difference between RTH and ETH gaps?",
+    "text": "What causes large wicks on candlestick charts?",
     "answers": [
-      "There is no difference",
-      "ETH gaps occur during high volume",
-      "RTH gaps appear only in crypto markets",
-      "RTH gaps happen during regular trading hours, ETH gaps occur overnight"
+      "Screenshot delay",
+      "Rapid price rejection from aggressive orderflow",
+      "UI rendering bug",
+      "Market time travel"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 13,
-    "text": "What’s a “Gap Fill and Go” setup?",
+    "text": "Difference between Layer-1 and Layer-2 solutions?",
     "answers": [
-      "Price fills the gap fully, then continues in the same direction",
-      "Price never touches the gap",
-      "Price fills halfway and reverses",
-      "Gaps are ignored in this scenario"
+      "L1 runs offline",
+      "L1 is base chain; L2 scales on top",
+      "L2 only for gaming",
+      "L2 stores keys"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 14,
-    "text": "What’s a “Gap Fill and Reverse”?",
+    "text": "Who was the first Lion to take the Hot Seat more than once?",
     "answers": [
-      "Market halts during fill",
-      "Gap never gets filled",
-      "Price fills the gap, rejects, and moves back opposite direction",
-      "Volume disappears completely"
+      "Burbeezy",
+      "InkyDeranged",
+      "Imsin",
+      "Kerviz"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 15,
-    "text": "What’s one of the best ways to cope with market swings and portfolio drawdowns?",
+    "text": "What is the purpose of the 'Hot Seat' feature in Kimba gameshow episodes?",
     "answers": [
-      "Revenge trade to win it back fast",
-      "Reduce position size, review journal, and stay consistent",
-      "Watch every tick and overanalyze each move",
-      "Double down until it recovers"
+      "Mute all viewers",
+      "To get warm during winter",
+      "Play chess",
+      "Spotlight 1 player to answer a special high-pressure question"
     ],
-    "correct": 1
+    "correct": 3
   }
 ]
