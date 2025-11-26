@@ -5114,36 +5114,17 @@ function ensureSlotMachineState() {
     gameState.slot_machine.schedule_version = 'question_numbers';
   }
 
-  const alternateProfiles = cleanedUsers
-    .slice(1)
-    .map(username => ({ username, profile: getHotSeatProfile(username) }))
-    .filter(entry => entry.profile && entry.profile.storyHtml);
-
   if (!schedule.length || schedule.length < defaultSchedule.length) {
     schedule = [...defaultSchedule];
   }
-
-  cleanedUsers.forEach(user => {
-    addPointsToPlayer(user, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
-    ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-      const player = initializePlayerInLeaderboard(user, period);
-      player.hot_seat_appearances++;
-    });
-  });
-
-  startHotSeatTimer(HOT_SEAT_PROFILE_DISPLAY_MS);
+  gameState.slot_machine.schedule_questions = schedule;
+}
 
 function broadcastSlotMachineEvent(event, payload = {}) {
   broadcastToClients({
-    type: 'hot_seat_activated',
-    user: primaryUser,
-      users: cleanedUsers,
-    timer: timerDuration,
-    questionNumber: gameState.current_question + 1,
-    message: options.message || `Hot seat activated for: ${cleanedUsers.join(', ')}`,
-    selectionMethod,
-    profile: primaryProfile || null,
-    alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
+    type: 'slot_machine_event',
+    event,
+    ...payload,
     timestamp: Date.now()
   });
 }
