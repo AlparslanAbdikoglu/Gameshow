@@ -1047,9 +1047,15 @@ const KimbillionaireControlPanel: React.FC = () => {
       setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name} (${formatLabel}).`);
       setHotSeatProfileFileName(file.name);
 
-      if (errors.length > 0) {
-        const preview = errors.slice(0, 3).join('; ');
-        const overflow = errors.length > 3 ? ` (and ${errors.length - 3} more)` : '';
+      const combinedErrors = [
+        ...errors,
+        ...((Array.isArray(response?.errors) ? response.errors : [])
+          .filter((entry: unknown) => typeof entry === 'string' && entry.trim().length > 0) as string[])
+      ];
+
+      if (combinedErrors.length > 0) {
+        const preview = combinedErrors.slice(0, 3).join('; ');
+        const overflow = combinedErrors.length > 3 ? ` (and ${combinedErrors.length - 3} more)` : '';
         setHotSeatProfileError(`Some entries were skipped: ${preview}${overflow}`);
       } else {
         setHotSeatProfileError(null);

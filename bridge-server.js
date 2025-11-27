@@ -109,47 +109,160 @@ function sanitizeProfileHtml(html = '') {
   return sanitized.trim();
 }
 
-function buildHotSeatProfileMap(profiles = {}) {
-  const sanitizedProfiles = {};
+function escapeProfileText(text = '') {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 
-  if (!profiles || typeof profiles !== 'object') {
-    return sanitizedProfiles;
+function convertProfileStoryToHtml(text = '') {
+  const trimmed = (text || '').trim();
+  if (!trimmed) {
+    return { html: '', text: '' };
   }
 
-  Object.entries(profiles).forEach(([entryKey, profile]) => {
-    if (!profile || typeof profile !== 'object') {
-      return;
+  const blocks = trimmed.split(/\n{2,}/);
+  const html = blocks
+    .map(block => {
+      const lines = block
+        .split(/\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      if (lines.length === 0) {
+        return '';
+      }
+
+      if (lines.every(line => /^[-*]\s+/.test(line))) {
+        const items = lines
+          .map(line => line.replace(/^[-*]\s+/, ''))
+          .map(line => `<li>${escapeProfileText(line)}</li>`)
+          .join('');
+        return `<ul>${items}</ul>`;
+      }
+
+      const paragraph = lines.join(' ');
+      return `<p>${escapeProfileText(paragraph)}</p>`;
+    })
+    .filter(Boolean)
+    .join('');
+
+  return { html, text: trimmed };
+}
+
+function normalizeProfileEntry(rawEntry, entryKey, errors) {
+  if (rawEntry === null || rawEntry === undefined) {
+    errors.push(`${entryKey}: entry is empty.`);
+    return null;
+  }
+
+  if (typeof rawEntry === 'string') {
+    const normalizedKey = normalizeUsername(entryKey);
+    if (!normalizedKey) {
+      errors.push(`${entryKey}: missing username for profile string.`);
+      return null;
     }
 
-    const sourceUsername = typeof profile.username === 'string' && profile.username.trim()
-      ? profile.username.trim()
-      : typeof entryKey === 'string' && entryKey.trim()
-        ? entryKey.trim()
-        : typeof profile.displayName === 'string' && profile.displayName.trim()
-          ? profile.displayName.trim()
-          : typeof profile.id === 'string' && profile.id.trim()
-            ? profile.id.trim()
-            : '';
-
-    const normalized = normalizeUsername(sourceUsername);
-    if (!normalized) {
-      return;
-    }
-
-    const cleanedUsername = sourceUsername.replace(/^@+/, '') || sourceUsername;
-
-    sanitizedProfiles[normalized] = {
-      username: cleanedUsername,
-      displayName: typeof profile.displayName === 'string' && profile.displayName.trim()
-        ? profile.displayName.trim()
-        : cleanedUsername,
-      storyHtml: sanitizeProfileHtml(profile.storyHtml || profile.story || ''),
-      storyText: typeof profile.storyText === 'string' ? profile.storyText.trim() : '',
-      lastUpdated: Date.now()
+    const { html, text } = convertProfileStoryToHtml(rawEntry);
+    return {
+      key: normalizedKey,
+      profile: {
+        username: entryKey.replace(/^@+/, ''),
+        displayName: entryKey.replace(/^@+/, ''),
+        storyHtml: html,
+        storyText: text,
+        lastUpdated: Date.now()
+      }
     };
-  });
+  }
 
-  return sanitizedProfiles;
+  if (typeof rawEntry !== 'object') {
+    errors.push(`${entryKey}: entry must be an object or string.`);
+    return null;
+  }
+
+  const sourceUsername = typeof rawEntry.username === 'string' && rawEntry.username.trim()
+    ? rawEntry.username.trim()
+    : typeof entryKey === 'string' && entryKey.trim()
+      ? entryKey.trim()
+      : typeof rawEntry.displayName === 'string' && rawEntry.displayName.trim()
+        ? rawEntry.displayName.trim()
+        : typeof rawEntry.id === 'string' && rawEntry.id.trim()
+          ? rawEntry.id.trim()
+          : '';
+
+  const normalized = normalizeUsername(sourceUsername);
+  if (!normalized) {
+    errors.push(`${entryKey}: missing username.`);
+    return null;
+  }
+
+  const cleanedUsername = sourceUsername.replace(/^@+/, '') || sourceUsername;
+  const displayName = typeof rawEntry.displayName === 'string' && rawEntry.displayName.trim()
+    ? rawEntry.displayName.trim()
+    : cleanedUsername;
+
+  const providedHtml = typeof rawEntry.storyHtml === 'string' ? rawEntry.storyHtml.trim() : '';
+  const providedText = typeof rawEntry.storyText === 'string' ? rawEntry.storyText.trim() : '';
+  const providedStory = typeof rawEntry.story === 'string' ? rawEntry.story.trim() : '';
+
+  let storyHtml = '';
+  let storyText = '';
+
+  if (providedHtml) {
+    storyHtml = sanitizeProfileHtml(providedHtml);
+    storyText = providedText
+      ? providedText
+      : storyHtml
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+  } else {
+    const { html, text } = convertProfileStoryToHtml(providedText || providedStory);
+    storyHtml = sanitizeProfileHtml(html);
+    storyText = text;
+  }
+
+  return {
+    key: normalized,
+    profile: {
+      username: cleanedUsername,
+      displayName,
+      storyHtml,
+      storyText,
+      lastUpdated: Date.now()
+    }
+  };
+}
+
+function buildHotSeatProfileMap(profiles = {}) {
+  const sanitizedProfiles = {};
+  const errors = [];
+
+  const processEntry = (value, contextLabel, fallbackKey) => {
+    const result = normalizeProfileEntry(value, fallbackKey || contextLabel, errors);
+    if (result) {
+      sanitizedProfiles[result.key] = result.profile;
+    }
+  };
+
+  if (!profiles || typeof profiles !== 'object') {
+    errors.push('Uploaded profiles payload must be an object or array.');
+    return { profiles: sanitizedProfiles, errors };
+  }
+
+  if (Array.isArray(profiles)) {
+    profiles.forEach((entry, index) => processEntry(entry, `Entry ${index + 1}`, `Entry ${index + 1}`));
+  } else {
+    Object.entries(profiles).forEach(([entryKey, profile]) => {
+      processEntry(profile, `Key "${entryKey}"`, entryKey);
+    });
+  }
+
+  return { profiles: sanitizedProfiles, errors };
 }
 
 function findHotSeatProfileMatch(username) {
@@ -305,6 +418,7 @@ let gameState = {
   hot_seat_entry_start_time: null, // Timestamp when entry collection started
   hot_seat_winner_count: 1,      // Number of hot seat winners to select
   hot_seat_entry_timer_interval: null, // Reference to entry countdown timer
+  hot_seat_profile_hold_ms: 0,   // How long to hold spotlight/profile before timer starts
   // Lifeline states
   first_poll_winner: null,   // Track which answer won the first poll for revote system
   is_revote_active: false,   // Flag for "Take Another Vote" revote system
@@ -5053,77 +5167,143 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
-// Slot Machine Bonus Mode Helpers
-const SLOT_MACHINE_FALLBACK_SYMBOLS = [
-  { id: 'leo', label: 'Leo', emoji: '🦁', emojiUrl: null },
-  { id: 'crown', label: 'Crown', emoji: '👑', emojiUrl: null },
-  { id: 'claw', label: 'Claw', emoji: '🐾', emojiUrl: null },
-  { id: 'star', label: 'Star', emoji: '⭐', emojiUrl: null }
-];
-const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code, url]) => ({
-  id: code,
-  label: code,
-  emoji: code,
-  emojiUrl: url
-}));
-
-function getSlotMachineSymbolPool() {
-  return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
+function broadcastHotSeatCountdown(remaining, options = {}) {
+  broadcastToClients({
+    type: 'hot_seat_countdown',
+    user: gameState.hot_seat_user,
+    remaining,
+    total: gameState.hot_seat_prestart_total,
+    questionNumber: gameState.current_question + 1,
+    go: options.go === true,
+    timestamp: Date.now()
+  });
 }
 
-function drawSlotMachineSymbol() {
-  const pool = getSlotMachineSymbolPool();
-  const symbol = pool[Math.floor(Math.random() * pool.length)];
-  return {
-    id: symbol.id,
-    label: symbol.label || symbol.id,
-    emoji: symbol.emoji || symbol.id,
-    emojiUrl: symbol.emojiUrl || symbol.url || null
-  };
+function startHotSeatCountdown(countdownSeconds) {
+  if (!gameState.hot_seat_active) {
+    return;
+  }
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
+  gameState.hot_seat_prestart_seconds = seconds;
+  gameState.hot_seat_prestart_total = seconds;
+  gameState.hot_seat_countdown_started = true;
+
+  broadcastHotSeatCountdown(seconds);
+
+  if (seconds === 0) {
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_countdown_started = false;
+    startHotSeatTimer();
+    return;
+  }
+
+  gameState.hot_seat_prestart_interval = setInterval(() => {
+    gameState.hot_seat_prestart_seconds = Math.max(0, gameState.hot_seat_prestart_seconds - 1);
+
+    if (gameState.hot_seat_prestart_seconds > 0) {
+      broadcastHotSeatCountdown(gameState.hot_seat_prestart_seconds);
+      return;
+    }
+
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    broadcastHotSeatCountdown(0, { go: true });
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_countdown_started = false;
+    startHotSeatTimer();
+  }, 1000);
 }
 
-function ensureSlotMachineState() {
-  if (!gameState.slot_machine) {
-    gameState.slot_machine = {
-      enabled: true,
-      schedule_questions: [],
-      schedule_version: 'question_numbers',
-      entry_duration_ms: 30000,
-      max_points: 25,
-      current_round: null,
-      last_round_result: null,
-      round_count: 0
-    };
+function queueHotSeatCountdown(countdownSeconds) {
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
   }
 
-  const defaultSchedule = Array.from({ length: 14 }, (_, index) => index + 2)
-    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value));
-  let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
-    ? [...gameState.slot_machine.schedule_questions]
-    : [...defaultSchedule];
+  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
+  gameState.hot_seat_prestart_seconds = seconds;
+  gameState.hot_seat_prestart_total = seconds;
+  gameState.hot_seat_timer_pending_start = true;
+  gameState.hot_seat_countdown_started = false;
 
-  schedule = schedule
-    .map((value) => {
-      const numericValue = Number(value);
-      return Number.isFinite(numericValue) ? numericValue : null;
-    })
-    .filter((value) => value != null);
+  triggerHotSeatCountdownIfReady();
+}
 
-  if (gameState.slot_machine.schedule_version !== 'question_numbers') {
-    schedule = schedule.map((value) => value + 1);
-    gameState.slot_machine.schedule_version = 'question_numbers';
+function triggerHotSeatCountdownIfReady() {
+  if (!gameState.hot_seat_active || !gameState.hot_seat_timer_pending_start) {
+    return false;
   }
 
-  const alternateProfiles = cleanedUsers
+  if (gameState.hot_seat_countdown_started) {
+    return false;
+  }
+
+  if (!gameState.question_visible) {
+    return false;
+  }
+
+  startHotSeatCountdown(gameState.hot_seat_prestart_seconds || 0);
+  return true;
+}
+
+function initializeHotSeatSession(selectedUsers, options = {}) {
+  const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
+
+  if (uniqueUsers.length === 0) {
+    console.warn('⚠️ HOT SEAT activation skipped - no valid users provided');
+    return false;
+  }
+
+  const selectionMethod = options.selectionMethod || 'manual';
+  const primaryUser = uniqueUsers[0];
+  const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
+  const countdownSeconds = Number.isFinite(options.countdownSeconds)
+    ? Math.max(0, Math.round(options.countdownSeconds))
+    : 3;
+
+  if (gameState.hot_seat_entry_timer_interval) {
+    clearInterval(gameState.hot_seat_entry_timer_interval);
+    gameState.hot_seat_entry_timer_interval = null;
+  }
+  gameState.hot_seat_entry_active = false;
+  gameState.hot_seat_entry_lookup = new Set();
+
+  gameState.hot_seat_active = true;
+  gameState.hot_seat_users = uniqueUsers;
+  gameState.hot_seat_user = primaryUser;
+  gameState.hot_seat_timer = timerDuration;
+  gameState.hot_seat_answered = false;
+  gameState.hot_seat_answer = null;
+  gameState.hot_seat_correct = null;
+
+  const primaryProfile = getHotSeatProfile(primaryUser);
+  const profileHoldMs = Number.isFinite(options.profileHoldMs)
+    ? options.profileHoldMs
+    : (primaryProfile && primaryProfile.storyHtml ? HOT_SEAT_PROFILE_DISPLAY_MS : 0);
+  const alternateProfiles = uniqueUsers
     .slice(1)
     .map(username => ({ username, profile: getHotSeatProfile(username) }))
     .filter(entry => entry.profile && entry.profile.storyHtml);
 
-  if (!schedule.length || schedule.length < defaultSchedule.length) {
-    schedule = [...defaultSchedule];
+  if (profileHoldMs > 0) {
+    gameState.hot_seat_spotlight_until = Date.now() + profileHoldMs;
+  } else {
+    gameState.hot_seat_spotlight_until = null;
+  }
+  gameState.hot_seat_profile_hold_ms = profileHoldMs;
+
+  if (gameState.audience_poll_active) {
+    console.log('🔕 Audience poll disabled while hot seat is active');
+    gameState.audience_poll_active = false;
   }
 
-  cleanedUsers.forEach(user => {
+  uniqueUsers.forEach(user => {
     addPointsToPlayer(user, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
     ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
       const player = initializePlayerInLeaderboard(user, period);
@@ -5131,40 +5311,224 @@ function ensureSlotMachineState() {
     });
   });
 
-  startHotSeatTimer(HOT_SEAT_PROFILE_DISPLAY_MS);
+  queueHotSeatCountdown(countdownSeconds);
 
-function broadcastSlotMachineEvent(event, payload = {}) {
   broadcastToClients({
     type: 'hot_seat_activated',
     user: primaryUser,
-      users: cleanedUsers,
+    users: uniqueUsers,
     timer: timerDuration,
     questionNumber: gameState.current_question + 1,
-    message: options.message || `Hot seat activated for: ${cleanedUsers.join(', ')}`,
+    message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
     selectionMethod,
+    countdown: countdownSeconds,
     profile: primaryProfile || null,
     alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
     timestamp: Date.now()
   });
+
+  return true;
 }
 
-function cleanupSlotMachineRoundTimers(round) {
-  if (!round) return;
-  if (round.entry_interval) {
-    clearInterval(round.entry_interval);
-    round.entry_interval = null;
+function drawHotSeatWinners() {
+  console.log(`🎲 Drawing ${gameState.hot_seat_winner_count} hot seat winner(s) from ${gameState.hot_seat_entries.length} entries`);
+
+  if (gameState.hot_seat_entries.length === 0) {
+    console.log('⚠️ No entries to draw from');
+    return false;
   }
-  if (round.entry_timeout) {
-    clearTimeout(round.entry_timeout);
-    round.entry_timeout = null;
-  }
-  if (round.auto_spin_timeout) {
-    clearTimeout(round.auto_spin_timeout);
-    round.auto_spin_timeout = null;
-  }
+
+  const shuffled = [...gameState.hot_seat_entries].sort(() => Math.random() - 0.5);
+  const winnerCount = Math.min(gameState.hot_seat_winner_count, shuffled.length);
+  const winners = shuffled.slice(0, winnerCount);
+
+  console.log(`🎯 Hot seat winners selected: ${winners.join(', ')}`);
+
+  gameState.hot_seat_entries = [];
+  gameState.hot_seat_entry_lookup = new Set();
+  gameState.hot_seat_entry_active = false;
+
+  return initializeHotSeatSession(winners, {
+    selectionMethod: 'join_entry',
+    message: `Hot seat activated for: ${winners.join(', ')}`,
+    countdownSeconds: 3
+  });
 }
 
-function startSlotMachineEntryRound(questionIndex) {
+function selectHotSeatUser(manualUsername = null) {
+  console.log('🎯 Selecting hot seat user...');
+  console.log(`📊 Current participants count: ${gameState.gameshow_participants.length}`);
+
+  let selectedUser = manualUsername;
+  let selectionMethod = manualUsername ? 'manual' : 'participants';
+
+  if (!selectedUser && gameState.gameshow_participants.length > 0) {
+    const randomIndex = Math.floor(Math.random() * gameState.gameshow_participants.length);
+    selectedUser = gameState.gameshow_participants[randomIndex];
+    console.log(`✅ Selected from ${gameState.gameshow_participants.length} active participants`);
+  }
+
+  if (!selectedUser && recentChatMessages.length > 0) {
+    console.log('⚠️ No voting participants yet, checking recent chat users...');
+    const uniqueChatUsers = [...new Set(recentChatMessages.map(msg => msg.username))];
+    if (uniqueChatUsers.length > 0) {
+      const randomIndex = Math.floor(Math.random() * uniqueChatUsers.length);
+      selectedUser = uniqueChatUsers[randomIndex];
+      selectionMethod = 'recent_chat';
+      console.log(`✅ Selected from ${uniqueChatUsers.length} recent chat users`);
+    }
+  }
+
+  if (!selectedUser && gameState.poll_voter_history && gameState.poll_voter_history.length > 0) {
+    console.log('⚠️ No chat users found, checking poll voter history...');
+    const randomIndex = Math.floor(Math.random() * gameState.poll_voter_history.length);
+    selectedUser = gameState.poll_voter_history[randomIndex];
+    selectionMethod = 'poll_history';
+    console.log(`🗳️ Selected from ${gameState.poll_voter_history.length} previous poll voters`);
+  }
+
+  if (!selectedUser) {
+    console.warn('⚠️ HOT SEAT SKIPPED - No real participants available');
+    console.log(`📊 Participant sources checked:`);
+    console.log(`   - Active participants: ${gameState.gameshow_participants.length}`);
+    console.log(`   - Recent chat users: ${recentChatMessages.length > 0 ? [...new Set(recentChatMessages.map(msg => msg.username))].length : 0}`);
+    console.log(`   - Poll voter history: ${gameState.poll_voter_history ? gameState.poll_voter_history.length : 0}`);
+    console.log('💡 Hot seat will activate when real participants join the game');
+
+    broadcastToClients({
+      type: 'hot_seat_skipped',
+      reason: 'Waiting for real participants',
+      questionNumber: gameState.current_question + 1,
+      timestamp: Date.now()
+    });
+
+    return false;
+  }
+
+  return initializeHotSeatSession([selectedUser], {
+    selectionMethod,
+    countdownSeconds: 3
+  });
+}
+
+  // Slot Machine Bonus Mode Helpers
+  const SLOT_MACHINE_FALLBACK_SYMBOLS = [
+    { id: 'leo', label: 'Leo', emoji: '🦁', emojiUrl: null },
+    { id: 'crown', label: 'Crown', emoji: '👑', emojiUrl: null },
+    { id: 'claw', label: 'Claw', emoji: '🐾', emojiUrl: null },
+    { id: 'star', label: 'Star', emoji: '⭐', emojiUrl: null }
+  ];
+  const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code, url]) => ({
+    id: code,
+    label: code,
+    emoji: code,
+    emojiUrl: url
+  }));
+
+  function getSlotMachineSymbolPool() {
+    return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
+  }
+
+  function drawSlotMachineSymbol() {
+    const pool = getSlotMachineSymbolPool();
+    const symbol = pool[Math.floor(Math.random() * pool.length)];
+    return {
+      id: symbol.id,
+      label: symbol.label || symbol.id,
+      emoji: symbol.emoji || symbol.id,
+      emojiUrl: symbol.emojiUrl || symbol.url || null
+    };
+  }
+
+  function ensureSlotMachineState() {
+    if (!gameState.slot_machine) {
+      gameState.slot_machine = {
+        enabled: true,
+        schedule_questions: [4, 9, 14],
+        schedule_version: 'question_numbers',
+        entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
+        max_points: 25,
+        current_round: null,
+        last_round_result: null,
+        round_count: 0
+      };
+    }
+
+    const defaultSchedule = [4, 9, 14].filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value));
+    let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
+      ? [...gameState.slot_machine.schedule_questions]
+      : [...defaultSchedule];
+
+    schedule = schedule
+      .map((value) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? numericValue : null;
+      })
+      .filter((value) => value != null);
+
+    if (gameState.slot_machine.schedule_version !== 'question_numbers') {
+      schedule = schedule.map((value) => value + 1);
+      gameState.slot_machine.schedule_version = 'question_numbers';
+    }
+
+    schedule = schedule
+      .map((value) => Math.min(15, Math.max(1, Math.round(value))))
+      .filter((value) => !Number.isNaN(value));
+
+    if (!schedule.length) {
+      schedule = [...defaultSchedule];
+    }
+
+    let normalizedSchedule = Array.from(new Set(schedule))
+      .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value))
+      .sort((a, b) => a - b);
+
+    if (!normalizedSchedule.length) {
+      normalizedSchedule = [...defaultSchedule];
+    }
+
+    gameState.slot_machine.schedule_questions = normalizedSchedule;
+
+    const configuredDuration = Number(gameState.slot_machine.entry_duration_ms);
+    const fallbackDuration = Number(gameState.hot_seat_entry_duration) || 60000;
+    gameState.slot_machine.entry_duration_ms = Number.isFinite(configuredDuration) && configuredDuration > 0
+      ? configuredDuration
+      : fallbackDuration;
+
+    const configuredMaxPoints = Number(gameState.slot_machine.max_points);
+    gameState.slot_machine.max_points = Number.isFinite(configuredMaxPoints) && configuredMaxPoints > 0
+      ? configuredMaxPoints
+      : 25;
+
+    gameState.slot_machine.round_count = gameState.slot_machine.round_count || 0;
+  }
+
+  function broadcastSlotMachineEvent(event, payload = {}) {
+    broadcastToClients({
+      type: 'slot_machine_event',
+      event,
+      timestamp: Date.now(),
+      data: payload
+    });
+  }
+
+  function cleanupSlotMachineRoundTimers(round) {
+    if (!round) return;
+    if (round.entry_interval) {
+      clearInterval(round.entry_interval);
+      round.entry_interval = null;
+    }
+    if (round.entry_timeout) {
+      clearTimeout(round.entry_timeout);
+      round.entry_timeout = null;
+    }
+    if (round.auto_spin_timeout) {
+      clearTimeout(round.auto_spin_timeout);
+      round.auto_spin_timeout = null;
+    }
+  }
+
+  function startSlotMachineEntryRound(questionIndex) {
   ensureSlotMachineState();
 
   if (!gameState.slot_machine.enabled) {
@@ -5256,7 +5620,182 @@ function addSlotMachineEntry(username) {
   return true;
 }
 
-function startHotSeatTimer(profileHoldMs = 0) {
+function concludeSlotMachineEntryRound(reason = 'timer') {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || round.status !== 'collecting') {
+    return;
+  }
+
+  cleanupSlotMachineRoundTimers(round);
+  round.status = 'awaiting_lever';
+
+  if (round.entries.length === 0) {
+    broadcastSlotMachineEvent('no_entries', {
+      questionNumber: round.question_index + 1,
+      reason,
+      isTestRound: !!round.is_test_round
+    });
+    gameState.slot_machine.current_round = null;
+    broadcastState(true);
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * round.entries.length);
+  round.lever_candidate = round.entries[randomIndex];
+
+  broadcastSlotMachineEvent('lever_ready', {
+    questionNumber: round.question_index + 1,
+    leverUser: round.lever_candidate,
+    entries: round.entries.length,
+    isTestRound: !!round.is_test_round
+  });
+  broadcastState(true);
+
+  if (!round.is_test_round) {
+    round.auto_spin_timeout = setTimeout(() => spinSlotMachineRound('auto_lever'), 4000);
+  }
+}
+
+function spinSlotMachineRound(source = 'system') {
+  ensureSlotMachineState();
+  const round = gameState.slot_machine.current_round;
+
+  if (!round || (round.status !== 'awaiting_lever' && round.status !== 'collecting')) {
+    return;
+  }
+
+  cleanupSlotMachineRoundTimers(round);
+  round.status = 'spinning';
+  round.spin_requested_by = source;
+  round.auto_spin_timeout = null;
+
+  broadcastSlotMachineEvent('spin_started', {
+    questionNumber: round.question_index + 1,
+    entries: round.entries.length,
+    leverUser: round.lever_candidate || null,
+    isTestRound: !!round.is_test_round
+  });
+  broadcastState(true);
+
+  setTimeout(() => {
+    const symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
+    const firstSymbol = symbols[0];
+    const jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
+    let perParticipantPoints = 0;
+    let totalAwardedPoints = 0;
+
+    if (!round.is_test_round && jackpot && round.entries.length > 0) {
+      const maxPoints = gameState.slot_machine.max_points || 25;
+      const basePer = Math.floor(maxPoints / round.entries.length);
+      perParticipantPoints = basePer > 0 ? basePer : (round.entries.length <= maxPoints ? 1 : 0);
+
+      totalAwardedPoints = perParticipantPoints * round.entries.length;
+      if (totalAwardedPoints > maxPoints) {
+        perParticipantPoints = Math.floor(maxPoints / round.entries.length);
+        totalAwardedPoints = perParticipantPoints * round.entries.length;
+      }
+
+      if (perParticipantPoints > 0) {
+        round.entries.forEach((entryUsername) => {
+          addPointsToPlayer(entryUsername, perParticipantPoints, 'Slot Machine bonus');
+        });
+      }
+    }
+
+    const resultPayload = {
+      questionNumber: round.question_index + 1,
+      entries: round.entries.length,
+      leverUser: round.lever_candidate || null,
+      symbols: symbols.map((symbol) => ({
+        id: symbol.id,
+        label: symbol.label,
+        emoji: symbol.emoji,
+        emojiUrl: symbol.emojiUrl || null
+      })),
+      matched: jackpot,
+      perParticipantPoints,
+      totalAwardedPoints,
+      isTestRound: !!round.is_test_round
+    };
+
+    round.status = 'results';
+    round.results = resultPayload;
+    gameState.slot_machine.last_round_result = {
+      ...resultPayload,
+      timestamp: Date.now()
+    };
+    gameState.slot_machine.round_count = (gameState.slot_machine.round_count || 0) + 1;
+
+    broadcastSlotMachineEvent('result', resultPayload);
+    broadcastState(true);
+
+    setTimeout(() => {
+      if (gameState.slot_machine && gameState.slot_machine.current_round === round) {
+        gameState.slot_machine.current_round = null;
+        broadcastState(true);
+      }
+    }, 15000);
+  }, 2500);
+}
+
+function triggerSlotMachineTestSpin() {
+  ensureSlotMachineState();
+
+  if (!gameState.slot_machine.enabled) {
+    console.log('🎰 Slot machine disabled - skipping test spin');
+    return;
+  }
+
+  if (gameState.slot_machine.current_round) {
+    cleanupSlotMachineRoundTimers(gameState.slot_machine.current_round);
+    gameState.slot_machine.current_round = null;
+  }
+
+  const sampleEntries = ['RoaryTest', 'NalaTest', 'SimbaTest'];
+  const round = {
+    question_index: Math.max(0, gameState.current_question || 0),
+    status: 'collecting',
+    entry_started_at: Date.now(),
+    entry_duration_ms: 5000,
+    entries: [...sampleEntries],
+    entry_lookup: new Set(sampleEntries.map((name) => name.toLowerCase())),
+    entry_interval: null,
+    entry_timeout: null,
+    lever_candidate: null,
+    spin_requested_by: null,
+    auto_spin_timeout: null,
+    is_test_round: true
+  };
+
+  gameState.slot_machine.current_round = round;
+
+  broadcastSlotMachineEvent('entry_started', {
+    questionNumber: round.question_index + 1,
+    duration: round.entry_duration_ms,
+    isTestRound: true
+  });
+  broadcastState(true);
+
+  sampleEntries.forEach((username, index) => {
+    broadcastSlotMachineEvent('entry_update', {
+      questionNumber: round.question_index + 1,
+      entries: index + 1,
+      latestEntry: username,
+      isTestRound: true
+    });
+  });
+
+  setTimeout(() => {
+    concludeSlotMachineEntryRound('test');
+    setTimeout(() => spinSlotMachineRound('host_test'), 800);
+  }, 1000);
+}
+
+function startHotSeatTimer(profileHoldMs = (typeof gameState.hot_seat_profile_hold_ms === 'number'
+  ? gameState.hot_seat_profile_hold_ms
+  : 0)) {
   // Clear any existing timer or pending start
   if (gameState.hot_seat_timer_interval) {
     clearInterval(gameState.hot_seat_timer_interval);
@@ -5444,6 +5983,8 @@ function endHotSeat(wasCorrect = null, timeout = false) {
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
   gameState.hot_seat_correct = wasCorrect;
+  gameState.hot_seat_profile_hold_ms = 0;
+  gameState.hot_seat_spotlight_until = null;
   
   console.log('🔚 Hot seat mode ended');
 }
@@ -10247,13 +10788,32 @@ async function handleAPI(req, res, pathname) {
 
           case 'upload_hot_seat_profiles': {
             const profilesPayload = data.profiles || {};
-            const sanitizedProfiles = buildHotSeatProfileMap(profilesPayload);
+            const { profiles: sanitizedProfiles, errors: profileErrors } = buildHotSeatProfileMap(profilesPayload);
             const profileCount = Object.keys(sanitizedProfiles).length;
+
+            if (profileCount === 0) {
+              const errorMessage = profileErrors.length > 0
+                ? profileErrors.join('; ')
+                : 'No valid hot seat profiles were found in the upload.';
+
+              console.warn(`⚠️ Hot seat profile upload rejected: ${errorMessage}`);
+
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: false,
+                error: errorMessage,
+                errors: profileErrors
+              }));
+              return;
+            }
 
             gameState.hot_seat_profiles = sanitizedProfiles;
             gameState.hot_seat_profiles_last_update = Date.now();
 
             console.log(`📝 Loaded ${profileCount} hot seat profile${profileCount === 1 ? '' : 's'} from control panel upload`);
+            if (profileErrors.length > 0) {
+              console.log(`ℹ️ ${profileErrors.length} profile warning(s): ${profileErrors.slice(0, 3).join('; ')}${profileErrors.length > 3 ? '...' : ''}`);
+            }
 
             // Immediately broadcast the refreshed state so overlays can render the uploaded stories
             // without waiting for another state-changing action (e.g., next question).
@@ -10263,7 +10823,8 @@ async function handleAPI(req, res, pathname) {
             res.end(JSON.stringify({
               success: true,
               count: profileCount,
-              lastUpdate: gameState.hot_seat_profiles_last_update
+              lastUpdate: gameState.hot_seat_profiles_last_update,
+              errors: profileErrors
             }));
             return;
           }
