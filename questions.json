@@ -5,7 +5,7 @@
     "answers": [
       "A list of exchange outages",
       "An area on the chart where many orders are resting",
-      "A long-term investment group",
+      "A pool filled with water",
       "A government tax rule"
     ],
     "correct": 1
@@ -23,80 +23,80 @@
   },
   {
     "number": 3,
-    "text": "What is the main difference between custodial and non-custodial wallets?",
+    "text": "Which Heatmap charting platform was used for many months within the community?",
     "answers": [
-      "Custodial wallets cannot be mobile",
-      "Custodial wallets allow unlimited leverage",
-      "Custodial holds private keys for you, non-custodial means you control them",
-      "Non-custodial wallets are only for NFTs"
+      "Tradingview",
+      "Tradinglite",
+      "Exocharts",
+      "ATAS"
     ],
     "correct": 2
   },
   {
     "number": 4,
-    "text": "What is the main objective in the KimbaTV Talent Show 'Liquania’s Got Talent'?",
+    "text": "In the Dashboard which DEX has been added and what's its ticker?",
     "answers": [
-      "To trade live on stream",
-      "To vote for your favorite music while appreciating the tunes by Useless Lines",
-      "Sing along with the Mods",
-      "To showcase mining rigs"
+      "Bybit and BYTE",
+      "Binance and BNB",
+      "Asterdex and Aster",
+      "Hyperliquid and HYPE"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 5,
-    "text": "Which Discord channel is used for redeeming The Kimbillionaire gameshow prizes?",
+    "text": "Quiz diffuculty: on Coinwise is sorted by which levels?",
     "answers": [
-      "#Jerome Powell fan club",
-      "#memes-only",
-      "General Chat",
-      "Coinwise #redeem channel"
+      "Easy, medium, hard",
+      "Novice, Pro, Expert",
+      "Beginner, Intermediate, Advanced",
+      "Easypeazy, Challenging, Brainbuster"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 6,
-    "text": "Difference between spot, margin & futures trading?",
+    "text": "After winning on The Kimbillionaire Gameshow, where must Lions go to officially claim prizes and submit proof?",
     "answers": [
-      "Margin trading has no liquidation risk",
-      "Futures only allow long positions",
-      "Spot uses leverage, others do not",
-      "Spot = real assets, margin = borrow funds, futures = trade with leverage"
+      "The Twitch chat /redeem command",
+      "KimbaTV Twitter DMs",
+      "The Coinwise Discord #redeem channel",
+      "Google Sheets form in announcements"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 7,
-    "text": "Why do stablecoins like USDT/USDC trade above or below $1?",
+    "text": "Who won in the most recent Liquania's Got Talent with Housty?",
     "answers": [
-      "Blockchain nodes stop working",
-      "Daily automatic re-peg",
-      "The Fed directly controls the peg",
-      "Supply & demand imbalances create temporary premium/discount"
+      "Jupy",
+      "Baja",
+      "Nitrogen",
+      "Maestro"
     ],
     "correct": 3
   },
   {
     "number": 8,
-    "text": "In the new Kimba Dashboard you can do what?",
+    "text": "What does the term ‘HODL’ refer to?",
     "answers": [
-      "It connects Lions accounts, UIDs, view NFTs and stream schedule",
-      "It converts NFTs to SOL",
-      "It tracks your CPU temperature while getting liquidated",
-      "It hosts live mining charts"
+      "High Optimization Data Layer",
+      "Holding crypto long-term",
+      "A type of mining machine",
+      "A stablecoin issuer"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 9,
-    "text": "How do funding rates work in perpetual futures?",
+    "text": "Which Kimba merch was obtainable through only by luck??",
     "answers": [
-      "Permanently lower leverage",
-      "Payments between longs & shorts to align price with spot",
-      "Act as insurance for exchanges",
-      "Guarantee equal profits"
+      "Kimba Mug",
+      "Fork",
+      "The white jedi Hoodie v1.0",
+      "Mousepad"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 10,
@@ -111,57 +111,57 @@
   },
   {
     "number": 11,
-    "text": "Key difference between Proof-of-Work and Proof-of-Stake?",
+    "text": "What were the community games during fridays?",
     "answers": [
-      "PoS gives infinite income",
-      "PoS has no security",
-      "PoW uses energy hardware, PoS uses staked tokens",
-      "PoW can’t support smart contracts"
+      "Jenga tournament",
+      "Poker night",
+      "Rock, Paper, Scissors",
+      "Trading competition"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 12,
-    "text": "What causes large wicks on candlestick charts?",
+    "text": "When Bytesor was talking on stream earlier today, what was new in the Profiles+ level indicator?",
     "answers": [
-      "Market time travel",
-      "Screenshot delay",
-      "UI rendering bug",
-      "Rapid price rejection from aggressive orderflow"
+      "Added previous session levels",
+      "Added more customization options",
+      "Now it's only in Coinwise Pro indicator",
+      "It can now find Sato’s liquidation levels"
     ],
-    "correct": 3
+    "correct": 0
   },
   {
     "number": 13,
-    "text": "Difference between Layer-1 and Layer-2 solutions?",
+    "text": "How many 24/7 youtube livestreams the k1m6a channel currently have?",
     "answers": [
-      "L2 only for gaming",
-      "L1 runs offline",
-      "L1 is base chain; L2 scales on top",
-      "L2 stores keys"
+      "1 livestream the one right now",
+      "3 livestreams",
+      "5 livestreams",
+      "10 livestreams"
     ],
     "correct": 2
   },
   {
     "number": 14,
-    "text": "Liquania’s Got Talent is partnered with which music label?",
+    "text": "What type of car was featured on the intro of ‘Liquania’s Got Talent’?",
     "answers": [
-      "Savage Symphony Media",
-      "Useless Lines Records",
-      "Lion Beats Entertainment",
-      "Universal Music Group"
+      "A BMW",
+      "A Bugatti",
+      "Porsche 911",
+      "A Tesla"
     ],
     "correct": 1
   },
   {
     "number": 15,
-    "text": "Historically, how has Bitcoin often behaved around the U.S. Thanksgiving period?",
+    "text": "If your uncle asks at Thanksgiving dinner whether he should invest his entire savings in a meme coin, the best answer is:",
     "answers": [
-      "Large crashes driven by institutional selling",
-      "Typically shows increased volatility and short-term bullish momentum due to retail inflows and holiday liquidity shifts",
-      "Always begins a new bear market cycle",
-      "Price remains completely flat and unchanged every year"
+      "Yes, YOLO everything",
+      "Only leverage 20x",
+      "Do proper research and diversify, educate yourself on the topic",
+      "Convert it all into pumpkin pies"
     ],
-    "correct": 1
+    "correct": 2
   }
 ]
