@@ -61247,13 +61247,13 @@
       "chat_participation_cooldown": 1000
     }
   },
-  "timestamp": 1764371731147,
+  "timestamp": 1764371978080,
   "serverHealth": {
     "startTime": 1764364230913,
     "crashCount": 0,
     "lastCrash": null,
     "memoryWarnings": 0,
-    "connectionCount": 7,
+    "connectionCount": 6,
     "lastHeartbeat": 1764371731147
   },
   "version": "3.0.0"
