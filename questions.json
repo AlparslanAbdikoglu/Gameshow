@@ -5,29 +5,29 @@
     "answers": [
       "A list of exchange outages",
       "An area on the chart where many orders are resting",
-      "A pool filled with water",
+      "A pool filled with Satto's",
       "A government tax rule"
     ],
     "correct": 1
   },
   {
     "number": 2,
-    "text": "Which tab within the gameshow allows users to view previous leaderboard winners?",
+    "text": "How many times did the gameshow break on Wednesday?",
     "answers": [
-      "Merch Store !merch",
-      "Kimba’s Den on Discord",
-      "The kimba.tv Dashboard",
-      "Previous Winners Tab"
+      "An infinite amount of times",
+      "6-7 times?",
+      "It broke I'm sorry",
+      "All the above"
     ],
     "correct": 3
   },
   {
     "number": 3,
-    "text": "Which Heatmap charting platform was used for many months within the community?",
+    "text": "Which platform is used to watch liquidations?",
     "answers": [
       "Tradingview",
-      "Tradinglite",
       "Exocharts",
+      "King Fisher",
       "ATAS"
     ],
     "correct": 2
@@ -36,20 +36,20 @@
     "number": 4,
     "text": "In the Dashboard which DEX has been added and what's its ticker?",
     "answers": [
-      "Bybit and BYTE",
+      "Coinbase and COIN",
       "Binance and BNB",
-      "Asterdex and Aster",
+      "Asterdex and ASTER",
       "Hyperliquid and HYPE"
     ],
     "correct": 3
   },
   {
     "number": 5,
-    "text": "Quiz diffuculty: on Coinwise is sorted by which levels?",
+    "text": "Quiz difficulty: On Coinwise is sorted by which levels?",
     "answers": [
-      "Easy, medium, hard",
+      "Easy, Medium, Hard",
       "Novice, Pro, Expert",
-      "Beginner, Intermediate, Advanced",
+      "Beginner, Intermediate, Pro",
       "Easypeazy, Challenging, Brainbuster"
     ],
     "correct": 2
@@ -61,7 +61,7 @@
       "The Twitch chat /redeem command",
       "KimbaTV Twitter DMs",
       "The Coinwise Discord #redeem channel",
-      "Google Sheets form in announcements"
+      "Gameshow form in the announcements channel"
     ],
     "correct": 2
   },
@@ -104,7 +104,7 @@
     "answers": [
       "Coinwise replaced Bitcoin with Dogecoin",
       "New mining hardware is now for sale",
-      "Trading Journal is live, Black Friday deal and new Psychology class",
+      "Trading Journal is live, New indicator",
       "Coinwise launched a cooking academy"
     ],
     "correct": 2
@@ -122,12 +122,12 @@
   },
   {
     "number": 12,
-    "text": "When Bytesor was talking on stream earlier today, what was new in the Profiles+ level indicator?",
+    "text": "When Bytesore was talking on stream earlier today, what was new in the levels indicator",
     "answers": [
       "Added previous session levels",
       "Added more customization options",
       "Now it's only in Coinwise Pro indicator",
-      "It can now find Sato’s liquidation levels"
+      "It can now find Satto’s liquidation levels"
     ],
     "correct": 0
   },
