@@ -196,7 +196,9 @@ export const gameApi = {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorPayload = await response.json().catch(() => null);
+      const message = errorPayload?.error || `HTTP error! status: ${response.status}`;
+      throw new Error(message);
     }
 
     return response.json();
