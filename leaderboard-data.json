@@ -169,7 +169,7 @@
       "votes": [],
       "correct_answers": 0,
       "total_answers": 0,
-      "points": 9,
+      "points": 10,
       "fastest_correct_time": null,
       "current_streak": 0,
       "best_streak": 0,
@@ -362,6 +362,17 @@
       "best_streak": 0,
       "hot_seat_performance": null,
       "first_seen": 1764371531404
+    },
+    "chestr__m": {
+      "votes": [],
+      "correct_answers": 0,
+      "total_answers": 0,
+      "points": 1,
+      "fastest_correct_time": null,
+      "current_streak": 0,
+      "best_streak": 0,
+      "hot_seat_performance": null,
+      "first_seen": 1764373134832
     }
   },
   "daily": {
@@ -639,7 +650,7 @@
       "games_played": 0,
       "total_votes": 19,
       "correct_votes": 17,
-      "total_points": 206,
+      "total_points": 207,
       "accuracy_percentage": 89,
       "average_response_time": 22054,
       "achievements": [],
@@ -647,7 +658,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 12,
-      "last_active": 1761602499740,
+      "last_active": 1764373134833,
       "daily_best_streak": 0
     },
     "labmlionk": {
@@ -12165,7 +12176,7 @@
       "games_played": 0,
       "total_votes": 0,
       "correct_votes": 0,
-      "total_points": 177,
+      "total_points": 178,
       "accuracy_percentage": 0,
       "average_response_time": 0,
       "achievements": [],
@@ -12176,7 +12187,7 @@
       "daily_best_streak": 0,
       "weekly_best_streak": 0,
       "monthly_best_streak": 0,
-      "last_active": 1764371543828
+      "last_active": 1764373135171
     },
     "net_runners": {
       "games_played": 0,
@@ -14900,7 +14911,7 @@
       "games_played": 0,
       "total_votes": 0,
       "correct_votes": 0,
-      "total_points": 179,
+      "total_points": 180,
       "accuracy_percentage": 0,
       "average_response_time": 0,
       "achievements": [],
@@ -14908,7 +14919,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 0,
-      "last_active": 1764371543828,
+      "last_active": 1764373135171,
       "weekly_best_streak": 0
     },
     "TestChatUser": {
@@ -19760,7 +19771,7 @@
       "games_played": 0,
       "total_votes": 19,
       "correct_votes": 17,
-      "total_points": 211,
+      "total_points": 212,
       "accuracy_percentage": 89,
       "average_response_time": 22054,
       "achievements": [],
@@ -19768,7 +19779,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 12,
-      "last_active": 1761602499740,
+      "last_active": 1764373134833,
       "weekly_best_streak": 0
     },
     "swooshy2000": {
@@ -30376,7 +30387,7 @@
       "games_played": 0,
       "total_votes": 0,
       "correct_votes": 0,
-      "total_points": 179,
+      "total_points": 180,
       "accuracy_percentage": 0,
       "average_response_time": 0,
       "achievements": [],
@@ -30384,7 +30395,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 0,
-      "last_active": 1764371543828,
+      "last_active": 1764373135171,
       "monthly_best_streak": 0
     },
     "TestChatUser": {
@@ -35236,7 +35247,7 @@
       "games_played": 0,
       "total_votes": 19,
       "correct_votes": 17,
-      "total_points": 211,
+      "total_points": 212,
       "accuracy_percentage": 89,
       "average_response_time": 22054,
       "achievements": [],
@@ -35244,7 +35255,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 12,
-      "last_active": 1761602499740,
+      "last_active": 1764373134833,
       "monthly_best_streak": 0
     },
     "swooshy2000": {
@@ -45850,7 +45861,7 @@
       "games_played": 0,
       "total_votes": 0,
       "correct_votes": 0,
-      "total_points": 179,
+      "total_points": 180,
       "accuracy_percentage": 0,
       "average_response_time": 0,
       "achievements": [],
@@ -45858,7 +45869,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 0,
-      "last_active": 1764371543828
+      "last_active": 1764373135171
     },
     "TestChatUser": {
       "games_played": 0,
@@ -50386,7 +50397,7 @@
       "games_played": 0,
       "total_votes": 19,
       "correct_votes": 17,
-      "total_points": 211,
+      "total_points": 212,
       "accuracy_percentage": 89,
       "average_response_time": 22054,
       "achievements": [],
@@ -50394,7 +50405,7 @@
       "hot_seat_appearances": 0,
       "hot_seat_correct": 0,
       "best_streak": 12,
-      "last_active": 1761602499740
+      "last_active": 1764373134833
     },
     "swooshy2000": {
       "games_played": 0,
