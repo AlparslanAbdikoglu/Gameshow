@@ -17,6 +17,11 @@ import SlotMachinePanel from './SlotMachinePanel';
 import { obsIntegration } from '../utils/obs-integration';
 import { gameApi } from '../utils/api';
 import {
+  HotSeatProfileData,
+  parseHotSeatProfilesFile,
+  escapeProfileHtml
+} from '../utils/hotSeatProfiles';
+import {
   Question,
   GameState,
   OBSConnectionStatus,
@@ -75,155 +80,6 @@ const useKeybinds = (handlers: Record<string, () => void>, dependencies: any[] =
   }, [handleKeyPress]);
 };
 
-interface HotSeatProfileData {
-  username: string;
-  displayName: string;
-  storyHtml: string;
-  storyText: string;
-}
-
-interface HotSeatProfileParseResult {
-  profiles: Record<string, HotSeatProfileData>;
-  errors: string[];
-}
-
-const applyInlineProfileFormatting = (text: string) =>
-  text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    .replace(/(?<!\\)\*(?!\s)([^*]+?)\*(?!\s)/g, '<em>$1</em>')
-    .replace(/_(?!\s)([^_]+?)_(?!\s)/g, '<em>$1</em>');
-
-const escapeProfileHtml = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-
-const convertProfileStoryToHtml = (raw: string) => {
-  const trimmed = raw.trim();
-  if (!trimmed) {
-    return { html: '', text: '' };
-  }
-
-  const blocks = trimmed.split(/\n{2,}/);
-  const htmlBlocks = blocks
-    .map((block) => {
-      const lines = block
-        .split(/\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      if (lines.length === 0) {
-        return '';
-      }
-
-      if (lines.every((line) => /^[-*]\s+/.test(line))) {
-        const items = lines
-          .map((line) => line.replace(/^[-*]\s+/, ''))
-          .map((line) => `<li>${applyInlineProfileFormatting(escapeProfileHtml(line))}</li>`)
-          .join('');
-        return `<ul>${items}</ul>`;
-      }
-
-      const paragraph = lines.join(' ');
-      return `<p>${applyInlineProfileFormatting(escapeProfileHtml(paragraph))}</p>`;
-    })
-    .filter(Boolean)
-    .join('');
-
-  return {
-    html: htmlBlocks,
-    text: trimmed
-  };
-};
-
-const parseHotSeatProfilesMarkdown = (markdown: string): HotSeatProfileParseResult => {
-  const lines = markdown.split(/\r?\n/);
-  const profiles: Record<string, HotSeatProfileData> = {};
-  const errors: string[] = [];
-
-  let currentIdentifier: string | null = null;
-  let currentDisplayName: string | null = null;
-  let buffer: string[] = [];
-
-  const flushCurrent = () => {
-    if (!currentIdentifier) {
-      buffer = [];
-      return;
-    }
-
-    const storyRaw = buffer.join('\n');
-    const { html, text } = convertProfileStoryToHtml(storyRaw);
-    const normalized = currentIdentifier.trim().toLowerCase();
-
-    if (!normalized) {
-      errors.push('Skipped profile with empty username.');
-      buffer = [];
-      currentIdentifier = null;
-      currentDisplayName = null;
-      return;
-    }
-
-    profiles[normalized] = {
-      username: currentIdentifier.trim(),
-      displayName: (currentDisplayName || currentIdentifier).trim(),
-      storyHtml: html,
-      storyText: text
-    };
-
-    buffer = [];
-    currentIdentifier = null;
-    currentDisplayName = null;
-  };
-
-  lines.forEach((line, index) => {
-    const headingMatch = line.match(/^##\s+(.+)/);
-    if (headingMatch) {
-      flushCurrent();
-
-      let headingText = headingMatch[1].trim();
-      if (!headingText) {
-        errors.push(`Line ${index + 1}: heading is missing a username.`);
-        return;
-      }
-
-      let usernamePart = headingText;
-      let displayNamePart = headingText;
-
-      if (headingText.includes('|')) {
-        const [userSegment, displaySegment] = headingText.split('|');
-        usernamePart = userSegment.trim();
-        displayNamePart = (displaySegment || userSegment).trim();
-      }
-
-      if (usernamePart.startsWith('@')) {
-        usernamePart = usernamePart.slice(1).trim();
-      }
-
-      if (!usernamePart) {
-        errors.push(`Line ${index + 1}: heading must include a username.`);
-        return;
-      }
-
-      currentIdentifier = usernamePart;
-      currentDisplayName = displayNamePart;
-      buffer = [];
-      return;
-    }
-
-    if (currentIdentifier) {
-      buffer.push(line);
-    }
-  });
-
-  flushCurrent();
-
-  return { profiles, errors };
-};
-
 const KimbillionaireControlPanel: React.FC = () => {
   // Game State
   const [gameState, setGameState] = useState<GameState>({
@@ -254,6 +110,7 @@ const KimbillionaireControlPanel: React.FC = () => {
   const [hotSeatProfileError, setHotSeatProfileError] = useState<string | null>(null);
   const [isUploadingHotSeatProfiles, setIsUploadingHotSeatProfiles] = useState(false);
   const [hotSeatProfileFileName, setHotSeatProfileFileName] = useState<string | null>(null);
+  const [hotSeatProfilesMap, setHotSeatProfilesMap] = useState<Record<string, HotSeatProfileData>>({});
   // const [showProducerPreview, setShowProducerPreview] = useState(false); // Removed to reduce lag
   const [questions, setQuestions] = useState<Question[]>([]);
   // Removed questionsLoading state since it's not displayed in UI
@@ -311,6 +168,7 @@ const KimbillionaireControlPanel: React.FC = () => {
 
         const loadedProfiles = currentState.hot_seat_profiles || {};
         const profileCount = Object.keys(loadedProfiles).length;
+        setHotSeatProfilesMap(loadedProfiles);
         setHotSeatProfilesCount(profileCount);
         setHotSeatProfileError(null);
         setHotSeatProfileFileName(null);
@@ -336,6 +194,80 @@ const KimbillionaireControlPanel: React.FC = () => {
     };
     loadInitialGameState();
   }, []); // Only run once on mount
+
+  useEffect(() => {
+    const profiles = gameState.hot_seat_profiles || {};
+    setHotSeatProfilesMap(profiles);
+
+    const count = Object.keys(profiles).length;
+    setHotSeatProfilesCount(count);
+
+    if (!isUploadingHotSeatProfiles) {
+      if (count > 0) {
+        const lastUpdated = gameState.hot_seat_profiles_last_update
+          ? new Date(gameState.hot_seat_profiles_last_update).toLocaleTimeString()
+          : null;
+        setHotSeatProfileStatus(`Loaded ${count} hot seat profile${count === 1 ? '' : 's'}${lastUpdated ? ` · Updated ${lastUpdated}` : ''}.`);
+      } else {
+        setHotSeatProfileStatus(null);
+      }
+    }
+  }, [gameState.hot_seat_profiles, gameState.hot_seat_profiles_last_update, isUploadingHotSeatProfiles]);
+
+  const hotSeatPreviewDetails = useMemo(() => {
+    const profiles = hotSeatProfilesMap || {};
+    const allProfiles = Object.values(profiles);
+    const activeUserRaw = (gameState.hot_seat_user || '').trim();
+    const normalizedActive = activeUserRaw.toLowerCase();
+    const activeProfile = normalizedActive ? profiles[normalizedActive] : undefined;
+    const isActive = Boolean(gameState.hot_seat_active && activeUserRaw.length > 0);
+
+    let fallbackProfile: HotSeatProfileData | null = null;
+    if (allProfiles.length > 0) {
+      fallbackProfile = allProfiles
+        .slice()
+        .sort((a, b) => {
+          const aName = (a.displayName || a.username || '').toLowerCase();
+          const bName = (b.displayName || b.username || '').toLowerCase();
+          return aName.localeCompare(bName);
+        })[0];
+    }
+
+    let displayName = 'Hot Seat Spotlight';
+    if (isActive) {
+      displayName = activeProfile?.displayName || activeProfile?.username || activeUserRaw || displayName;
+    } else if (fallbackProfile) {
+      displayName = fallbackProfile.displayName || fallbackProfile.username || displayName;
+    } else if (activeUserRaw) {
+      displayName = activeUserRaw;
+    }
+
+    let storyHtml = '';
+    if (isActive && activeProfile && typeof activeProfile.storyHtml === 'string' && activeProfile.storyHtml.trim().length > 0) {
+      storyHtml = activeProfile.storyHtml;
+    } else if (!isActive && fallbackProfile && typeof fallbackProfile.storyHtml === 'string' && fallbackProfile.storyHtml.trim().length > 0) {
+      storyHtml = fallbackProfile.storyHtml;
+    }
+
+    const fallbackStoryHtml = `<p>${escapeProfileHtml(displayName)} is ready for the spotlight. Upload a hot seat story to share their background.</p>`;
+
+    const alternates = isActive && Array.isArray(gameState.hot_seat_users)
+      ? gameState.hot_seat_users.slice(1)
+      : [];
+
+    return {
+      badge: isActive ? 'Hot Seat Active' : 'Hot Seat Spotlight',
+      name: displayName,
+      tagline: isActive ? 'Currently in the hot seat' : (fallbackProfile ? 'Uploaded story preview' : 'Ready for the spotlight'),
+      blurb: isActive
+        ? `${displayName} is answering from the hot seat right now.`
+        : (fallbackProfile
+          ? `Previewing the story that will appear when ${displayName} is selected.`
+          : 'Upload a markdown file to spotlight your contestants here.'),
+      storyHtml: storyHtml && storyHtml.trim().length > 0 ? storyHtml : fallbackStoryHtml,
+      alternates
+    };
+  }, [gameState.hot_seat_active, gameState.hot_seat_user, gameState.hot_seat_users, hotSeatProfilesMap]);
 
   // Load Roary status on mount
   useEffect(() => {
@@ -1096,11 +1028,12 @@ const KimbillionaireControlPanel: React.FC = () => {
 
     try {
       const fileContents = await file.text();
-      const { profiles, errors } = parseHotSeatProfilesMarkdown(fileContents);
+      const { profiles, errors, format } = parseHotSeatProfilesFile(fileContents, file.name);
       const profileCount = Object.keys(profiles).length;
 
       if (profileCount === 0) {
-        setHotSeatProfileError('No valid profiles were found in the uploaded markdown file.');
+        const formatLabel = format === 'json' ? 'JSON' : 'markdown';
+        setHotSeatProfileError(`No valid profiles were found in the uploaded ${formatLabel} file.`);
         return;
       }
 
@@ -1108,8 +1041,10 @@ const KimbillionaireControlPanel: React.FC = () => {
       const response = await gameApi.uploadHotSeatProfiles(profiles);
       const uploadedCount = typeof response?.count === 'number' ? response.count : profileCount;
 
+      setHotSeatProfilesMap(profiles);
       setHotSeatProfilesCount(uploadedCount);
-      setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name}.`);
+      const formatLabel = format === 'json' ? 'JSON' : 'markdown';
+      setHotSeatProfileStatus(`Uploaded ${uploadedCount} hot seat profile${uploadedCount === 1 ? '' : 's'} from ${file.name} (${formatLabel}).`);
       setHotSeatProfileFileName(file.name);
 
       if (errors.length > 0) {
@@ -2232,15 +2167,19 @@ const KimbillionaireControlPanel: React.FC = () => {
                 <span className={styles.creditsStatusSubtext}>
                   {hotSeatProfileFileName
                     ? `Last upload: ${hotSeatProfileFileName}`
-                    : 'Upload markdown to spotlight players'}
+                    : 'Upload markdown or JSON to spotlight players'}
                 </span>
               </div>
             </div>
 
             <div className={styles.hotSeatUpload}>
               <label htmlFor="hotSeatProfileUpload" className={styles.uploadLabel}>
-                Upload hot seat background stories (accepting:.md .txt)
+                Upload hot seat background stories (.md, .txt, or .json)
               </label>
+              <p className={styles.uploadHint}>
+                Supports Markdown sections (e.g. <code>## username | Display Name</code>) or JSON where each username maps to a
+                <code>{'{ story: "..." }'}</code> entry.
+              </p>
 
               {/* Custom-styled upload button */}
               <label className={styles.customUploadButton}>
@@ -2248,7 +2187,7 @@ const KimbillionaireControlPanel: React.FC = () => {
                 <input
                   id="hotSeatProfileUpload"
                   type="file"
-                  accept=".md,.markdown,.txt"
+                  accept=".md,.markdown,.txt,.json,application/json"
                   onChange={handleHotSeatProfileUpload}
                   disabled={isUploadingHotSeatProfiles}
                   style={{ display: 'none' }}
@@ -2264,6 +2203,26 @@ const KimbillionaireControlPanel: React.FC = () => {
                 )}
                 {!isUploadingHotSeatProfiles && hotSeatProfileError && (
                   <span className={styles.uploadStatusError}>{hotSeatProfileError}</span>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.hotSeatPreviewWrapper}>
+              <span className={styles.hotSeatPreviewTitle}>Hot Seat Story Preview</span>
+              <div className={styles.hotSeatPreviewCard}>
+                <span className={styles.hotSeatPreviewBadge}>{hotSeatPreviewDetails.badge}</span>
+                <span className={styles.hotSeatPreviewName}>{hotSeatPreviewDetails.name}</span>
+                <span className={styles.hotSeatPreviewTagline}>{hotSeatPreviewDetails.tagline}</span>
+                <div className={styles.hotSeatPreviewBlurb}>{hotSeatPreviewDetails.blurb}</div>
+                <div className={styles.hotSeatPreviewDivider} />
+                <div
+                  className={styles.hotSeatPreviewStory}
+                  dangerouslySetInnerHTML={{ __html: hotSeatPreviewDetails.storyHtml }}
+                />
+                {hotSeatPreviewDetails.alternates.length > 0 && (
+                  <div className={styles.hotSeatPreviewAlternates}>
+                    Alternates: {hotSeatPreviewDetails.alternates.join(', ')}
+                  </div>
                 )}
               </div>
             </div>

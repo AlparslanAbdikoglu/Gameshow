@@ -4515,8 +4515,9 @@ function showCredits(participants = [], winners = []) {
 
         // Add the scrolling container to the viewport
         participantsContainer.appendChild(scrollContainer);
-
-        // Calculate duration based on number of participants (about 1.5 seconds per name) with 60 second minimum
+        
+        // Calculate duration based on number of participants (about 1.5 seconds per name)
+        const scrollDuration = Math.max(20, participants.length * 2.4);
         scrollContainer.style.animationDuration = scrollDuration + 's';
 
         console.log(`🎬 Starting credit scroll for ${participants.length} names over ${scrollDuration} seconds`);
@@ -4631,13 +4632,73 @@ let hotSeatEntryState = {
 };
 
 let hotSeatProfileHideTimeout = null;
-let hotSeatCountdownState = {
-    active: false,
-    remaining: 0
-};
-let hotSeatCountdownResetTimeout = null;
-let hotSeatBaseStatusMessage = '';
-let hotSeatInitialTimerValue = 60;
+let hotSeatStartCountdownInterval = null;
+let hotSeatStartCountdownTimeout = null;
+let hotSeatProfileCountdownInterval = null;
+let hotSeatProfileCountdownRemainingMs = 0;
+let hotSeatStoryHoldTimeout = null;
+let hotSeatStoryHoldActive = false;
+const HOT_SEAT_PROFILE_DISPLAY_MS = 25000;
+
+function stripHotSeatDecorators(username) {
+    if (typeof username !== 'string') {
+        return '';
+    }
+
+    const trimmed = username.trim();
+    if (!trimmed) {
+        return '';
+    }
+
+    const withoutAt = trimmed.replace(/^@+/, '');
+    return withoutAt.split(/[:|]/)[0].trim();
+}
+
+function normalizeHotSeatUsername(username) {
+    const usernameOnly = stripHotSeatDecorators(username);
+
+    return usernameOnly.toLowerCase();
+}
+
+function findHotSeatProfileMatch(username) {
+    const normalizedCandidate = normalizeHotSeatUsername(username);
+
+    if (!normalizedCandidate || !currentState || typeof currentState !== 'object') {
+        return null;
+    }
+
+    const profiles = currentState.hot_seat_profiles;
+    if (!profiles || typeof profiles !== 'object') {
+        return null;
+    }
+
+    if (profiles[normalizedCandidate]) {
+        return { key: normalizedCandidate, profile: profiles[normalizedCandidate] };
+    }
+
+    const collapsedCandidate = normalizedCandidate.replace(/[^a-z0-9]/g, '');
+    let fallbackMatch = null;
+
+    for (const [key, profile] of Object.entries(profiles)) {
+        if (!profile) {
+            continue;
+        }
+
+        if (normalizedCandidate.startsWith(key)) {
+            return { key, profile };
+        }
+
+        const collapsedKey = key.replace(/[^a-z0-9]/g, '');
+        if (
+            collapsedKey
+            && (collapsedCandidate.startsWith(collapsedKey) || collapsedKey.startsWith(collapsedCandidate))
+        ) {
+            fallbackMatch = { key, profile };
+        }
+    }
+
+    return fallbackMatch;
+}
 
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
@@ -4646,6 +4707,79 @@ function escapeHtml(unsafe = '') {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function convertStoryTextToHtml(text = '') {
+    const safeText = escapeHtml(text || '');
+    const paragraphs = safeText
+        .split(/\n\n+/)
+        .map(block => block.trim())
+        .filter(Boolean);
+
+    if (paragraphs.length === 0) {
+        return '';
+    }
+
+    return paragraphs.map(p => `<p>${p}</p>`).join('');
+}
+
+function coerceHotSeatProfile(profile, usernameFallback = '') {
+    if (!profile || typeof profile !== 'object') {
+        return null;
+    }
+
+    const username = typeof profile.username === 'string' && profile.username.trim().length > 0
+        ? profile.username.trim()
+        : stripHotSeatDecorators(usernameFallback);
+
+    const displayName = typeof profile.displayName === 'string' && profile.displayName.trim().length > 0
+        ? profile.displayName.trim()
+        : username;
+
+    const storyHtml = typeof profile.storyHtml === 'string' && profile.storyHtml.trim().length > 0
+        ? profile.storyHtml.trim()
+        : typeof profile.storyText === 'string' && profile.storyText.trim().length > 0
+            ? convertStoryTextToHtml(profile.storyText)
+            : '';
+
+    const storyText = typeof profile.storyText === 'string' && profile.storyText.trim().length > 0
+        ? profile.storyText.trim()
+        : storyHtml
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    return {
+        username,
+        displayName,
+        storyHtml,
+        storyText
+    };
+}
+
+function buildHotSeatFallbackStory(playerName = 'This contestant') {
+    const safeName = escapeHtml(playerName && playerName.length > 0 ? playerName : 'This contestant');
+    return `<p>${safeName} is ready for the spotlight. Upload a hot seat story to share their background.</p>`;
+}
+
+function getHotSeatProfileFromState(username) {
+    const match = findHotSeatProfileMatch(username);
+    if (!match) {
+        return null;
+    }
+
+    const coerced = coerceHotSeatProfile(match.profile, username);
+    if (coerced) {
+        return coerced;
+    }
+
+    const usernameDisplay = stripHotSeatDecorators(username);
+    return {
+        username: usernameDisplay,
+        displayName: usernameDisplay,
+        storyHtml: '',
+        storyText: ''
+    };
 }
 
 function formatHotSeatSelectionMethod(method) {
@@ -4665,11 +4799,40 @@ function formatHotSeatSelectionMethod(method) {
     }
 }
 
-function hideHotSeatProfileCard(instant = false) {
+function clearHotSeatProfileCountdown() {
+    if (hotSeatProfileCountdownInterval) {
+        clearInterval(hotSeatProfileCountdownInterval);
+        hotSeatProfileCountdownInterval = null;
+    }
+
+    hotSeatProfileCountdownRemainingMs = 0;
+
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
+    if (countdownEl) {
+        countdownEl.classList.add('hidden');
+        countdownEl.textContent = '';
+    }
+}
+
+function clearHotSeatStoryHold() {
+    if (hotSeatStoryHoldTimeout) {
+        clearTimeout(hotSeatStoryHoldTimeout);
+        hotSeatStoryHoldTimeout = null;
+    }
+
+    hotSeatStoryHoldActive = false;
+}
+
+function hideHotSeatProfileCard(instant = false, preserveStoryHold = false) {
     const overlay = document.getElementById('hot-seat-profile-overlay');
     if (!overlay) {
         return;
     }
+
+    if (!preserveStoryHold) {
+        clearHotSeatStoryHold();
+    }
+    clearHotSeatProfileCountdown();
 
     if (hotSeatProfileHideTimeout) {
         clearTimeout(hotSeatProfileHideTimeout);
@@ -4707,6 +4870,7 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     const dividerEl = document.getElementById('hot-seat-profile-divider');
     const storyEl = document.getElementById('hot-seat-profile-story');
     const alternatesEl = document.getElementById('hot-seat-profile-alternates');
+    const countdownEl = document.getElementById('hot-seat-profile-countdown');
 
     if (nameEl) {
         nameEl.textContent = (profileData && profileData.displayName) || primaryUser;
@@ -4725,15 +4889,10 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
 
     const hasStory = Boolean(profileData && typeof profileData.storyHtml === 'string' && profileData.storyHtml.trim().length > 0);
     if (storyEl && dividerEl) {
-        if (hasStory) {
-            storyEl.innerHTML = profileData.storyHtml;
-            storyEl.classList.remove('hidden');
-            dividerEl.classList.remove('hidden');
-        } else {
-            storyEl.innerHTML = '';
-            storyEl.classList.add('hidden');
-            dividerEl.classList.add('hidden');
-        }
+        const fallbackStory = buildHotSeatFallbackStory((profileData && profileData.displayName) || primaryUser);
+        storyEl.innerHTML = hasStory ? profileData.storyHtml : fallbackStory;
+        storyEl.classList.remove('hidden');
+        dividerEl.classList.remove('hidden');
     }
 
     if (alternatesEl) {
@@ -4758,6 +4917,29 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     overlay.classList.remove('hidden');
     overlay.setAttribute('aria-hidden', 'false');
 
+    clearHotSeatProfileCountdown();
+
+    if (countdownEl) {
+        countdownEl.classList.remove('hidden');
+        hotSeatProfileCountdownRemainingMs = HOT_SEAT_PROFILE_DISPLAY_MS;
+
+        const updateCountdown = () => {
+            const secondsRemaining = Math.max(0, Math.ceil(hotSeatProfileCountdownRemainingMs / 1000));
+            countdownEl.textContent = `${secondsRemaining}s`;
+        };
+
+        updateCountdown();
+
+        hotSeatProfileCountdownInterval = setInterval(() => {
+            hotSeatProfileCountdownRemainingMs -= 1000;
+            if (hotSeatProfileCountdownRemainingMs <= 0) {
+                clearHotSeatProfileCountdown();
+            } else {
+                updateCountdown();
+            }
+        }, 1000);
+    }
+
     requestAnimationFrame(() => {
         overlay.classList.add('show');
     });
@@ -4767,8 +4949,22 @@ function showHotSeatProfileCard(primaryUser, profileData, alternateProfileEntrie
     }
 
     hotSeatProfileHideTimeout = setTimeout(() => {
-        hideHotSeatProfileCard();
-    }, 8000);
+        hideHotSeatProfileCard(false, true);
+    }, HOT_SEAT_PROFILE_DISPLAY_MS);
+}
+
+function clearHotSeatStartCountdown() {
+    if (hotSeatStartCountdownInterval) {
+        clearInterval(hotSeatStartCountdownInterval);
+        hotSeatStartCountdownInterval = null;
+    }
+
+    if (hotSeatStartCountdownTimeout) {
+        clearTimeout(hotSeatStartCountdownTimeout);
+        hotSeatStartCountdownTimeout = null;
+    }
+
+    clearHotSeatStoryHold();
 }
 
 function mergeHotSeatEntryState(partial = {}) {
@@ -4902,10 +5098,49 @@ function handleHotSeatActivated(message) {
     }
 
     const alternateNames = participants.slice(1);
+
+    const profileFromMessage = message && typeof message.profile === 'object' ? coerceHotSeatProfile(message.profile, primaryUser) : null;
+    const fallbackProfile = profileFromMessage && (profileFromMessage.storyHtml || profileFromMessage.storyText)
+        ? profileFromMessage
+        : getHotSeatProfileFromState(primaryUser) || profileFromMessage;
+
+    const messageAlternateProfiles = Array.isArray(message.alternateProfiles)
+        ? message.alternateProfiles
+            .map(entry => {
+                if (!entry || typeof entry !== 'object') {
+                    return null;
+                }
+
+                const coercedProfile = coerceHotSeatProfile(entry.profile, entry.username || '');
+                if (!coercedProfile || !coercedProfile.storyHtml) {
+                    return null;
+                }
+
+                return {
+                    username: entry.username || coercedProfile.username,
+                    profile: coercedProfile
+                };
+            })
+            .filter(Boolean)
+        : [];
+    const fallbackAlternateProfiles = alternateNames
+        .map((username) => {
+            const profile = getHotSeatProfileFromState(username);
+            if (!profile || !profile.storyHtml) {
+                return null;
+            }
+
+            return {
+                username: profile.username,
+                profile
+            };
+        })
+        .filter(Boolean);
+
     showHotSeatProfileCard(
         primaryUser,
-        message.profile || null,
-        Array.isArray(message.alternateProfiles) ? message.alternateProfiles : [],
+        fallbackProfile || null,
+        messageAlternateProfiles.length > 0 ? messageAlternateProfiles : fallbackAlternateProfiles,
         alternateNames,
         message.selectionMethod || 'manual',
         message.message || ''
@@ -4915,6 +5150,31 @@ function handleHotSeatActivated(message) {
     const userEl = document.getElementById("hot-seat-user");
     const timerEl = document.getElementById("hot-seat-timer");
     const statusEl = document.getElementById("hot-seat-status");
+
+    clearHotSeatStartCountdown();
+
+    const applyActiveHotSeatUi = () => {
+        if (display && userEl && timerEl && statusEl) {
+            display.classList.remove("hidden");
+            display.classList.remove('entry-open');
+            display.classList.add("active");
+            display.setAttribute('aria-hidden', 'false');
+            display.setAttribute('role', 'dialog');
+            display.setAttribute('aria-modal', 'true');
+            display.setAttribute('aria-label', `Hot seat active for ${primaryUser}`);
+
+            userEl.textContent = primaryUser;
+            timerEl.textContent = `${timerValue}s`;
+            timerEl.className = "hot-seat-timer";
+            statusEl.style.color = "";
+
+            if (participants.length > 1) {
+                statusEl.textContent = `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`;
+            } else {
+                statusEl.textContent = `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
+            }
+        }
+    };
 
     if (display && userEl && timerEl && statusEl) {
         display.classList.remove("hidden");
@@ -4934,24 +5194,14 @@ function handleHotSeatActivated(message) {
             timerEl.textContent = `${timerValue}s`;
         }
         statusEl.style.color = "";
+        statusEl.textContent = 'Showing their story...';
 
-        const baseStatusMessage = participants.length > 1
-            ? `Only ${primaryUser} may answer right now. Alternates: ${participants.slice(1).join(', ')}`
-            : `Only ${primaryUser} may answer this question. Type A, B, C, or D now!`;
-        hotSeatBaseStatusMessage = baseStatusMessage;
-        if (statusEl.dataset) {
-            statusEl.dataset.baseMessage = baseStatusMessage;
-        }
-
-        if (participants.length > 1) {
-            statusEl.textContent = countdownSeconds > 0
-                ? `Countdown: ${countdownSeconds}...`
-                : baseStatusMessage;
-        } else {
-            statusEl.textContent = countdownSeconds > 0
-                ? `Countdown: ${countdownSeconds}...`
-                : baseStatusMessage;
-        }
+        hotSeatStoryHoldActive = true;
+        hotSeatStoryHoldTimeout = setTimeout(() => {
+            hotSeatStoryHoldActive = false;
+            applyActiveHotSeatUi();
+            clearHotSeatStartCountdown();
+        }, HOT_SEAT_PROFILE_DISPLAY_MS);
     }
 
     const infoMessage = document.getElementById('info-message');
@@ -5013,6 +5263,10 @@ function handleHotSeatActivated(message) {
 }
 
 function handleHotSeatTimerUpdate(message) {
+    if (hotSeatStartCountdownTimeout || hotSeatStartCountdownInterval || hotSeatStoryHoldActive) {
+        return;
+    }
+
     const timerEl = document.getElementById("hot-seat-timer");
     const hudTimer = document.getElementById("hot-seat-hud-timer");
 
@@ -5043,92 +5297,7 @@ function handleHotSeatCountdown(message) {
         ? Math.max(0, Math.round(message.remaining))
         : null;
 
-    if (remaining === null) {
-        return;
-    }
-
-    if (hotSeatCountdownResetTimeout) {
-        clearTimeout(hotSeatCountdownResetTimeout);
-        hotSeatCountdownResetTimeout = null;
-    }
-
-    const timerEl = document.getElementById("hot-seat-timer");
-    const statusEl = document.getElementById("hot-seat-status");
-    const hudTimer = document.getElementById("hot-seat-hud-timer");
-
-    if (remaining > 0) {
-        hotSeatCountdownState.active = true;
-        hotSeatCountdownState.remaining = remaining;
-
-        if (timerEl) {
-            timerEl.textContent = `${remaining}`;
-            timerEl.className = "hot-seat-timer countdown";
-        }
-
-        if (statusEl) {
-            const baseMessage = (statusEl.dataset && statusEl.dataset.baseMessage)
-                || hotSeatBaseStatusMessage
-                || statusEl.textContent
-                || '';
-            if (statusEl.dataset) {
-                statusEl.dataset.baseMessage = baseMessage;
-            }
-            statusEl.textContent = `Countdown: ${remaining}...`;
-        }
-
-        if (hudTimer) {
-            hudTimer.textContent = `Countdown: ${remaining} seconds`;
-        }
-
-        return;
-    }
-
-    hotSeatCountdownState.active = false;
-    hotSeatCountdownState.remaining = 0;
-
-    if (timerEl) {
-        timerEl.textContent = 'GO!';
-        timerEl.className = "hot-seat-timer countdown go";
-    }
-
-    if (statusEl) {
-        const baseMessage = (statusEl.dataset && statusEl.dataset.baseMessage)
-            || hotSeatBaseStatusMessage
-            || 'Only the hot seat player may answer this question. Type A, B, C, or D now!';
-        statusEl.textContent = 'Go! Timer starting!';
-        if (statusEl.dataset) {
-            statusEl.dataset.baseMessage = baseMessage;
-        }
-    }
-
-    if (hudTimer) {
-        hudTimer.textContent = `${hotSeatInitialTimerValue} seconds remaining`;
-    }
-
-    hotSeatCountdownResetTimeout = setTimeout(() => {
-        if (timerEl) {
-            timerEl.className = "hot-seat-timer";
-            timerEl.textContent = `${hotSeatInitialTimerValue}s`;
-        }
-        if (statusEl) {
-            const baseMessage = (statusEl.dataset && statusEl.dataset.baseMessage)
-                || hotSeatBaseStatusMessage
-                || 'Only the hot seat player may answer this question. Type A, B, C, or D now!';
-            statusEl.textContent = baseMessage;
-        }
-        hotSeatCountdownResetTimeout = null;
-    }, 900);
-}
-
-function handleHotSeatAnswered(message) {
-    console.log("🎯 HOT SEAT ANSWER:", message.user, "selected", message.answer);
-
-    hotSeatCountdownState.active = false;
-    hotSeatCountdownState.remaining = 0;
-    if (hotSeatCountdownResetTimeout) {
-        clearTimeout(hotSeatCountdownResetTimeout);
-        hotSeatCountdownResetTimeout = null;
-    }
+    clearHotSeatStartCountdown();
 
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
@@ -5156,12 +5325,7 @@ function handleHotSeatAnswered(message) {
 function handleHotSeatTimeout(message) {
     console.log("⏰ HOT SEAT TIMEOUT for", message.user);
 
-    hotSeatCountdownState.active = false;
-    hotSeatCountdownState.remaining = 0;
-    if (hotSeatCountdownResetTimeout) {
-        clearTimeout(hotSeatCountdownResetTimeout);
-        hotSeatCountdownResetTimeout = null;
-    }
+    clearHotSeatStartCountdown();
 
     const statusEl = document.getElementById("hot-seat-status");
     if (statusEl) {
@@ -5189,14 +5353,7 @@ function handleHotSeatTimeout(message) {
 function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
 
-    hotSeatCountdownState.active = false;
-    hotSeatCountdownState.remaining = 0;
-    hotSeatBaseStatusMessage = '';
-    hotSeatInitialTimerValue = 60;
-    if (hotSeatCountdownResetTimeout) {
-        clearTimeout(hotSeatCountdownResetTimeout);
-        hotSeatCountdownResetTimeout = null;
-    }
+    clearHotSeatStartCountdown();
 
     // Hide hot seat display
     const display = document.getElementById("hot-seat-display");
