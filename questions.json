@@ -3,165 +3,165 @@
     "number": 1,
     "text": "What is a liquidity pool in trading?",
     "answers": [
+      "A list of exchange outages",
       "An area on the chart where many orders are resting",
       "A long-term investment group",
-      "A government tax rule",
-      "A list of exchange outages"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 2,
-    "text": "What typically happens after a major liquidity sweep?",
-    "answers": [
-      "Funding payments stop",
-      "The market often reverses once stop orders are collected",
-      "All indicators reset automatically",
-      "Price goes sideways permanently"
+      "A government tax rule"
     ],
     "correct": 1
   },
   {
-    "number": 3,
-    "text": "When price is trading below VWAP with increasing sell volume, what bias is implied?",
+    "number": 2,
+    "text": "Which tab within the gameshow allows users to view previous leaderboard winners?",
     "answers": [
-      "Neutral indecision",
-      "Low-volatility market",
-      "Bearish sentiment",
-      "Bullish strength"
+      "Merch Store !merch",
+      "Kimba’s Den on Discord",
+      "The kimba.tv Dashboard",
+      "Previous Winners Tab"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 3,
+    "text": "What is the main difference between custodial and non-custodial wallets?",
+    "answers": [
+      "Custodial wallets cannot be mobile",
+      "Custodial wallets allow unlimited leverage",
+      "Custodial holds private keys for you, non-custodial means you control them",
+      "Non-custodial wallets are only for NFTs"
     ],
     "correct": 2
   },
   {
     "number": 4,
-    "text": "What does CVD divergence signal?",
+    "text": "What is the main objective in the KimbaTV Talent Show 'Liquania’s Got Talent'?",
     "answers": [
-      "Nothing important",
-      "A CPI news release",
-      "Possible imbalance between aggressive buyers and sellers",
-      "Price discovery is finished"
+      "To trade live on stream",
+      "To vote for your favorite music while appreciating the tunes by Useless Lines",
+      "Sing along with the Mods",
+      "To showcase mining rigs"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 5,
-    "text": "In trading psychology, what is the most common cause of revenge trading?",
+    "text": "Which Discord channel is used for redeeming The Kimbillionaire gameshow prizes?",
     "answers": [
-      "Too many winning streaks",
-      "Slow internet",
-      "Following a trading journal too strictly",
-      "Trying to immediately recover losses emotionally"
+      "#Jerome Powell fan club",
+      "#memes-only",
+      "General Chat",
+      "Coinwise #redeem channel"
     ],
     "correct": 3
   },
   {
     "number": 6,
-    "text": "What does an increase in Open Interest during a rapid price up-move typically indicate?",
+    "text": "Difference between spot, margin & futures trading?",
     "answers": [
-      "Unreliable market data",
-      "New participation entering the trend",
-      "All shorts were liquidated already",
-      "The trend ending immediately"
+      "Margin trading has no liquidation risk",
+      "Futures only allow long positions",
+      "Spot uses leverage, others do not",
+      "Spot = real assets, margin = borrow funds, futures = trade with leverage"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 7,
-    "text": "What is a fair value gap (FVG)?",
+    "text": "Why do stablecoins like USDT/USDC trade above or below $1?",
     "answers": [
-      "A gap visible only on daily charts",
-      "A price imbalance where no trading occurred between orders",
-      "A gap between weekend candles in crypto",
-      "A special zone created by bots"
+      "Blockchain nodes stop working",
+      "Daily automatic re-peg",
+      "The Fed directly controls the peg",
+      "Supply & demand imbalances create temporary premium/discount"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 8,
-    "text": "What does a trendline break with strong volume usually suggest?",
+    "text": "In the new Kimba Dashboard you can do what?",
     "answers": [
-      "Market is asleep",
-      "No participation",
-      "A false breakout",
-      "A potential trend reversal"
+      "It connects Lions accounts, UIDs, view NFTs and stream schedule",
+      "It converts NFTs to SOL",
+      "It tracks your CPU temperature while getting liquidated",
+      "It hosts live mining charts"
     ],
-    "correct": 3
+    "correct": 0
   },
   {
     "number": 9,
-    "text": "What is the purpose of journaling trades?",
+    "text": "How do funding rates work in perpetual futures?",
     "answers": [
-      "To post results publicly",
-      "To calculate brokerage fees",
-      "To collect tax deductions",
-      "To track performance and identify behavior patterns"
+      "Permanently lower leverage",
+      "Payments between longs & shorts to align price with spot",
+      "Act as insurance for exchanges",
+      "Guarantee equal profits"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 10,
+    "text": "What’s new on Coinwise this month?",
+    "answers": [
+      "Coinwise replaced Bitcoin with Dogecoin",
+      "New mining hardware is now for sale",
+      "Trading Journal is live, Black Friday deal and new Psychology class",
+      "Coinwise launched a cooking academy"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 11,
+    "text": "Key difference between Proof-of-Work and Proof-of-Stake?",
+    "answers": [
+      "PoS gives infinite income",
+      "PoS has no security",
+      "PoW uses energy hardware, PoS uses staked tokens",
+      "PoW can’t support smart contracts"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 12,
+    "text": "What causes large wicks on candlestick charts?",
+    "answers": [
+      "Market time travel",
+      "Screenshot delay",
+      "UI rendering bug",
+      "Rapid price rejection from aggressive orderflow"
     ],
     "correct": 3
   },
   {
-    "number": 10,
-    "text": "What is a Point of Control shift in Volume Profile?",
-    "answers": [
-      "When VWAP resets at midnight",
-      "When POC moves to a new price level indicating changing value",
-      "When the POC disappears",
-      "When wicks become shorter"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 11,
-    "text": "What does imbalance in orderflow indicate?",
-    "answers": [
-      "Balanced auction structure",
-      "Aggressive buying or selling pressure",
-      "Trading session closed",
-      "A misprint on the exchange feed"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 12,
-    "text": "Which statement best describes a breakout failure?",
-    "answers": [
-      "Price breaks a level and quickly returns back below or above it",
-      "All positions liquidate automatically",
-      "Price breaks a level and accelerates",
-      "Market closes temporarily"
-    ],
-    "correct": 0
-  },
-  {
     "number": 13,
-    "text": "What is the Fear & Greed Index used for?",
+    "text": "Difference between Layer-1 and Layer-2 solutions?",
     "answers": [
-      "Gauges market sentiment extremes",
-      "Shows interest rate forecasts",
-      "Measures tax pressure",
-      "Measures funding rate levels"
+      "L2 only for gaming",
+      "L1 runs offline",
+      "L1 is base chain; L2 scales on top",
+      "L2 stores keys"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 14,
-    "text": "What does a high volume node represent?",
+    "text": "Liquania’s Got Talent is partnered with which music label?",
     "answers": [
-      "Area of extreme rejection",
-      "Area of high participation and acceptance",
-      "A gap zone",
-      "A spot where price must reverse"
+      "Savage Symphony Media",
+      "Useless Lines Records",
+      "Lion Beats Entertainment",
+      "Universal Music Group"
     ],
     "correct": 1
   },
   {
     "number": 15,
-    "text": "What typically causes wicks on candlestick charts?",
+    "text": "Historically, how has Bitcoin often behaved around the U.S. Thanksgiving period?",
     "answers": [
-      "Software malfunction",
-      "Automated chart redraw effect",
-      "Time travel delay",
-      "Temporary price rejection caused by aggressive order reactions"
+      "Large crashes driven by institutional selling",
+      "Typically shows increased volatility and short-term bullish momentum due to retail inflows and holiday liquidity shifts",
+      "Always begins a new bear market cycle",
+      "Price remains completely flat and unchanged every year"
     ],
-    "correct": 3
+    "correct": 1
   }
 ]
