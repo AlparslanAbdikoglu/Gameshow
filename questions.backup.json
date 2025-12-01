@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What is a liquidity pool in trading?",
+    "text": "Who got asked during the Mandalo Nerdout?",
     "answers": [
-      "A list of exchange outages",
-      "An area on the chart where many orders are resting",
-      "A pool filled with Satto's",
-      "A government tax rule"
+      "Bytesore",
+      "Juhan",
+      "Buzo",
+      "an other streamer"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 2,
+    "text": "Lions of Liquania got launched in which blockchain?",
+    "answers": [
+      "Solana",
+      "Chainlink",
+      "Bitcoin",
+      "Ethereum"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 3,
+    "text": "What was last week’s Friday community game?",
+    "answers": [
+      "Got Talent Karaoke",
+      "COD session with PSG",
+      "Poker",
+      "There wasn’t any community game"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 4,
+    "text": "On The Kimbillionaire Gameshow, what triggers the Hot Seat event?",
+    "answers": [
+      "When Chat spams !pump",
+      "Typing the join command",
+      "Losing 3 rounds in a row",
+      "You wanted to say Inkyseat"
     ],
     "correct": 1
   },
   {
-    "number": 2,
-    "text": "How many times did the gameshow break on Wednesday?",
-    "answers": [
-      "An infinite amount of times",
-      "6-7 times?",
-      "It broke I'm sorry",
-      "All the above"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 3,
-    "text": "Which platform is used to watch liquidations?",
-    "answers": [
-      "Tradingview",
-      "Exocharts",
-      "King Fisher",
-      "ATAS"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 4,
-    "text": "In the Dashboard which DEX has been added and what's its ticker?",
-    "answers": [
-      "Coinbase and COIN",
-      "Binance and BNB",
-      "Asterdex and ASTER",
-      "Hyperliquid and HYPE"
-    ],
-    "correct": 3
-  },
-  {
     "number": 5,
-    "text": "Quiz difficulty: On Coinwise is sorted by which levels?",
+    "text": "Technical edge is best combined with?",
     "answers": [
-      "Easy, Medium, Hard",
-      "Novice, Pro, Expert",
-      "Beginner, Intermediate, Pro",
-      "Easypeazy, Challenging, Brainbuster"
+      "Technical edge means nothing without psychological control",
+      "If people tell me what to do",
+      "Only MACD indicator",
+      "Hope"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 6,
-    "text": "After winning on The Kimbillionaire Gameshow, where must Lions go to officially claim prizes and submit proof?",
+    "text": "Which Asian speaking country is missing from our international chat on Discord?",
     "answers": [
-      "The Twitch chat /redeem command",
-      "KimbaTV Twitter DMs",
-      "The Coinwise Discord #redeem channel",
-      "Gameshow form in the announcements channel"
+      "Fillipino",
+      "Japanese",
+      "Chinese",
+      "Korean"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 7,
-    "text": "Who won in the most recent Liquania's Got Talent with Housty?",
+    "text": "Which Whale within Kimba gang gave away Lion NFTs for mint price?",
     "answers": [
-      "Jupy",
-      "Baja",
-      "Nitrogen",
-      "Maestro"
+      "Callingnoob",
+      "Bigchef",
+      "Mango",
+      "6sierra"
     ],
     "correct": 3
   },
   {
     "number": 8,
-    "text": "What does the term ‘HODL’ refer to?",
+    "text": "What is the main reason traders analyze liquidation heatmaps like Kingfisher?",
     "answers": [
-      "High Optimization Data Layer",
-      "Holding crypto long-term",
-      "A type of mining machine",
-      "A stablecoin issuer"
+      "To locate clustered liquidations that may cause price reversals",
+      "To calculate staking rewards",
+      "To check CPU temperature during scalp trading",
+      "To find new meme coins"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 9,
-    "text": "Which Kimba merch was obtainable through only by luck??",
+    "text": "Why do traders monitor funding rates closely during high-volatility moments?",
     "answers": [
-      "Kimba Mug",
-      "Fork",
-      "The white jedi Hoodie v1.0",
-      "Mousepad"
+      "To determine who is paying who between longs and shorts",
+      "To estimate exchange downtime",
+      "To check how many viewers are in Twitch chat",
+      "To find out the next CPI release"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 10,
-    "text": "What’s new on Coinwise this month?",
+    "text": "TPO Profiles periods are based on which timeframe?",
     "answers": [
-      "Coinwise replaced Bitcoin with Dogecoin",
-      "New mining hardware is now for sale",
-      "Trading Journal is live, New indicator",
-      "Coinwise launched a cooking academy"
+      "Daily",
+      "1 Hour",
+      "30 Min",
+      "4 Hour"
     ],
     "correct": 2
   },
   {
     "number": 11,
-    "text": "What were the community games during fridays?",
+    "text": "Why do traders use TPO (Market Profile) charts?",
     "answers": [
-      "Jenga tournament",
-      "Poker night",
-      "Rock, Paper, Scissors",
-      "Trading competition"
+      "To view crypto memes in 4K quality",
+      "To sort coins alphabetically",
+      "To visualize time spent at price and value areas",
+      "To track earnings reports"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 12,
-    "text": "When Byte sor was talking on stream earlier today, what was new in the levels indicator",
+    "text": "What community event is rumored to be coming soon to KimbaTV?",
     "answers": [
-      "Added previous session levels",
-      "Added more customization options",
-      "Now it's only in Coinwise Pro indicator",
-      "It can now find Satto’s liquidation levels"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 13,
-    "text": "How many 24/7 youtube livestreams the k1m6a channel currently have?",
-    "answers": [
-      "1 livestream the one right now",
-      "3 livestreams",
-      "5 livestreams",
-      "10 livestreams"
+      "24-hour nonstop karaoke stream",
+      "100-player Battle Royale on TradingView",
+      "Poker nights",
+      "Buzo Guitar solo"
     ],
     "correct": 2
   },
   {
-    "number": 14,
-    "text": "What type of car was featured on the intro of ‘Liquania’s Got Talent’?",
+    "number": 13,
+    "text": "What is the main benefit of journaling trades consistently?",
     "answers": [
-      "A BMW",
-      "A Bugatti",
-      "Porsche 911",
-      "A Tesla"
+      "Guarantees profit every month",
+      "Helps identify emotional & behavioral patterns affecting performance",
+      "Makes TradingView run faster",
+      "It increases winrate automatically"
     ],
     "correct": 1
   },
   {
-    "number": 15,
-    "text": "If your uncle asks at Thanksgiving dinner whether he should invest his entire savings in a meme coin, the best answer is:",
+    "number": 14,
+    "text": "Where can you find the stream timestamps on Discord?",
     "answers": [
-      "Yes, YOLO everything",
-      "Only leverage 20x",
-      "Do proper research and diversify, educate yourself on the topic",
-      "Convert it all into pumpkin pies"
+      "Music",
+      "Kimba’s Den",
+      "The Lions Den",
+      "General Chat"
     ],
     "correct": 2
+  },
+  {
+    "number": 15,
+    "text": "Which tool is most commonly used to analyze aggressive orderflow in real time?",
+    "answers": [
+      "CVD / Delta",
+      "Fibonacci Time Extensions",
+      "Bollinger Width",
+      "RSI"
+    ],
+    "correct": 0
   }
 ]
