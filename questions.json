@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "Who got asked during the Mandalo Nerdout?",
+    "text": "What’s the name of the other Kimba.tv Twitch channel?",
     "answers": [
-      "Bytesore",
-      "Juhan",
-      "Buzo",
-      "an other streamer"
+      "To the Balcony",
+      "Kimba IRL",
+      "Kimba Gaming",
+      "k1m6aMobile"
     ],
-    "correct": 0
+    "correct": 3
   },
   {
     "number": 2,
-    "text": "Lions of Liquania got launched in which blockchain?",
+    "text": "Which feature was recently updated in the Kimba Dashboard related to NFTs?",
     "answers": [
-      "Solana",
-      "Chainlink",
-      "Bitcoin",
-      "Ethereum"
+      "Minting is now free",
+      "Profile view now shows NFT rarity & rank",
+      "Automatic trading via NFTs",
+      "NFTs can be converted to DOGE"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 3,
-    "text": "What was last week’s Friday community game?",
+    "text": "Which indicator is mainly used to measure volume flow balance between buyers & sellers?",
     "answers": [
-      "Got Talent Karaoke",
-      "COD session with PSG",
-      "Poker",
-      "There wasn’t any community game"
+      "RSI",
+      "VWAP",
+      "OBV = On-Balance Volume",
+      "Delta / CVD"
     ],
     "correct": 3
   },
   {
     "number": 4,
-    "text": "On The Kimbillionaire Gameshow, what triggers the Hot Seat event?",
+    "text": "What happens when price strongly rejects from a key liquidity zone?",
     "answers": [
-      "When Chat spams !pump",
-      "Typing the join command",
-      "Losing 3 rounds in a row",
-      "You wanted to say Inkyseat"
+      "Price often reverses rapidly due to absorption",
+      "TradingView closes automatically",
+      "All leverage is disabled",
+      "Chart switches to 1-second timeframe"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 5,
-    "text": "Technical edge is best combined with?",
+    "text": "When was the last FOMC this year?",
     "answers": [
-      "Technical edge means nothing without psychological control",
-      "If people tell me what to do",
-      "Only MACD indicator",
-      "Hope"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 6,
-    "text": "Which Asian speaking country is missing from our international chat on Discord?",
-    "answers": [
-      "Fillipino",
-      "Japanese",
-      "Chinese",
-      "Korean"
+      "August 10th",
+      "October 29th",
+      "March 14th",
+      "December 8th"
     ],
     "correct": 1
   },
   {
-    "number": 7,
-    "text": "Which Whale within Kimba gang gave away Lion NFTs for mint price?",
+    "number": 6,
+    "text": "When was the last stream from Kimba himself?",
     "answers": [
-      "Callingnoob",
-      "Bigchef",
-      "Mango",
-      "6sierra"
+      "The end of August",
+      "Around September",
+      "February around Valentines Day",
+      "New Year’s Eve"
     ],
-    "correct": 3
+    "correct": 0
+  },
+  {
+    "number": 7,
+    "text": "Which lion was the first to win a Hot Seat double round?",
+    "answers": [
+      "InkyDeranged",
+      "Snake",
+      "Nitrogen",
+      "6Sierra"
+    ],
+    "correct": 0
   },
   {
     "number": 8,
-    "text": "What is the main reason traders analyze liquidation heatmaps like Kingfisher?",
+    "text": "What does the acronym VWAP stand for?",
     "answers": [
-      "To locate clustered liquidations that may cause price reversals",
-      "To calculate staking rewards",
-      "To check CPU temperature during scalp trading",
-      "To find new meme coins"
+      "Value Weighted Analysis Process",
+      "Volume Weighted Average Price",
+      "Verified Whale Activity Protocol",
+      "Virtual Weighted Ask Price"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 9,
-    "text": "Why do traders monitor funding rates closely during high-volatility moments?",
+    "text": "Which chart type shows time distribution at price levels?",
     "answers": [
-      "To determine who is paying who between longs and shorts",
-      "To estimate exchange downtime",
-      "To check how many viewers are in Twitch chat",
-      "To find out the next CPI release"
+      "Anchored range chart",
+      "Volume bars",
+      "TPO / Market Profile",
+      "Renko chart"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 10,
-    "text": "TPO Profiles periods are based on which timeframe?",
+    "text": "How old is the Hu Jhu Xin channel?",
     "answers": [
-      "Daily",
-      "1 Hour",
-      "30 Min",
-      "4 Hour"
+      "1 year",
+      "Less than a month",
+      "10 months",
+      "3 years"
     ],
     "correct": 2
   },
   {
     "number": 11,
-    "text": "Why do traders use TPO (Market Profile) charts?",
+    "text": "Why do whales target liquidation clusters?",
     "answers": [
-      "To view crypto memes in 4K quality",
-      "To sort coins alphabetically",
-      "To visualize time spent at price and value areas",
-      "To track earnings reports"
+      "To boost staking APR",
+      "To gain Twitch subscribers",
+      "To trigger liquidity sweeps and fill large orders with better pricing",
+      "Because it looks cool on charts"
     ],
     "correct": 2
   },
   {
     "number": 12,
-    "text": "What community event is rumored to be coming soon to KimbaTV?",
+    "text": "Coinwise new beginner lesson talks about what?",
     "answers": [
-      "24-hour nonstop karaoke stream",
-      "100-player Battle Royale on TradingView",
-      "Poker nights",
-      "Buzo Guitar solo"
+      "Talks about the foundations of candlestick reading",
+      "Teaches OrderBlock",
+      "Talks about the newest indicator",
+      "How to connect your exchange to TradingView"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 13,
-    "text": "What is the main benefit of journaling trades consistently?",
+    "text": "What trading style is characterized by quick entries & exits within minutes?",
     "answers": [
-      "Guarantees profit every month",
-      "Helps identify emotional & behavioral patterns affecting performance",
-      "Makes TradingView run faster",
-      "It increases winrate automatically"
+      "Swing trading",
+      "Scalping",
+      "Investing",
+      "Position trading"
     ],
     "correct": 1
   },
   {
     "number": 14,
-    "text": "Where can you find the stream timestamps on Discord?",
+    "text": "What mental trap leads traders to open bigger positions after losses?",
     "answers": [
-      "Music",
-      "Kimba’s Den",
-      "The Lions Den",
-      "General Chat"
+      "Boredom",
+      "Revenge trading",
+      "Lack of caffeine",
+      "FOMO all in"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 15,
-    "text": "Which tool is most commonly used to analyze aggressive orderflow in real time?",
+    "text": "Which exchange is used most frequently when viewing BTC chart during Market Nerdouts?",
     "answers": [
-      "CVD / Delta",
-      "Fibonacci Time Extensions",
-      "Bollinger Bands",
-      "RSI"
+      "Coinbase",
+      "BitMEX",
+      "Weex",
+      "Bybit"
     ],
     "correct": 0
   }
