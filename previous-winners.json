@@ -1,6 +1,54 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-12-01T18-48-57_inkyderanged",
+      "date": "2025-12-01T18:48:57.000Z",
+      "username": "inkyderanged",
+      "final_points": 226,
+      "correct_answers": 10,
+      "total_answers": 10,
+      "accuracy": 100,
+      "best_streak": 10,
+      "fastest_correct_time": 6770,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 226,
+      "contestant_name": "Kimba Gang enters the Chat"
+    },
+    {
+      "game_id": "game_2025-12-01T18-48-57_kerviz",
+      "date": "2025-12-01T18:48:57.000Z",
+      "username": "kerviz",
+      "final_points": 124,
+      "correct_answers": 9,
+      "total_answers": 9,
+      "accuracy": 100,
+      "best_streak": 9,
+      "fastest_correct_time": 8152,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 124,
+      "contestant_name": "Kimba Gang enters the Chat"
+    },
+    {
+      "game_id": "game_2025-12-01T18-48-57_host",
+      "date": "2025-12-01T18:48:57.000Z",
+      "username": "host",
+      "final_points": 81,
+      "correct_answers": 5,
+      "total_answers": 6,
+      "accuracy": 83,
+      "best_streak": 5,
+      "fastest_correct_time": 10465,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 81,
+      "contestant_name": "Kimba Gang enters the Chat"
+    },
+    {
       "game_id": "game_2025-11-28T21-51-35_jhoalx",
       "date": "2025-11-28T21:51:35.000Z",
       "username": "jhoalx",
@@ -520,10 +568,10 @@
     }
   ],
   "metadata": {
-    "total_games": 11,
-    "last_updated": "2025-11-28T21:51:35.948Z",
+    "total_games": 12,
+    "last_updated": "2025-12-01T18:48:57.792Z",
     "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
-    "total_players": 20,
+    "total_players": 21,
     "total_source_entries": 25,
     "source_range": "2025-10-20 to 2025-11-12"
   }
