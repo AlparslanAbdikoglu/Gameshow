@@ -1,6 +1,54 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-12-05T17-56-48_kerviz",
+      "date": "2025-12-05T17:56:48.000Z",
+      "username": "kerviz",
+      "final_points": 251,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 6357,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 251,
+      "contestant_name": "Kimba Gang"
+    },
+    {
+      "game_id": "game_2025-12-05T17-56-48_imsin__",
+      "date": "2025-12-05T17:56:48.000Z",
+      "username": "imsin__",
+      "final_points": 232,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 6449,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 232,
+      "contestant_name": "Kimba Gang"
+    },
+    {
+      "game_id": "game_2025-12-05T17-56-48_jvrosz4",
+      "date": "2025-12-05T17:56:48.000Z",
+      "username": "jvrosz4",
+      "final_points": 204,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 6618,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 204,
+      "contestant_name": "Kimba Gang"
+    },
+    {
       "game_id": "game_2025-12-03T17-58-43_kerviz",
       "date": "2025-12-03T17:58:43.000Z",
       "username": "kerviz",
@@ -616,10 +664,10 @@
     }
   ],
   "metadata": {
-    "total_games": 13,
-    "last_updated": "2025-12-03T17:58:43.258Z",
+    "total_games": 14,
+    "last_updated": "2025-12-05T17:56:48.712Z",
     "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
-    "total_players": 22,
+    "total_players": 23,
     "total_source_entries": 25,
     "source_range": "2025-10-20 to 2025-11-12"
   }
