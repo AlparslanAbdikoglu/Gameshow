@@ -38,7 +38,7 @@
     "answers": [
       "KCEX",
       "Bit Unix",
-      "Blofi",
+      "Blofin",
       "BTCC"
     ],
     "correct": 3
@@ -85,7 +85,7 @@
       "It was a tie",
       "Satto’s friend"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 9,
@@ -102,7 +102,7 @@
     "number": 10,
     "text": "The Lion cam on the dashboard allows you to?",
     "answers": [
-      "Turns on your camera and let you trade with Kimba",
+      "Turns on your camera and let you trade live with Kimba",
       "Timeout yourself",
       "Take over the stream for a brief period",
       "Check on an actual Lion from the zoo"
@@ -137,7 +137,7 @@
     "answers": [
       "Discord server",
       "Crypto exchange",
-      "Kima Dashboard",
+      "Kimba Dashboard",
       "TradingView"
     ],
     "correct": 2
@@ -155,12 +155,12 @@
   },
   {
     "number": 15,
-    "text": "Who is famous for shouting “SEND IT” during chaotic KimbaTV moments?",
+    "text": "What is the famous saying of Kimba during chaotic moments?",
     "answers": [
-      "Chonsi",
-      "Hunter",
-      "Burbeezy",
-      "Mandalo"
+      "Send it",
+      "Katchoii",
+      "HODL",
+      "JUICE JUICE"
     ],
     "correct": 3
   }
