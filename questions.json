@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What’s the name of the other Kimba.tv Twitch channel?",
+    "text": "Who was the Season 1 Champion of Liquania's Got Talent?",
     "answers": [
-      "To the Balcony",
-      "Kimba IRL",
-      "Kimba Gaming",
-      "k1m6aMobile"
+      "Henry Gamer",
+      "V1",
+      "Wrong Person",
+      "Mcillem"
     ],
-    "correct": 3
+    "correct": 0
   },
   {
     "number": 2,
-    "text": "Which feature was recently updated in the Kimba Dashboard related to NFTs?",
+    "text": "Which feature on the Kimba Dashboard helps Lions track past Giveaway winnings?",
     "answers": [
-      "Minting is now free",
-      "Profile view now shows NFT rarity & rank",
-      "Automatic trading via NFTs",
-      "NFTs can be converted to DOGE"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 3,
-    "text": "Which indicator is mainly used to measure volume flow balance between buyers & sellers?",
-    "answers": [
-      "RSI",
-      "VWAP",
-      "OBV = On-Balance Volume",
-      "Delta / CVD"
+      "Whale Radar",
+      "Lion Strength Meter",
+      "LionChat 2.0",
+      "The giveaways tab"
     ],
     "correct": 3
   },
   {
-    "number": 4,
-    "text": "What happens when price strongly rejects from a key liquidity zone?",
+    "number": 3,
+    "text": "What is the cash prize awarded for the winning song in Liquania's Got Talent?",
     "answers": [
-      "Price often reverses rapidly due to absorption",
-      "TradingView closes automatically",
-      "All leverage is disabled",
-      "Chart switches to 1-second timeframe"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 5,
-    "text": "When was the last FOMC this year?",
-    "answers": [
-      "August 10th",
-      "October 29th",
-      "March 14th",
-      "December 8th"
+      "$1,000",
+      "$250",
+      "$100",
+      "$500"
     ],
     "correct": 1
   },
   {
-    "number": 6,
-    "text": "When was the last stream from Kimba himself?",
+    "number": 4,
+    "text": "Which crypto exchange was mentioned that has the highest leverage?",
     "answers": [
-      "The end of August",
-      "Around September",
-      "February around Valentines Day",
-      "New Year’s Eve"
+      "KCEX",
+      "Bit Unix",
+      "Blofi",
+      "BTCC"
     ],
-    "correct": 0
+    "correct": 3
+  },
+  {
+    "number": 5,
+    "text": "Which tool was recently released by CoinWise as their newest indicator?",
+    "answers": [
+      "Volume",
+      "TPO PVP",
+      "Order Blocks",
+      "VWAP"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 6,
+    "text": "Which recurring show or event does not require participants to submit an entry form?",
+    "answers": [
+      "Liquania's Got Talent",
+      "The Kimillionaire Game Show",
+      "Market Open Nerd Outs with Mandalo",
+      "Submitting UIDs on the Kima Dashboard"
+    ],
+    "correct": 2
   },
   {
     "number": 7,
-    "text": "Which lion was the first to win a Hot Seat double round?",
+    "text": "Besides Henry Gamer, which participant was mentioned among the top three finalists of Liquania's Got Talent Season 1?",
     "answers": [
-      "InkyDeranged",
-      "Snake",
-      "Nitrogen",
-      "6Sierra"
+      "Tonysuprano",
+      "Arhas",
+      "XLRD TV",
+      "Kerviz"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 8,
-    "text": "What does the acronym VWAP stand for?",
+    "text": "New HuJhuxin premier showcases a win for?",
     "answers": [
-      "Value Weighted Analysis Process",
-      "Volume Weighted Average Price",
-      "Verified Whale Activity Protocol",
-      "Virtual Weighted Ask Price"
+      "Satto",
+      "HUJHUXIN",
+      "It was a tie",
+      "Satto’s friend"
     ],
     "correct": 1
   },
   {
     "number": 9,
-    "text": "Which chart type shows time distribution at price levels?",
+    "text": "In the early days of Kimba.tv giveaways were selected by?",
     "answers": [
-      "Anchored range chart",
-      "Volume bars",
-      "TPO / Market Profile",
-      "Renko chart"
+      "Playing the Marbles game on stream",
+      "By moderators",
+      "It was automatic Kimba AI",
+      "Who stayed up the longest"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 10,
-    "text": "How old is the Hu Jhu Xin channel?",
+    "text": "The Lion cam on the dashboard allows you to?",
     "answers": [
-      "1 year",
-      "Less than a month",
-      "10 months",
-      "3 years"
+      "Turns on your camera and let you trade with Kimba",
+      "Timeout yourself",
+      "Take over the stream for a brief period",
+      "Check on an actual Lion from the zoo"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 11,
-    "text": "Why do whales target liquidation clusters?",
+    "text": "Mandalo, Housty, Kage, Buzo, and Cyper all trace their roots back to which voice group?",
     "answers": [
-      "To boost staking APR",
-      "To gain Twitch subscribers",
-      "To trigger liquidity sweeps and fill large orders with better pricing",
-      "Because it looks cool on charts"
+      "PSG (Public Stream Gang)",
+      "The CoinWise Discord",
+      "KimbaTV Twitch chat",
+      "The trenches of Altcoin hell"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 12,
+    "text": "What is the theme for Season 2, Week 2 of Liquania's Got Talent?",
+    "answers": [
+      "Trading psychology",
+      "The future of finance",
+      "Holiday spirit",
+      "Bitcoin volatility"
     ],
     "correct": 2
   },
   {
-    "number": 12,
-    "text": "Coinwise new beginner lesson talks about what?",
-    "answers": [
-      "Talks about the foundations of candlestick reading",
-      "Teaches OrderBlock",
-      "Talks about the newest indicator",
-      "How to connect your exchange to TradingView"
-    ],
-    "correct": 0
-  },
-  {
     "number": 13,
-    "text": "What trading style is characterized by quick entries & exits within minutes?",
+    "text": "Where must members update their UID to be eligible for giveaways?",
     "answers": [
-      "Swing trading",
-      "Scalping",
-      "Investing",
-      "Position trading"
+      "Discord server",
+      "Crypto exchange",
+      "Kima Dashboard",
+      "TradingView"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 14,
-    "text": "What mental trap leads traders to open bigger positions after losses?",
+    "text": "What specific stream is scheduled for Sunday?",
     "answers": [
-      "Boredom",
-      "Revenge trading",
-      "Lack of caffeine",
-      "FOMO all in"
+      "Gaming session with Kimba",
+      "The Kimillionaire Game Show",
+      "Market Resumptions",
+      "Market Open Nerd Out"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 15,
-    "text": "Which exchange is used most frequently when viewing BTC chart during Market Nerdouts?",
+    "text": "Who is famous for shouting “SEND IT” during chaotic KimbaTV moments?",
     "answers": [
-      "Coinbase",
-      "BitMEX",
-      "Weex",
-      "Bybit"
+      "Chonsi",
+      "Hunter",
+      "Burbeezy",
+      "Mandalo"
     ],
-    "correct": 0
+    "correct": 3
   }
 ]
