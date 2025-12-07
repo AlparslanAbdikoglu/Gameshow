@@ -5864,13 +5864,16 @@ function checkAndAwardStreakBonus(username) {
 function getTopPlayers(period = 'current_game', count = 10) {
   if (period === 'current_game') {
     return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit: count })
-      .map((entry) => ({
+      .map((entry, index) => ({
         username: entry.username,
         points: entry.points,
         accuracy: entry.total_answers > 0 ? Math.round((entry.correct_answers / entry.total_answers) * 100) : 0,
         streak: entry.current_streak,
-        isIgnoredWinner: Boolean(entry.isIgnoredWinner)
-      }));
+        isIgnoredWinner: Boolean(entry.isIgnoredWinner),
+        rank: entry.displayRank || index + 1
+      }))
+      // Preserve the server-defined display rank even if clients attempt to sort
+      .sort((a, b) => (a.rank || 0) - (b.rank || 0));
   }
 
   const players = Object.entries(leaderboardData[period])
@@ -6755,12 +6758,22 @@ function getCurrentGameLeaderboardEntries(options = {}) {
   const eligibleEntries = entries.filter((entry) => !ignoredUsers.includes(entry.username.toLowerCase()));
   const limitedEligibleEntries = typeof limit === 'number' ? eligibleEntries.slice(0, limit) : eligibleEntries;
 
+  const rankStart = typeof limit === 'number' ? limit : limitedEligibleEntries.length;
+  const rankedEligibleEntries = limitedEligibleEntries.map((entry, index) => ({
+    ...entry,
+    displayRank: index + 1
+  }));
+  const rankedIgnoredEntries = ignoredEntries.map((entry, index) => ({
+    ...entry,
+    displayRank: rankStart + index + 1
+  }));
+
   if (!includeIgnored) {
-    return limitedEligibleEntries;
+    return rankedEligibleEntries;
   }
 
   // Always append ignored winners beneath the main leaderboard so they stay visible
-  return [...limitedEligibleEntries, ...ignoredEntries];
+  return [...rankedEligibleEntries, ...rankedIgnoredEntries];
 }
 
 function getLeaderboardStats() {
