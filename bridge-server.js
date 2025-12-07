@@ -71,8 +71,23 @@ function trackVoteProcessing(processingTime, rejected = false, duplicate = false
   }
 }
 
+function stripDecoratedUsername(username) {
+  if (typeof username !== 'string') {
+    return '';
+  }
+
+  const trimmed = username.trim();
+  if (!trimmed) {
+    return '';
+  }
+
+  const withoutAt = trimmed.replace(/^@+/, '');
+  return withoutAt.split(/[:|]/)[0].trim();
+}
+
 function normalizeUsername(username) {
-  return typeof username === 'string' ? username.trim().toLowerCase() : '';
+  const usernameOnly = stripDecoratedUsername(username);
+  return usernameOnly.toLowerCase();
 }
 
 function sanitizeProfileHtml(html = '') {
@@ -94,59 +109,209 @@ function sanitizeProfileHtml(html = '') {
   return sanitized.trim();
 }
 
-function buildHotSeatProfileMap(profiles = {}) {
-  const sanitizedProfiles = {};
-
-  if (!profiles || typeof profiles !== 'object') {
-    return sanitizedProfiles;
-  }
-
-  Object.values(profiles).forEach((profile) => {
-    if (!profile || typeof profile !== 'object') {
-      return;
-    }
-
-    const sourceUsername = typeof profile.username === 'string' && profile.username.trim()
-      ? profile.username.trim()
-      : typeof profile.displayName === 'string' && profile.displayName.trim()
-        ? profile.displayName.trim()
-        : typeof profile.id === 'string' && profile.id.trim()
-          ? profile.id.trim()
-          : '';
-
-    const normalized = normalizeUsername(sourceUsername);
-    if (!normalized) {
-      return;
-    }
-
-    sanitizedProfiles[normalized] = {
-      username: sourceUsername,
-      displayName: typeof profile.displayName === 'string' && profile.displayName.trim()
-        ? profile.displayName.trim()
-        : sourceUsername,
-      storyHtml: sanitizeProfileHtml(profile.storyHtml || profile.story || ''),
-      storyText: typeof profile.storyText === 'string' ? profile.storyText.trim() : '',
-      lastUpdated: Date.now()
-    };
-  });
-
-  return sanitizedProfiles;
+function escapeProfileText(text = '') {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-function getHotSeatProfile(username) {
-  const normalized = normalizeUsername(username);
-  if (!normalized || !gameState.hot_seat_profiles) {
+function convertProfileStoryToHtml(text = '') {
+  const trimmed = (text || '').trim();
+  if (!trimmed) {
+    return { html: '', text: '' };
+  }
+
+  const blocks = trimmed.split(/\n{2,}/);
+  const html = blocks
+    .map(block => {
+      const lines = block
+        .split(/\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      if (lines.length === 0) {
+        return '';
+      }
+
+      if (lines.every(line => /^[-*]\s+/.test(line))) {
+        const items = lines
+          .map(line => line.replace(/^[-*]\s+/, ''))
+          .map(line => `<li>${escapeProfileText(line)}</li>`)
+          .join('');
+        return `<ul>${items}</ul>`;
+      }
+
+      const paragraph = lines.join(' ');
+      return `<p>${escapeProfileText(paragraph)}</p>`;
+    })
+    .filter(Boolean)
+    .join('');
+
+  return { html, text: trimmed };
+}
+
+function normalizeProfileEntry(rawEntry, entryKey, errors) {
+  if (rawEntry === null || rawEntry === undefined) {
+    errors.push(`${entryKey}: entry is empty.`);
     return null;
   }
 
-  const profile = gameState.hot_seat_profiles[normalized];
-  if (!profile) {
+  if (typeof rawEntry === 'string') {
+    const normalizedKey = normalizeUsername(entryKey);
+    if (!normalizedKey) {
+      errors.push(`${entryKey}: missing username for profile string.`);
+      return null;
+    }
+
+    const { html, text } = convertProfileStoryToHtml(rawEntry);
+    return {
+      key: normalizedKey,
+      profile: {
+        username: entryKey.replace(/^@+/, ''),
+        displayName: entryKey.replace(/^@+/, ''),
+        storyHtml: html,
+        storyText: text,
+        lastUpdated: Date.now()
+      }
+    };
+  }
+
+  if (typeof rawEntry !== 'object') {
+    errors.push(`${entryKey}: entry must be an object or string.`);
     return null;
+  }
+
+  const sourceUsername = typeof rawEntry.username === 'string' && rawEntry.username.trim()
+    ? rawEntry.username.trim()
+    : typeof entryKey === 'string' && entryKey.trim()
+      ? entryKey.trim()
+      : typeof rawEntry.displayName === 'string' && rawEntry.displayName.trim()
+        ? rawEntry.displayName.trim()
+        : typeof rawEntry.id === 'string' && rawEntry.id.trim()
+          ? rawEntry.id.trim()
+          : '';
+
+  const normalized = normalizeUsername(sourceUsername);
+  if (!normalized) {
+    errors.push(`${entryKey}: missing username.`);
+    return null;
+  }
+
+  const cleanedUsername = sourceUsername.replace(/^@+/, '') || sourceUsername;
+  const displayName = typeof rawEntry.displayName === 'string' && rawEntry.displayName.trim()
+    ? rawEntry.displayName.trim()
+    : cleanedUsername;
+
+  const providedHtml = typeof rawEntry.storyHtml === 'string' ? rawEntry.storyHtml.trim() : '';
+  const providedText = typeof rawEntry.storyText === 'string' ? rawEntry.storyText.trim() : '';
+  const providedStory = typeof rawEntry.story === 'string' ? rawEntry.story.trim() : '';
+
+  let storyHtml = '';
+  let storyText = '';
+
+  if (providedHtml) {
+    storyHtml = sanitizeProfileHtml(providedHtml);
+    storyText = providedText
+      ? providedText
+      : storyHtml
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+  } else {
+    const { html, text } = convertProfileStoryToHtml(providedText || providedStory);
+    storyHtml = sanitizeProfileHtml(html);
+    storyText = text;
   }
 
   return {
-    username: profile.username,
-    displayName: profile.displayName || profile.username,
+    key: normalized,
+    profile: {
+      username: cleanedUsername,
+      displayName,
+      storyHtml,
+      storyText,
+      lastUpdated: Date.now()
+    }
+  };
+}
+
+function buildHotSeatProfileMap(profiles = {}) {
+  const sanitizedProfiles = {};
+  const errors = [];
+
+  const processEntry = (value, contextLabel, fallbackKey) => {
+    const result = normalizeProfileEntry(value, fallbackKey || contextLabel, errors);
+    if (result) {
+      sanitizedProfiles[result.key] = result.profile;
+    }
+  };
+
+  if (!profiles || typeof profiles !== 'object') {
+    errors.push('Uploaded profiles payload must be an object or array.');
+    return { profiles: sanitizedProfiles, errors };
+  }
+
+  if (Array.isArray(profiles)) {
+    profiles.forEach((entry, index) => processEntry(entry, `Entry ${index + 1}`, `Entry ${index + 1}`));
+  } else {
+    Object.entries(profiles).forEach(([entryKey, profile]) => {
+      processEntry(profile, `Key "${entryKey}"`, entryKey);
+    });
+  }
+
+  return { profiles: sanitizedProfiles, errors };
+}
+
+function findHotSeatProfileMatch(username) {
+  const normalizedCandidate = normalizeUsername(username);
+  const profiles = gameState.hot_seat_profiles;
+
+  if (!normalizedCandidate || !profiles || typeof profiles !== 'object') {
+    return null;
+  }
+
+  if (profiles[normalizedCandidate]) {
+    return { key: normalizedCandidate, profile: profiles[normalizedCandidate] };
+  }
+
+  const collapsedCandidate = normalizedCandidate.replace(/[^a-z0-9]/g, '');
+
+  let fallbackMatch = null;
+  for (const [key, profile] of Object.entries(profiles)) {
+    if (!profile) {
+      continue;
+    }
+
+    if (normalizedCandidate.startsWith(key)) {
+      return { key, profile };
+    }
+
+    const collapsedKey = key.replace(/[^a-z0-9]/g, '');
+    if (
+      collapsedKey &&
+      (collapsedCandidate.startsWith(collapsedKey) || collapsedKey.startsWith(collapsedCandidate))
+    ) {
+      fallbackMatch = { key, profile };
+    }
+  }
+
+  return fallbackMatch;
+}
+
+function getHotSeatProfile(username) {
+  const match = findHotSeatProfileMatch(username);
+  if (!match) {
+    return null;
+  }
+
+  const { profile } = match;
+
+  return {
+    username: profile.username || username.replace(/^@+/, ''),
+    displayName: profile.displayName || profile.username || username,
     storyHtml: profile.storyHtml || '',
     storyText: profile.storyText || ''
   };
@@ -238,6 +403,8 @@ let gameState = {
   hot_seat_profiles: {},       // Map of uploaded hot seat profile stories keyed by username
   hot_seat_profiles_last_update: null, // Timestamp of last profile upload for status displays
   hot_seat_timer_interval: null, // Reference to timer interval for cleanup
+  hot_seat_timer_start_timeout: null, // Timeout to delay hot seat timer start until spotlight completes
+  hot_seat_spotlight_until: null, // Timestamp enforcing spotlight hold before advancing
   hot_seat_prestart_interval: null, // Countdown interval that runs before the main timer
   hot_seat_prestart_seconds: 0,     // Remaining seconds in the pre-start countdown
   hot_seat_prestart_total: 0,       // Total seconds configured for the pre-start countdown
@@ -251,6 +418,7 @@ let gameState = {
   hot_seat_entry_start_time: null, // Timestamp when entry collection started
   hot_seat_winner_count: 1,      // Number of hot seat winners to select
   hot_seat_entry_timer_interval: null, // Reference to entry countdown timer
+  hot_seat_profile_hold_ms: 0,   // How long to hold spotlight/profile before timer starts
   // Lifeline states
   first_poll_winner: null,   // Track which answer won the first poll for revote system
   is_revote_active: false,   // Flag for "Take Another Vote" revote system
@@ -1808,13 +1976,17 @@ wss.on('connection', (ws, req) => {
   // Detect potential reconnection patterns
   detectReconnection(clientIP, clientId);
   
-    // Add connection stability improvements for development environment
-    const isDevelopment = clientIP === '::1' || clientIP === '127.0.0.1' || clientIP === '::ffff:127.0.0.1';
-
-    const cleanGameState = createSerializableGameState({
-      includeQuestionData: true,
-      includePrizes: true
-    });
+  // Add connection stability improvements for development environment
+  const isDevelopment = clientIP === '::1' || clientIP === '127.0.0.1' || clientIP === '::ffff:127.0.0.1';
+  
+  // Create a clean copy of gameState without non-serializable properties (like timer intervals)
+  const cleanGameState = { ...gameState };
+  delete cleanGameState.lifeline_countdown_interval; // Remove timer interval which can't be serialized
+  delete cleanGameState.hot_seat_timer_interval; // Remove hot seat timer interval
+  delete cleanGameState.hot_seat_timer_start_timeout; // Remove hot seat timer start timeout
+  delete cleanGameState.hot_seat_prestart_interval; // Remove hot seat pre-start interval
+  delete cleanGameState.hot_seat_entry_timer_interval; // Remove hot seat entry countdown timer interval
+  delete cleanGameState.hot_seat_entry_lookup; // Remove hot seat entry lookup set before serialization
   
   if (isDevelopment) {
     // Add slight delay for dev environment to prevent rapid reconnections
@@ -1969,10 +2141,25 @@ wss.on('connection', (ws, req) => {
           console.log('🔄 Sending full state sync to newly registered browser_source');
           
           // Send current game state immediately
-          const cleanGameState = createSerializableGameState({
-            includeQuestionData: true,
-            includePrizes: true
-          });
+          const cleanGameState = { ...gameState };
+          delete cleanGameState.lifeline_countdown_interval;
+          delete cleanGameState.hot_seat_timer_interval;
+          delete cleanGameState.hot_seat_timer_start_timeout;
+          delete cleanGameState.hot_seat_entry_timer_interval;
+          delete cleanGameState.hot_seat_entry_lookup;
+
+          // Convert Set to Array for JSON serialization
+          if (cleanGameState.processed_mod_messages instanceof Set) {
+            cleanGameState.processed_mod_messages = Array.from(cleanGameState.processed_mod_messages);
+          }
+          
+          // Include current question data if a question is visible
+          if (cleanGameState.question_visible && questions[cleanGameState.current_question]) {
+            cleanGameState.currentQuestionData = questions[cleanGameState.current_question];
+          }
+          
+          // Include prize amounts for money ladder
+          cleanGameState.prizes = prizeAmounts;
           
           const stateMessage = JSON.stringify({
             type: 'state',
@@ -2719,6 +2906,23 @@ function cleanupAllTimers() {
     gameState.hot_seat_timer_interval = null;
     console.log('✅ Cleared hot seat timer interval');
   }
+
+  if (gameState.hot_seat_timer_start_timeout) {
+    clearTimeout(gameState.hot_seat_timer_start_timeout);
+    gameState.hot_seat_timer_start_timeout = null;
+    console.log('✅ Cleared hot seat timer start timeout');
+  }
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    console.log('✅ Cleared hot seat pre-start interval');
+  }
+
+  gameState.hot_seat_timer_pending_start = false;
+  gameState.hot_seat_prestart_seconds = 0;
+  gameState.hot_seat_prestart_total = 0;
+  gameState.hot_seat_countdown_started = false;
   
   if (gameState.hot_seat_entry_timer_interval) {
     clearInterval(gameState.hot_seat_entry_timer_interval);
@@ -3422,6 +3626,10 @@ function startPostLifelineRevote(lifelineType) {
         const answerIndex = ['A', 'B', 'C', 'D'].indexOf(results.winner);
         gameState.selected_answer = answerIndex;
         gameState.answer_locked_in = true;
+
+        if (gameState.hot_seat_active) {
+          stopHotSeatCountdown('lifeline_revote_auto_lock');
+        }
         
         console.log(`🔒 AUTO-LOCKED ${lifelineType} winner: ${results.winner} (index ${answerIndex}) - Host hadn't locked manually`);
         
@@ -3539,10 +3747,14 @@ function startPostLifelineRevoteForTakeAnotherVote() {
       // Only auto-lock if host hasn't already locked manually (HYBRID CONTROL)
       if (!gameState.answer_locked_in) {
         console.log(`🔄 Auto-locking Take Another Vote winner: ${winningAnswer} (${totalVotes} votes, ${percentages[winningAnswer]}%)`);
-        
+
         // Set the selected answer and lock it
         gameState.selected_answer = ['A', 'B', 'C', 'D'].indexOf(winningAnswer);
         gameState.answer_locked_in = true;
+
+        if (gameState.hot_seat_active) {
+          stopHotSeatCountdown('take_another_vote_auto_lock');
+        }
         
         // NOTE: Do NOT evaluate answer_is_wrong during lock-in - only during reveal_answer
         // This prevents red highlighting of locked answers before they are revealed
@@ -4531,10 +4743,14 @@ function startRevoteAfterAskAMod() {
       // Only auto-lock if host hasn't already locked manually
       if (!gameState.answer_locked_in) {
         console.log(`🔄 Auto-locking audience winner: ${winningAnswer} (${totalVotes} votes, ${percentages[winningAnswer]}%)`);
-        
+
         // Set the selected answer and lock it
         gameState.selected_answer = ['A', 'B', 'C', 'D'].indexOf(winningAnswer);
         gameState.answer_locked_in = true;
+
+        if (gameState.hot_seat_active) {
+          stopHotSeatCountdown('ask_a_mod_auto_lock');
+        }
         
         // NOTE: Do NOT evaluate answer_is_wrong during lock-in - only during reveal_answer
         // This prevents red highlighting of locked answers before they are revealed
@@ -4843,6 +5059,41 @@ function handleVoteUpdate(data) {
 }
 
 // Hot Seat Feature Functions
+const HOT_SEAT_PROFILE_DISPLAY_MS = 25000;
+
+// Stop any active or pending hot seat timers when the answer is locked or otherwise resolved
+function stopHotSeatCountdown(reason = 'answer_locked') {
+  let stopped = false;
+
+  if (gameState.hot_seat_timer_interval) {
+    clearInterval(gameState.hot_seat_timer_interval);
+    gameState.hot_seat_timer_interval = null;
+    stopped = true;
+  }
+
+  if (gameState.hot_seat_timer_start_timeout) {
+    clearTimeout(gameState.hot_seat_timer_start_timeout);
+    gameState.hot_seat_timer_start_timeout = null;
+    stopped = true;
+  }
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    stopped = true;
+  }
+
+  if (stopped || gameState.hot_seat_timer_pending_start) {
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_prestart_seconds = 0;
+    gameState.hot_seat_prestart_total = 0;
+    gameState.hot_seat_countdown_started = false;
+  }
+
+  if (stopped) {
+    console.log(`⏸️ Hot seat timer stopped (${reason})`);
+  }
+}
 
 // Start the entry period for hot seat
 function startHotSeatEntryPeriod() {
@@ -4916,111 +5167,368 @@ function startHotSeatEntryPeriod() {
   }, 1000); // Update every second
 }
 
-// Slot Machine Bonus Mode Helpers
-const SLOT_MACHINE_FALLBACK_SYMBOLS = [
-  { id: 'leo', label: 'Leo', emoji: '🦁', emojiUrl: null },
-  { id: 'crown', label: 'Crown', emoji: '👑', emojiUrl: null },
-  { id: 'claw', label: 'Claw', emoji: '🐾', emojiUrl: null },
-  { id: 'star', label: 'Star', emoji: '⭐', emojiUrl: null }
-];
-const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code, url]) => ({
-  id: code,
-  label: code,
-  emoji: code,
-  emojiUrl: url
-}));
-
-function getSlotMachineSymbolPool() {
-  return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
-}
-
-function drawSlotMachineSymbol() {
-  const pool = getSlotMachineSymbolPool();
-  const symbol = pool[Math.floor(Math.random() * pool.length)];
-  return {
-    id: symbol.id,
-    label: symbol.label || symbol.id,
-    emoji: symbol.emoji || symbol.id,
-    emojiUrl: symbol.emojiUrl || symbol.url || null
-  };
-}
-
-function ensureSlotMachineState() {
-  if (!gameState.slot_machine) {
-    gameState.slot_machine = {
-      enabled: true,
-      schedule_questions: [],
-      schedule_version: 'question_numbers',
-      entry_duration_ms: 30000,
-      max_points: 25,
-      current_round: null,
-      last_round_result: null,
-      round_count: 0
-    };
-  }
-
-  const defaultSchedule = Array.from({ length: 14 }, (_, index) => index + 2)
-    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value));
-  let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
-    ? [...gameState.slot_machine.schedule_questions]
-    : [...defaultSchedule];
-
-  schedule = schedule
-    .map((value) => {
-      const numericValue = Number(value);
-      return Number.isFinite(numericValue) ? numericValue : null;
-    })
-    .filter((value) => value != null);
-
-  if (gameState.slot_machine.schedule_version !== 'question_numbers') {
-    schedule = schedule.map((value) => value + 1);
-    gameState.slot_machine.schedule_version = 'question_numbers';
-  }
-
-  schedule = schedule
-    .map((value) => Math.min(15, Math.max(1, Math.round(value))))
-    .filter((value) => !Number.isNaN(value));
-
-  if (!schedule.length || schedule.length < defaultSchedule.length) {
-    schedule = [...defaultSchedule];
-  }
-
-  const normalizedSchedule = Array.from(new Set(schedule))
-    .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value))
-    .sort((a, b) => a - b);
-  gameState.slot_machine.schedule_questions = normalizedSchedule;
-
-  gameState.slot_machine.entry_duration_ms = 30000;
-  gameState.slot_machine.max_points = gameState.slot_machine.max_points || 25;
-  gameState.slot_machine.round_count = gameState.slot_machine.round_count || 0;
-}
-
-function broadcastSlotMachineEvent(event, payload = {}) {
+function broadcastHotSeatCountdown(remaining, options = {}) {
   broadcastToClients({
-    type: 'slot_machine_event',
-    event,
-    timestamp: Date.now(),
-    data: payload
+    type: 'hot_seat_countdown',
+    user: gameState.hot_seat_user,
+    remaining,
+    total: gameState.hot_seat_prestart_total,
+    questionNumber: gameState.current_question + 1,
+    go: options.go === true,
+    timestamp: Date.now()
   });
 }
 
-function cleanupSlotMachineRoundTimers(round) {
-  if (!round) return;
-  if (round.entry_interval) {
-    clearInterval(round.entry_interval);
-    round.entry_interval = null;
+function startHotSeatCountdown(countdownSeconds) {
+  if (!gameState.hot_seat_active) {
+    return;
   }
-  if (round.entry_timeout) {
-    clearTimeout(round.entry_timeout);
-    round.entry_timeout = null;
+
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
   }
-  if (round.auto_spin_timeout) {
-    clearTimeout(round.auto_spin_timeout);
-    round.auto_spin_timeout = null;
+
+  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
+  gameState.hot_seat_prestart_seconds = seconds;
+  gameState.hot_seat_prestart_total = seconds;
+  gameState.hot_seat_countdown_started = true;
+
+  broadcastHotSeatCountdown(seconds);
+
+  if (seconds === 0) {
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_countdown_started = false;
+    startHotSeatTimer();
+    return;
   }
+
+  gameState.hot_seat_prestart_interval = setInterval(() => {
+    gameState.hot_seat_prestart_seconds = Math.max(0, gameState.hot_seat_prestart_seconds - 1);
+
+    if (gameState.hot_seat_prestart_seconds > 0) {
+      broadcastHotSeatCountdown(gameState.hot_seat_prestart_seconds);
+      return;
+    }
+
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+    broadcastHotSeatCountdown(0, { go: true });
+    gameState.hot_seat_timer_pending_start = false;
+    gameState.hot_seat_countdown_started = false;
+    startHotSeatTimer();
+  }, 1000);
 }
 
-function startSlotMachineEntryRound(questionIndex) {
+function queueHotSeatCountdown(countdownSeconds) {
+  if (gameState.hot_seat_prestart_interval) {
+    clearInterval(gameState.hot_seat_prestart_interval);
+    gameState.hot_seat_prestart_interval = null;
+  }
+
+  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
+  gameState.hot_seat_prestart_seconds = seconds;
+  gameState.hot_seat_prestart_total = seconds;
+  gameState.hot_seat_timer_pending_start = true;
+  gameState.hot_seat_countdown_started = false;
+
+  triggerHotSeatCountdownIfReady();
+}
+
+function triggerHotSeatCountdownIfReady() {
+  if (!gameState.hot_seat_active || !gameState.hot_seat_timer_pending_start) {
+    return false;
+  }
+
+  if (gameState.hot_seat_countdown_started) {
+    return false;
+  }
+
+  if (!gameState.question_visible) {
+    return false;
+  }
+
+  startHotSeatCountdown(gameState.hot_seat_prestart_seconds || 0);
+  return true;
+}
+
+function initializeHotSeatSession(selectedUsers, options = {}) {
+  const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
+
+  if (uniqueUsers.length === 0) {
+    console.warn('⚠️ HOT SEAT activation skipped - no valid users provided');
+    return false;
+  }
+
+  const selectionMethod = options.selectionMethod || 'manual';
+  const primaryUser = uniqueUsers[0];
+  const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
+  const countdownSeconds = Number.isFinite(options.countdownSeconds)
+    ? Math.max(0, Math.round(options.countdownSeconds))
+    : 3;
+
+  if (gameState.hot_seat_entry_timer_interval) {
+    clearInterval(gameState.hot_seat_entry_timer_interval);
+    gameState.hot_seat_entry_timer_interval = null;
+  }
+  gameState.hot_seat_entry_active = false;
+  gameState.hot_seat_entry_lookup = new Set();
+
+  gameState.hot_seat_active = true;
+  gameState.hot_seat_users = uniqueUsers;
+  gameState.hot_seat_user = primaryUser;
+  gameState.hot_seat_timer = timerDuration;
+  gameState.hot_seat_answered = false;
+  gameState.hot_seat_answer = null;
+  gameState.hot_seat_correct = null;
+
+  const primaryProfile = getHotSeatProfile(primaryUser);
+  const profileHoldMs = Number.isFinite(options.profileHoldMs)
+    ? options.profileHoldMs
+    : (primaryProfile && primaryProfile.storyHtml ? HOT_SEAT_PROFILE_DISPLAY_MS : 0);
+  const alternateProfiles = uniqueUsers
+    .slice(1)
+    .map(username => ({ username, profile: getHotSeatProfile(username) }))
+    .filter(entry => entry.profile && entry.profile.storyHtml);
+
+  if (profileHoldMs > 0) {
+    gameState.hot_seat_spotlight_until = Date.now() + profileHoldMs;
+  } else {
+    gameState.hot_seat_spotlight_until = null;
+  }
+  gameState.hot_seat_profile_hold_ms = profileHoldMs;
+
+  if (gameState.audience_poll_active) {
+    console.log('🔕 Audience poll disabled while hot seat is active');
+    gameState.audience_poll_active = false;
+  }
+
+  uniqueUsers.forEach(user => {
+    addPointsToPlayer(user, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
+    ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
+      const player = initializePlayerInLeaderboard(user, period);
+      player.hot_seat_appearances++;
+    });
+  });
+
+  queueHotSeatCountdown(countdownSeconds);
+
+  broadcastToClients({
+    type: 'hot_seat_activated',
+    user: primaryUser,
+    users: uniqueUsers,
+    timer: timerDuration,
+    questionNumber: gameState.current_question + 1,
+    message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
+    selectionMethod,
+    countdown: countdownSeconds,
+    profile: primaryProfile || null,
+    alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
+    timestamp: Date.now()
+  });
+
+  return true;
+}
+
+function drawHotSeatWinners() {
+  console.log(`🎲 Drawing ${gameState.hot_seat_winner_count} hot seat winner(s) from ${gameState.hot_seat_entries.length} entries`);
+
+  if (gameState.hot_seat_entries.length === 0) {
+    console.log('⚠️ No entries to draw from');
+    return false;
+  }
+
+  const shuffled = [...gameState.hot_seat_entries].sort(() => Math.random() - 0.5);
+  const winnerCount = Math.min(gameState.hot_seat_winner_count, shuffled.length);
+  const winners = shuffled.slice(0, winnerCount);
+
+  console.log(`🎯 Hot seat winners selected: ${winners.join(', ')}`);
+
+  gameState.hot_seat_entries = [];
+  gameState.hot_seat_entry_lookup = new Set();
+  gameState.hot_seat_entry_active = false;
+
+  return initializeHotSeatSession(winners, {
+    selectionMethod: 'join_entry',
+    message: `Hot seat activated for: ${winners.join(', ')}`,
+    countdownSeconds: 3
+  });
+}
+
+function selectHotSeatUser(manualUsername = null) {
+  console.log('🎯 Selecting hot seat user...');
+  console.log(`📊 Current participants count: ${gameState.gameshow_participants.length}`);
+
+  let selectedUser = manualUsername;
+  let selectionMethod = manualUsername ? 'manual' : 'participants';
+
+  if (!selectedUser && gameState.gameshow_participants.length > 0) {
+    const randomIndex = Math.floor(Math.random() * gameState.gameshow_participants.length);
+    selectedUser = gameState.gameshow_participants[randomIndex];
+    console.log(`✅ Selected from ${gameState.gameshow_participants.length} active participants`);
+  }
+
+  if (!selectedUser && recentChatMessages.length > 0) {
+    console.log('⚠️ No voting participants yet, checking recent chat users...');
+    const uniqueChatUsers = [...new Set(recentChatMessages.map(msg => msg.username))];
+    if (uniqueChatUsers.length > 0) {
+      const randomIndex = Math.floor(Math.random() * uniqueChatUsers.length);
+      selectedUser = uniqueChatUsers[randomIndex];
+      selectionMethod = 'recent_chat';
+      console.log(`✅ Selected from ${uniqueChatUsers.length} recent chat users`);
+    }
+  }
+
+  if (!selectedUser && gameState.poll_voter_history && gameState.poll_voter_history.length > 0) {
+    console.log('⚠️ No chat users found, checking poll voter history...');
+    const randomIndex = Math.floor(Math.random() * gameState.poll_voter_history.length);
+    selectedUser = gameState.poll_voter_history[randomIndex];
+    selectionMethod = 'poll_history';
+    console.log(`🗳️ Selected from ${gameState.poll_voter_history.length} previous poll voters`);
+  }
+
+  if (!selectedUser) {
+    console.warn('⚠️ HOT SEAT SKIPPED - No real participants available');
+    console.log(`📊 Participant sources checked:`);
+    console.log(`   - Active participants: ${gameState.gameshow_participants.length}`);
+    console.log(`   - Recent chat users: ${recentChatMessages.length > 0 ? [...new Set(recentChatMessages.map(msg => msg.username))].length : 0}`);
+    console.log(`   - Poll voter history: ${gameState.poll_voter_history ? gameState.poll_voter_history.length : 0}`);
+    console.log('💡 Hot seat will activate when real participants join the game');
+
+    broadcastToClients({
+      type: 'hot_seat_skipped',
+      reason: 'Waiting for real participants',
+      questionNumber: gameState.current_question + 1,
+      timestamp: Date.now()
+    });
+
+    return false;
+  }
+
+  return initializeHotSeatSession([selectedUser], {
+    selectionMethod,
+    countdownSeconds: 3
+  });
+}
+
+  // Slot Machine Bonus Mode Helpers
+  const SLOT_MACHINE_FALLBACK_SYMBOLS = [
+    { id: 'leo', label: 'Leo', emoji: '🦁', emojiUrl: null },
+    { id: 'crown', label: 'Crown', emoji: '👑', emojiUrl: null },
+    { id: 'claw', label: 'Claw', emoji: '🐾', emojiUrl: null },
+    { id: 'star', label: 'Star', emoji: '⭐', emojiUrl: null }
+  ];
+  const SLOT_MACHINE_SYMBOL_POOL = Object.entries(TWITCH_EMOTES || {}).map(([code, url]) => ({
+    id: code,
+    label: code,
+    emoji: code,
+    emojiUrl: url
+  }));
+
+  function getSlotMachineSymbolPool() {
+    return SLOT_MACHINE_SYMBOL_POOL.length ? SLOT_MACHINE_SYMBOL_POOL : SLOT_MACHINE_FALLBACK_SYMBOLS;
+  }
+
+  function drawSlotMachineSymbol() {
+    const pool = getSlotMachineSymbolPool();
+    const symbol = pool[Math.floor(Math.random() * pool.length)];
+    return {
+      id: symbol.id,
+      label: symbol.label || symbol.id,
+      emoji: symbol.emoji || symbol.id,
+      emojiUrl: symbol.emojiUrl || symbol.url || null
+    };
+  }
+
+  function ensureSlotMachineState() {
+    if (!gameState.slot_machine) {
+      gameState.slot_machine = {
+        enabled: true,
+        schedule_questions: [4, 9, 14],
+        schedule_version: 'question_numbers',
+        entry_duration_ms: gameState.hot_seat_entry_duration || 60000,
+        max_points: 25,
+        current_round: null,
+        last_round_result: null,
+        round_count: 0
+      };
+    }
+
+    const defaultSchedule = [4, 9, 14].filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value));
+    let schedule = Array.isArray(gameState.slot_machine.schedule_questions)
+      ? [...gameState.slot_machine.schedule_questions]
+      : [...defaultSchedule];
+
+    schedule = schedule
+      .map((value) => {
+        const numericValue = Number(value);
+        return Number.isFinite(numericValue) ? numericValue : null;
+      })
+      .filter((value) => value != null);
+
+    if (gameState.slot_machine.schedule_version !== 'question_numbers') {
+      schedule = schedule.map((value) => value + 1);
+      gameState.slot_machine.schedule_version = 'question_numbers';
+    }
+
+    schedule = schedule
+      .map((value) => Math.min(15, Math.max(1, Math.round(value))))
+      .filter((value) => !Number.isNaN(value));
+
+    if (!schedule.length) {
+      schedule = [...defaultSchedule];
+    }
+
+    let normalizedSchedule = Array.from(new Set(schedule))
+      .filter((value) => !SLOT_MACHINE_BLOCKED_QUESTIONS.has(value))
+      .sort((a, b) => a - b);
+
+    if (!normalizedSchedule.length) {
+      normalizedSchedule = [...defaultSchedule];
+    }
+
+    gameState.slot_machine.schedule_questions = normalizedSchedule;
+
+    const configuredDuration = Number(gameState.slot_machine.entry_duration_ms);
+    const fallbackDuration = Number(gameState.hot_seat_entry_duration) || 60000;
+    gameState.slot_machine.entry_duration_ms = Number.isFinite(configuredDuration) && configuredDuration > 0
+      ? configuredDuration
+      : fallbackDuration;
+
+    const configuredMaxPoints = Number(gameState.slot_machine.max_points);
+    gameState.slot_machine.max_points = Number.isFinite(configuredMaxPoints) && configuredMaxPoints > 0
+      ? configuredMaxPoints
+      : 25;
+
+    gameState.slot_machine.round_count = gameState.slot_machine.round_count || 0;
+  }
+
+  function broadcastSlotMachineEvent(event, payload = {}) {
+    broadcastToClients({
+      type: 'slot_machine_event',
+      event,
+      timestamp: Date.now(),
+      data: payload
+    });
+  }
+
+  function cleanupSlotMachineRoundTimers(round) {
+    if (!round) return;
+    if (round.entry_interval) {
+      clearInterval(round.entry_interval);
+      round.entry_interval = null;
+    }
+    if (round.entry_timeout) {
+      clearTimeout(round.entry_timeout);
+      round.entry_timeout = null;
+    }
+    if (round.auto_spin_timeout) {
+      clearTimeout(round.auto_spin_timeout);
+      round.auto_spin_timeout = null;
+    }
+  }
+
+  function startSlotMachineEntryRound(questionIndex) {
   ensureSlotMachineState();
 
   if (!gameState.slot_machine.enabled) {
@@ -5172,17 +5680,9 @@ function spinSlotMachineRound(source = 'system') {
   broadcastState(true);
 
   setTimeout(() => {
-    const roundNumber = (gameState.slot_machine.round_count || 0) + 1;
-    const shouldForceJackpot = !round.is_test_round && round.entries.length > 0 && roundNumber % 2 === 0;
-    let symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
+    const symbols = Array.from({ length: 3 }).map(() => drawSlotMachineSymbol());
     const firstSymbol = symbols[0];
-    let jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
-
-    if (shouldForceJackpot && !jackpot) {
-      const forcedSymbol = firstSymbol || drawSlotMachineSymbol();
-      symbols = [forcedSymbol, forcedSymbol, forcedSymbol];
-      jackpot = true;
-    }
+    const jackpot = symbols.every((symbol) => symbol.id === firstSymbol.id);
     let perParticipantPoints = 0;
     let totalAwardedPoints = 0;
 
@@ -5226,9 +5726,7 @@ function spinSlotMachineRound(source = 'system') {
       ...resultPayload,
       timestamp: Date.now()
     };
-    if (!round.is_test_round) {
-      gameState.slot_machine.round_count = roundNumber;
-    }
+    gameState.slot_machine.round_count = (gameState.slot_machine.round_count || 0) + 1;
 
     broadcastSlotMachineEvent('result', resultPayload);
     broadcastState(true);
@@ -5295,313 +5793,78 @@ function triggerSlotMachineTestSpin() {
   }, 1000);
 }
 
-function broadcastHotSeatCountdown(remaining, options = {}) {
-  broadcastToClients({
-    type: 'hot_seat_countdown',
-    user: gameState.hot_seat_user,
-    remaining,
-    total: gameState.hot_seat_prestart_total,
-    questionNumber: gameState.current_question + 1,
-    go: options.go === true,
-    timestamp: Date.now()
-  });
-}
-
-function startHotSeatCountdown(countdownSeconds) {
-  if (!gameState.hot_seat_active) {
-    return;
-  }
-
-  if (gameState.hot_seat_prestart_interval) {
-    clearInterval(gameState.hot_seat_prestart_interval);
-    gameState.hot_seat_prestart_interval = null;
-  }
-
-  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
-  gameState.hot_seat_prestart_seconds = seconds;
-  gameState.hot_seat_prestart_total = seconds;
-  gameState.hot_seat_countdown_started = true;
-
-  broadcastHotSeatCountdown(seconds);
-
-  if (seconds === 0) {
-    gameState.hot_seat_timer_pending_start = false;
-    gameState.hot_seat_countdown_started = false;
-    startHotSeatTimer();
-    return;
-  }
-
-  gameState.hot_seat_prestart_interval = setInterval(() => {
-    gameState.hot_seat_prestart_seconds = Math.max(0, gameState.hot_seat_prestart_seconds - 1);
-
-    if (gameState.hot_seat_prestart_seconds > 0) {
-      broadcastHotSeatCountdown(gameState.hot_seat_prestart_seconds);
-      return;
-    }
-
-    clearInterval(gameState.hot_seat_prestart_interval);
-    gameState.hot_seat_prestart_interval = null;
-    broadcastHotSeatCountdown(0, { go: true });
-    gameState.hot_seat_timer_pending_start = false;
-    gameState.hot_seat_countdown_started = false;
-    startHotSeatTimer();
-  }, 1000);
-}
-
-function queueHotSeatCountdown(countdownSeconds) {
-  if (gameState.hot_seat_prestart_interval) {
-    clearInterval(gameState.hot_seat_prestart_interval);
-    gameState.hot_seat_prestart_interval = null;
-  }
-
-  const seconds = Math.max(0, Math.round(Number(countdownSeconds) || 0));
-  gameState.hot_seat_prestart_seconds = seconds;
-  gameState.hot_seat_prestart_total = seconds;
-  gameState.hot_seat_timer_pending_start = true;
-  gameState.hot_seat_countdown_started = false;
-
-  triggerHotSeatCountdownIfReady();
-}
-
-function triggerHotSeatCountdownIfReady() {
-  if (!gameState.hot_seat_active || !gameState.hot_seat_timer_pending_start) {
-    return false;
-  }
-
-  if (gameState.hot_seat_countdown_started) {
-    return false;
-  }
-
-  if (!gameState.question_visible) {
-    return false;
-  }
-
-  startHotSeatCountdown(gameState.hot_seat_prestart_seconds || 0);
-  return true;
-}
-
-function initializeHotSeatSession(selectedUsers, options = {}) {
-  const uniqueUsers = Array.from(new Set((selectedUsers || []).filter(Boolean)));
-
-  if (uniqueUsers.length === 0) {
-    console.warn('⚠️ HOT SEAT activation skipped - no valid users provided');
-    return false;
-  }
-
-  const selectionMethod = options.selectionMethod || 'manual';
-  const primaryUser = uniqueUsers[0];
-  const timerDuration = Number.isFinite(options.timer) ? options.timer : 60;
-  const countdownSeconds = Number.isFinite(options.countdownSeconds)
-    ? Math.max(0, Math.round(options.countdownSeconds))
-    : 3;
-
-  // End any lingering entry countdown now that a session is beginning
-  if (gameState.hot_seat_entry_timer_interval) {
-    clearInterval(gameState.hot_seat_entry_timer_interval);
-    gameState.hot_seat_entry_timer_interval = null;
-  }
-  gameState.hot_seat_entry_active = false;
-  gameState.hot_seat_entry_lookup = new Set();
-
-  gameState.hot_seat_active = true;
-  gameState.hot_seat_users = uniqueUsers;
-  gameState.hot_seat_user = primaryUser;
-  gameState.hot_seat_timer = timerDuration;
-  gameState.hot_seat_answered = false;
-  gameState.hot_seat_answer = null;
-  gameState.hot_seat_correct = null;
-
-  console.log(`🔥 HOT SEAT ACTIVATED for user: ${primaryUser} (Method: ${selectionMethod})`);
-  if (uniqueUsers.length > 1) {
-    console.log(`👥 Additional hot seat participants: ${uniqueUsers.slice(1).join(', ')}`);
-  }
-  console.log(`⏱️ ${primaryUser} has ${timerDuration} seconds to submit their answer`);
-
-  const primaryProfile = getHotSeatProfile(primaryUser);
-  if (primaryProfile && primaryProfile.storyHtml) {
-    console.log(`🧾 Found uploaded profile for hot seat player ${primaryUser}`);
-  }
-
-  const alternateProfiles = uniqueUsers
-    .slice(1)
-    .map(username => ({ username, profile: getHotSeatProfile(username) }))
-    .filter(entry => entry.profile && entry.profile.storyHtml);
-
-  if (gameState.audience_poll_active) {
-    console.log('🔕 Audience poll disabled while hot seat is active');
-    gameState.audience_poll_active = false;
-  }
-
-  uniqueUsers.forEach(user => {
-    addPointsToPlayer(user, leaderboardSettings.points.hot_seat_selected, 'selected for hot seat! 🔥');
-    ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-      const player = initializePlayerInLeaderboard(user, period);
-      player.hot_seat_appearances++;
-    });
-  });
-
-  queueHotSeatCountdown(countdownSeconds);
-
-  broadcastToClients({
-    type: 'hot_seat_activated',
-    user: primaryUser,
-    users: uniqueUsers,
-    timer: timerDuration,
-    questionNumber: gameState.current_question + 1,
-    message: options.message || `Hot seat activated for: ${uniqueUsers.join(', ')}`,
-    selectionMethod,
-    countdown: countdownSeconds,
-    profile: primaryProfile || null,
-    alternateProfiles: alternateProfiles.length > 0 ? alternateProfiles : undefined,
-    timestamp: Date.now()
-  });
-
-  return true;
-}
-
-// Draw winners from hot seat entries
-function drawHotSeatWinners() {
-  console.log(`🎲 Drawing ${gameState.hot_seat_winner_count} hot seat winner(s) from ${gameState.hot_seat_entries.length} entries`);
-
-  if (gameState.hot_seat_entries.length === 0) {
-    console.log('⚠️ No entries to draw from');
-    return false;
-  }
-
-  const shuffled = [...gameState.hot_seat_entries].sort(() => Math.random() - 0.5);
-  const winnerCount = Math.min(gameState.hot_seat_winner_count, shuffled.length);
-  const winners = shuffled.slice(0, winnerCount);
-
-  console.log(`🎯 Hot seat winners selected: ${winners.join(', ')}`);
-
-  gameState.hot_seat_entries = [];
-  gameState.hot_seat_entry_lookup = new Set();
-  gameState.hot_seat_entry_active = false;
-
-  return initializeHotSeatSession(winners, {
-    selectionMethod: 'join_entry',
-    message: `Hot seat activated for: ${winners.join(', ')}`,
-    countdownSeconds: 3
-  });
-}
-
-function selectHotSeatUser(manualUsername = null) {
-  console.log('🎯 Selecting hot seat user...');
-  console.log(`📊 Current participants count: ${gameState.gameshow_participants.length}`);
-
-  let selectedUser = manualUsername;
-  let selectionMethod = manualUsername ? 'manual' : 'participants';
-
-  if (!selectedUser && gameState.gameshow_participants.length > 0) {
-    const randomIndex = Math.floor(Math.random() * gameState.gameshow_participants.length);
-    selectedUser = gameState.gameshow_participants[randomIndex];
-    console.log(`✅ Selected from ${gameState.gameshow_participants.length} active participants`);
-  }
-
-  if (!selectedUser && recentChatMessages.length > 0) {
-    console.log('⚠️ No voting participants yet, checking recent chat users...');
-    const uniqueChatUsers = [...new Set(recentChatMessages.map(msg => msg.username))];
-    if (uniqueChatUsers.length > 0) {
-      const randomIndex = Math.floor(Math.random() * uniqueChatUsers.length);
-      selectedUser = uniqueChatUsers[randomIndex];
-      selectionMethod = 'recent_chat';
-      console.log(`✅ Selected from ${uniqueChatUsers.length} recent chat users`);
-    }
-  }
-
-  if (!selectedUser && gameState.poll_voter_history && gameState.poll_voter_history.length > 0) {
-    console.log('⚠️ No chat users found, checking poll voter history...');
-    const randomIndex = Math.floor(Math.random() * gameState.poll_voter_history.length);
-    selectedUser = gameState.poll_voter_history[randomIndex];
-    selectionMethod = 'poll_history';
-    console.log(`🗳️ Selected from ${gameState.poll_voter_history.length} previous poll voters`);
-  }
-
-  if (!selectedUser) {
-    console.warn('⚠️ HOT SEAT SKIPPED - No real participants available');
-    console.log(`📊 Participant sources checked:`);
-    console.log(`   - Active participants: ${gameState.gameshow_participants.length}`);
-    console.log(`   - Recent chat users: ${recentChatMessages.length > 0 ? [...new Set(recentChatMessages.map(msg => msg.username))].length : 0}`);
-    console.log(`   - Poll voter history: ${gameState.poll_voter_history ? gameState.poll_voter_history.length : 0}`);
-    console.log('💡 Hot seat will activate when real participants join the game');
-
-    broadcastToClients({
-      type: 'hot_seat_skipped',
-      reason: 'Waiting for real participants',
-      questionNumber: gameState.current_question + 1,
-      timestamp: Date.now()
-    });
-
-    return false;
-  }
-
-  return initializeHotSeatSession([selectedUser], {
-    selectionMethod,
-    countdownSeconds: 3
-  });
-}
-
-function startHotSeatTimer() {
-  if (!gameState.hot_seat_active) {
-    return;
-  }
-
-  if (gameState.hot_seat_prestart_interval) {
-    clearInterval(gameState.hot_seat_prestart_interval);
-    gameState.hot_seat_prestart_interval = null;
-  }
-
-  gameState.hot_seat_timer_pending_start = false;
-  gameState.hot_seat_countdown_started = false;
-  gameState.hot_seat_prestart_seconds = 0;
-  gameState.hot_seat_prestart_total = 0;
-
+function startHotSeatTimer(profileHoldMs = (typeof gameState.hot_seat_profile_hold_ms === 'number'
+  ? gameState.hot_seat_profile_hold_ms
+  : 0)) {
+  // Clear any existing timer or pending start
   if (gameState.hot_seat_timer_interval) {
     clearInterval(gameState.hot_seat_timer_interval);
-    gameState.hot_seat_timer_interval = null;
   }
 
-  gameState.hot_seat_timer_interval = setInterval(() => {
-    gameState.hot_seat_timer--;
-    
-    // Broadcast timer update every 5 seconds and at critical moments
-    if (gameState.hot_seat_timer % 5 === 0 || gameState.hot_seat_timer <= 10) {
-      broadcastToClients({
-        type: 'hot_seat_timer_update',
-        timer: gameState.hot_seat_timer,
-        user: gameState.hot_seat_user
-      });
-    }
-    
-    // Time's up!
-    if (gameState.hot_seat_timer <= 0) {
-      clearInterval(gameState.hot_seat_timer_interval);
-      gameState.hot_seat_timer_interval = null;
-      
-      console.log(`⏰ TIME'S UP! ${gameState.hot_seat_user} did not answer in time`);
-      
-      // Log the timeout as incorrect
-      const logEntry = {
-        question: gameState.current_question + 1,
-        user: gameState.hot_seat_user,
-        answer: null,
-        correct: false,
-        timeout: true,
-        timestamp: Date.now()
-      };
-      gameState.hot_seat_history.push(logEntry);
-      
-      // Broadcast timeout
-      broadcastToClients({
-        type: 'hot_seat_timeout',
-        user: gameState.hot_seat_user,
-        questionNumber: gameState.current_question + 1
-      });
-      
-      // Deactivate hot seat
-      endHotSeat(false, true);
-    }
-  }, 1000);
+  if (gameState.hot_seat_timer_start_timeout) {
+    clearTimeout(gameState.hot_seat_timer_start_timeout);
+    gameState.hot_seat_timer_start_timeout = null;
+  }
+
+  const beginTimer = () => {
+    // Broadcast the starting value so clients render 60s when the timer actually begins
+    broadcastToClients({
+      type: 'hot_seat_timer_update',
+      timer: gameState.hot_seat_timer,
+      user: gameState.hot_seat_user
+    });
+
+    gameState.hot_seat_timer_interval = setInterval(() => {
+      gameState.hot_seat_timer--;
+
+      // Broadcast timer update every 5 seconds and at critical moments
+      if (gameState.hot_seat_timer % 5 === 0 || gameState.hot_seat_timer <= 10) {
+        broadcastToClients({
+          type: 'hot_seat_timer_update',
+          timer: gameState.hot_seat_timer,
+          user: gameState.hot_seat_user
+        });
+      }
+
+      // Time's up!
+      if (gameState.hot_seat_timer <= 0) {
+        clearInterval(gameState.hot_seat_timer_interval);
+        gameState.hot_seat_timer_interval = null;
+
+        console.log(`⏰ TIME'S UP! ${gameState.hot_seat_user} did not answer in time`);
+
+        // Log the timeout as incorrect
+        const logEntry = {
+          question: gameState.current_question + 1,
+          user: gameState.hot_seat_user,
+          answer: null,
+          correct: false,
+          timeout: true,
+          timestamp: Date.now()
+        };
+        gameState.hot_seat_history.push(logEntry);
+
+        // Broadcast timeout
+        broadcastToClients({
+          type: 'hot_seat_timeout',
+          user: gameState.hot_seat_user,
+          questionNumber: gameState.current_question + 1
+        });
+
+        // Deactivate hot seat
+        endHotSeat(false, true);
+      }
+    }, 1000);
+  };
+
+  if (profileHoldMs > 0) {
+    gameState.hot_seat_timer_start_timeout = setTimeout(() => {
+      gameState.hot_seat_timer_start_timeout = null;
+      beginTimer();
+    }, profileHoldMs);
+  } else {
+    beginTimer();
+  }
 }
 
 function processHotSeatAnswer(username, answer) {
@@ -5634,11 +5897,8 @@ function processHotSeatAnswer(username, answer) {
     return false;
   }
   
-  // Stop the timer
-  if (gameState.hot_seat_timer_interval) {
-    clearInterval(gameState.hot_seat_timer_interval);
-    gameState.hot_seat_timer_interval = null;
-  }
+  // Stop the timer once the hot seat player answers
+  stopHotSeatCountdown('hot_seat_player_answer');
   
   // Record the answer
   gameState.hot_seat_answered = true;
@@ -5691,16 +5951,21 @@ function endHotSeat(wasCorrect = null, timeout = false) {
     gameState.hot_seat_timer_interval = null;
   }
 
+  if (gameState.hot_seat_timer_start_timeout) {
+    clearTimeout(gameState.hot_seat_timer_start_timeout);
+    gameState.hot_seat_timer_start_timeout = null;
+  }
+
   if (gameState.hot_seat_prestart_interval) {
     clearInterval(gameState.hot_seat_prestart_interval);
     gameState.hot_seat_prestart_interval = null;
   }
 
   gameState.hot_seat_timer_pending_start = false;
-  gameState.hot_seat_countdown_started = false;
   gameState.hot_seat_prestart_seconds = 0;
   gameState.hot_seat_prestart_total = 0;
-
+  gameState.hot_seat_countdown_started = false;
+  
   // Broadcast hot seat end
   broadcastToClients({
     type: 'hot_seat_ended',
@@ -5718,6 +5983,8 @@ function endHotSeat(wasCorrect = null, timeout = false) {
   gameState.hot_seat_answered = false;
   gameState.hot_seat_answer = null;
   gameState.hot_seat_correct = wasCorrect;
+  gameState.hot_seat_profile_hold_ms = 0;
+  gameState.hot_seat_spotlight_until = null;
   
   console.log('🔚 Hot seat mode ended');
 }
@@ -7387,6 +7654,7 @@ function resetGameStateWithCleanup() {
     clearInterval(gameState.hot_seat_entry_timer_interval);
     gameState.hot_seat_entry_timer_interval = null;
   }
+  gameState.hot_seat_spotlight_until = null;
   if (giveawayTimerInterval) {
     clearInterval(giveawayTimerInterval);
     giveawayTimerInterval = null;
@@ -7561,6 +7829,10 @@ function lockInAudienceChoice(showWinnerAnnouncement = true) {
       // Set the audience's choice AND lock it in
       gameState.selected_answer = answerIndex;
       gameState.answer_locked_in = true;
+
+      if (gameState.hot_seat_active) {
+        stopHotSeatCountdown('audience_choice_lock');
+      }
       
       console.log(`📡 DEBUG: Setting answer_locked_in = true, selected_answer = ${answerIndex} (${result.winner})`);
       
@@ -7598,6 +7870,10 @@ function lockInAudienceChoice(showWinnerAnnouncement = true) {
     gameState.answer_locked_in = true;
     gameState.audience_poll_active = false;
     gameState.show_voting_activity = false;
+
+    if (gameState.hot_seat_active) {
+      stopHotSeatCountdown('audience_choice_lock');
+    }
     
     // Play lock-in sound effect
     console.log('🎵 Broadcasting lock-in audio command for poll result');
@@ -8983,14 +9259,38 @@ async function handleAPI(req, res, pathname) {
     if (!gameState.answers_revealed) {
         console.warn(`⚠️ Cannot go to next question - current question answers not revealed yet`);
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ 
+        res.end(JSON.stringify({
             error: 'Cannot skip question - reveal answer for current question first',
             state: 'answers_not_revealed',
             current_question: gameState.current_question + 1
         }));
         return;
     }
-    
+
+    if (gameState.hot_seat_spotlight_until) {
+        const now = Date.now();
+        if (now < gameState.hot_seat_spotlight_until) {
+            const remainingSeconds = Math.ceil((gameState.hot_seat_spotlight_until - now) / 1000);
+            console.warn(`⚠️ Cannot advance - hot seat spotlight hold has ${remainingSeconds} second(s) remaining`);
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({
+                error: 'Hot seat spotlight delay active',
+                state: 'hot_seat_spotlight',
+                remaining_seconds: remainingSeconds
+            }));
+            return;
+        }
+
+        console.log('✅ Hot seat spotlight delay satisfied - resuming question flow');
+        gameState.hot_seat_spotlight_until = null;
+    }
+
+    // Always clear hot seat mode when advancing, even if timer time remains
+    if (gameState.hot_seat_active) {
+        stopHotSeatCountdown('next_question');
+        endHotSeat(gameState.hot_seat_correct, false);
+    }
+
     if (gameState.current_question < questions.length - 1) {
         // Track game flow metrics
         performanceMetrics.gameFlow.questionTransitions++;
@@ -9333,28 +9633,42 @@ async function handleAPI(req, res, pathname) {
             console.log('Answer revealed - state updated');
             
             // Check if hot seat mode is active and log the result
-            if (gameState.hot_seat_active && gameState.hot_seat_answered) {
+            if (gameState.hot_seat_active) {
               const currentQuestion = questions[gameState.current_question];
-              const isCorrect = gameState.selected_answer === currentQuestion.correct;
-              gameState.hot_seat_correct = isCorrect;
-              
-              // LEADERBOARD: Award hot seat points
-              if (isCorrect) {
-                addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_correct, 'hot seat correct answer! 🎯');
-                
-                // Quick response bonus
-                if (gameState.hot_seat_timer > 50) {
-                  addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_quick, 'hot seat quick response! ⚡');
+              const hostLockedAnswer = gameState.selected_answer !== null && gameState.selected_answer !== undefined;
+              const hotSeatHasAnswer = gameState.hot_seat_answered || hostLockedAnswer;
+
+              if (hotSeatHasAnswer) {
+                if (!gameState.hot_seat_answered && hostLockedAnswer) {
+                  gameState.hot_seat_answered = true;
+                  gameState.hot_seat_answer = gameState.selected_answer;
                 }
-                
-                // Update hot seat correct stats
-                ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-                  const player = initializePlayerInLeaderboard(gameState.hot_seat_user, period);
-                  player.hot_seat_correct++;
-                });
+
+                const isCorrect = hostLockedAnswer && gameState.selected_answer === currentQuestion.correct;
+                gameState.hot_seat_correct = isCorrect;
+
+                // LEADERBOARD: Award hot seat points
+                if (isCorrect) {
+                  addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_correct, 'hot seat correct answer! 🎯');
+
+                  // Quick response bonus
+                  if (gameState.hot_seat_timer > 50) {
+                    addPointsToPlayer(gameState.hot_seat_user, leaderboardSettings.points.hot_seat_quick, 'hot seat quick response! ⚡');
+                  }
+
+                  // Update hot seat correct stats
+                  ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
+                    const player = initializePlayerInLeaderboard(gameState.hot_seat_user, period);
+                    player.hot_seat_correct++;
+                  });
+                }
+
+                endHotSeat(isCorrect, false);
+              } else {
+                // No hot seat answer was given before reveal; end mode and reset timers
+                stopHotSeatCountdown('answer_revealed');
+                endHotSeat(null, false);
               }
-              
-              endHotSeat(isCorrect, false);
             }
             
             // LEADERBOARD: Process voting results and award points
@@ -9692,6 +10006,10 @@ async function handleAPI(req, res, pathname) {
             if (gameState.audience_poll_active || isRevote) {
               gameState.answer_locked_in = true;
               console.log(`🔒 Auto-locked answer ${selectedLetter} due to manual host selection during ${isRevote ? 'revote' : 'polling'}`);
+
+              if (gameState.hot_seat_active) {
+                stopHotSeatCountdown('host_selection_auto_lock');
+              }
             }
             
             if (isRevote) {
@@ -9772,6 +10090,10 @@ async function handleAPI(req, res, pathname) {
             
             const wasLocked = gameState.answer_locked_in;
             gameState.answer_locked_in = true; // Always lock, don't toggle
+
+            if (gameState.hot_seat_active) {
+              stopHotSeatCountdown('host_lock');
+            }
             const isRevoteActive = gameState.is_revote_active;
             const currentSelectedLetter = gameState.selected_answer !== null ? 
               String.fromCharCode(65 + gameState.selected_answer) : 'NONE';
@@ -10466,19 +10788,43 @@ async function handleAPI(req, res, pathname) {
 
           case 'upload_hot_seat_profiles': {
             const profilesPayload = data.profiles || {};
-            const sanitizedProfiles = buildHotSeatProfileMap(profilesPayload);
+            const { profiles: sanitizedProfiles, errors: profileErrors } = buildHotSeatProfileMap(profilesPayload);
             const profileCount = Object.keys(sanitizedProfiles).length;
+
+            if (profileCount === 0) {
+              const errorMessage = profileErrors.length > 0
+                ? profileErrors.join('; ')
+                : 'No valid hot seat profiles were found in the upload.';
+
+              console.warn(`⚠️ Hot seat profile upload rejected: ${errorMessage}`);
+
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({
+                success: false,
+                error: errorMessage,
+                errors: profileErrors
+              }));
+              return;
+            }
 
             gameState.hot_seat_profiles = sanitizedProfiles;
             gameState.hot_seat_profiles_last_update = Date.now();
 
             console.log(`📝 Loaded ${profileCount} hot seat profile${profileCount === 1 ? '' : 's'} from control panel upload`);
+            if (profileErrors.length > 0) {
+              console.log(`ℹ️ ${profileErrors.length} profile warning(s): ${profileErrors.slice(0, 3).join('; ')}${profileErrors.length > 3 ? '...' : ''}`);
+            }
+
+            // Immediately broadcast the refreshed state so overlays can render the uploaded stories
+            // without waiting for another state-changing action (e.g., next question).
+            broadcastState();
 
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
               success: true,
               count: profileCount,
-              lastUpdate: gameState.hot_seat_profiles_last_update
+              lastUpdate: gameState.hot_seat_profiles_last_update,
+              errors: profileErrors
             }));
             return;
           }
@@ -11196,6 +11542,10 @@ async function handleAPI(req, res, pathname) {
             const answerIndex = ['A', 'B', 'C', 'D'].indexOf(selectedAnswer);
             gameState.selected_answer = answerIndex;
             gameState.answer_locked_in = true;
+
+            if (gameState.hot_seat_active) {
+              stopHotSeatCountdown('poll_tie_break');
+            }
             
             // Broadcast the resolution
             broadcastToClients({

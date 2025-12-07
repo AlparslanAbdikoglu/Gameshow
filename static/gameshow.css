@@ -3261,7 +3261,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 28px;
+    padding: 32px;
     box-sizing: border-box;
 }
 
@@ -3274,9 +3274,9 @@ body {
 
 .credits-content {
     width: 100%;
-    max-width: 760px;
+    max-width: 720px;
     text-align: center;
-    padding: 24px 28px;
+    padding: 28px 32px;
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.4), rgba(0, 20, 60, 0.65));
     backdrop-filter: blur(24px);
     border-radius: 22px;
@@ -3287,9 +3287,8 @@ body {
     align-items: center;
     gap: 18px;
     box-sizing: border-box;
-    max-height: calc(100vh - 96px);
-    overflow-y: auto;
-    overflow-x: hidden;
+    max-height: calc(100vh - 80px);
+    overflow: hidden;
 }
 
 #credits-overlay.credits-roll-active .credits-content {
@@ -3301,7 +3300,7 @@ body {
 }
 
 .credits-title {
-    font-size: 36px;
+    font-size: 40px;
     font-weight: bold;
     color: #FFD700;
     text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.7);
@@ -3310,7 +3309,7 @@ body {
 }
 
 .credits-subtitle {
-    font-size: 18px;
+    font-size: 20px;
     color: #FFF;
     margin-top: 10px;
     opacity: 0.9;
@@ -3321,63 +3320,8 @@ body {
     width: 100%;
 }
 
-.credits-winners-section {
-    padding: 14px 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 215, 0, 0.25);
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 140, 0, 0.15));
-    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
-}
-
-.credits-winners {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-}
-
-.credits-winner {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 14px;
-    font-size: 26px;
-    font-weight: 800;
-    color: #FFFFFF;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-.credits-winner-rank {
-    font-size: 28px;
-    color: #FFD700;
-    min-width: 96px;
-    text-align: left;
-    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-}
-
-.credits-winner-name {
-    font-size: 26px;
-    color: #FFFFFF;
-    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
-}
-
-.credits-winner-points {
-    font-size: 20px;
-    color: rgba(255, 215, 0, 0.9);
-    font-weight: 700;
-    text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-}
-
-.credits-winner-placeholder {
-    font-size: 18px;
-    color: rgba(255, 255, 255, 0.75);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-}
-
 .credits-section-title {
-    font-size: 24px;
+    font-size: 26px;
     color: rgba(255, 215, 0, 0.9);
     margin-bottom: 20px;
     text-transform: uppercase;
@@ -3386,10 +3330,11 @@ body {
 
 .credits-participants {
     min-height: 180px;
-    height: clamp(220px, 38vh, 320px);
+    height: clamp(220px, 42vh, 320px);
     display: block;
     overflow: hidden;
     position: relative;
+    padding: 8px 0;
     mask-image: linear-gradient(to bottom,
         transparent 0%,
         black 20%,
@@ -3405,11 +3350,11 @@ body {
 .credits-name-container {
     position: absolute;
     width: 100%;
-    animation: scrollUp 45s linear;
+    animation: scrollUp 60s linear;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 16px;
 }
 
 .credits-name {
@@ -3423,11 +3368,11 @@ body {
 }
 
 .credits-footer {
-    margin-top: 20px;
+    margin-top: 16px;
 }
 
 .credits-message {
-    font-size: 18px;
+    font-size: 20px;
     color: rgba(255, 215, 0, 0.9);
     font-style: italic;
 }
@@ -3457,10 +3402,10 @@ body {
 
 @keyframes scrollUp {
     0% {
-        transform: translateY(200px);
+        transform: translateY(160px);
     }
     100% {
-        transform: translateY(calc(-100% - 200px));
+        transform: translateY(calc(-100% - 180px));
     }
 }
 /* Hot Seat Display Styles */
@@ -3753,10 +3698,11 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-card {
+    position: relative;
     background: linear-gradient(135deg, rgba(0, 43, 92, 0.95), rgba(0, 22, 60, 0.92));
     border: 2px solid rgba(255, 160, 0, 0.65);
     border-radius: 24px;
-    padding: 38px 48px;
+    padding: 32px 48px 30px;
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65);
     max-width: 560px;
     width: min(90%, 560px);
@@ -3766,8 +3712,24 @@ body.hot-seat-active .hot-seat-display.active {
     pointer-events: auto;
 }
 
+.hot-seat-profile-countdown {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 215, 0, 0.65);
+    border-radius: 12px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: #ffe082;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
 .hot-seat-profile-overlay.show .hot-seat-profile-card {
-    transform: translateY(0);
+    transform: translateY(-20px);
     box-shadow: 0 40px 100px rgba(255, 120, 0, 0.35);
 }
 
@@ -3799,10 +3761,10 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-blurb {
-    font-size: 18px;
+    font-size: 20px;
     color: rgba(255, 255, 255, 0.92);
     margin-top: 16px;
-    line-height: 1.5;
+    line-height: 1.65;
 }
 
 .hot-seat-profile-divider {
@@ -3813,9 +3775,9 @@ body.hot-seat-active .hot-seat-display.active {
 }
 
 .hot-seat-profile-story {
-    font-size: 18px;
+    font-size: 32px;
     color: rgba(255, 255, 255, 0.9);
-    line-height: 1.6;
+    line-height: 1.8;
     display: flex;
     flex-direction: column;
     gap: 12px;
