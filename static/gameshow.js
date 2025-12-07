@@ -6162,8 +6162,18 @@ function renderLeaderboardEntries(players, period) {
         return;
     }
     
-    // Sort players by points (descending)
+    // Sort players using server-provided display ranks when available to keep ignored winners
+    // beneath eligible placements. Fallback to points for legacy periods.
     const sortedPlayers = [...players].sort((a, b) => {
+        const rankA = typeof a.displayRank === 'number' ? a.displayRank : null;
+        const rankB = typeof b.displayRank === 'number' ? b.displayRank : null;
+
+        if (rankA !== null && rankB !== null) {
+            return rankA - rankB;
+        }
+        if (rankA !== null) return -1;
+        if (rankB !== null) return 1;
+
         const pointsA = a.points || a.total_points || 0;
         const pointsB = b.points || b.total_points || 0;
         return pointsB - pointsA;
@@ -6176,10 +6186,13 @@ function renderLeaderboardEntries(players, period) {
     sortedPlayers.forEach((player, index) => {
         const entry = document.createElement('div');
         entry.className = 'leaderboard-entry';
-        
+
+        // Create rank display
+        const displayRank = typeof player.displayRank === 'number' ? player.displayRank : index + 1;
+
         // Add special class for top 3
-        if (index < 3) {
-            entry.classList.add(`rank-${index + 1}`);
+        if (displayRank <= 3) {
+            entry.classList.add(`rank-${displayRank}`);
         }
         
         // Get points value (handle different data structures)
@@ -6190,12 +6203,11 @@ function renderLeaderboardEntries(players, period) {
         // Format points with commas
         const formattedPoints = points.toLocaleString();
         
-        // Create rank display
         let rankDisplay = '';
-        if (index === 0) rankDisplay = '🥇';
-        else if (index === 1) rankDisplay = '🥈';
-        else if (index === 2) rankDisplay = '🥉';
-        else rankDisplay = `#${index + 1}`;
+        if (displayRank === 1) rankDisplay = '🥇';
+        else if (displayRank === 2) rankDisplay = '🥈';
+        else if (displayRank === 3) rankDisplay = '🥉';
+        else rankDisplay = `#${displayRank}`;
         
         entry.innerHTML = `
             <div class="leaderboard-rank">${rankDisplay}</div>
