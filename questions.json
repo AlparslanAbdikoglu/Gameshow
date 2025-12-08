@@ -3,10 +3,10 @@
     "number": 1,
     "text": "What is the main purpose of Coinwise for traders?",
     "answers": [
-      "To provide gaming tournaments",
-      "To offer structured trading education & tools",
       "To replace crypto exchanges",
-      "To predict the next meme coin"
+      "To offer structured trading education & tools",
+      "To predict the next meme coin",
+      "To provide gaming tournaments"
     ],
     "correct": 1
   },
@@ -14,10 +14,10 @@
     "number": 2,
     "text": "Which module on Coinwise teaches core concepts like candlestick basics and structure?",
     "answers": [
-      "Strategy Lab",
-      "Beginner Lessons",
       "Market Journal",
-      "Quiz Arena"
+      "Beginner Lessons",
+      "Quiz Arena",
+      "Strategy Lab"
     ],
     "correct": 1
   },
@@ -36,10 +36,10 @@
     "number": 4,
     "text": "What market behavior is most common right before an FOMC rate decision?",
     "answers": [
-      "Extremely predictable trends",
+      "Guaranteed dump",
       "Low volatility and consolidation as traders wait",
       "Guaranteed pump",
-      "Guaranteed dump"
+      "Extremely predictable trends"
     ],
     "correct": 1
   },
@@ -47,121 +47,121 @@
     "number": 5,
     "text": "What do traders primarily look for in the FOMC statement?",
     "answers": [
-      "New crypto regulations",
       "Hints about future interest rate policy",
+      "Exchange maintenance windows",
       "NFT market performance",
-      "Exchange maintenance windows"
+      "New crypto regulations"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 6,
     "text": "What does Coinwise emphasize as the foundation for consistent improvement?",
     "answers": [
       "Watching 100 indicators",
-      "Copying whales",
       "Developing strong psychology",
-      "Trading during low liquidity only"
+      "Trading during low liquidity only",
+      "Copying whales"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 7,
     "text": "How does a rate hike from the FOMC typically impact risk-on assets like crypto in the short term?",
     "answers": [
       "Strong immediate pump",
-      "Usually increased selling pressure",
+      "No effect at all",
       "Guaranteed sideways movement",
-      "No effect at all"
+      "Usually increased selling pressure"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 8,
     "text": "Why does volatility often spike during the exact minute of an FOMC announcement?",
     "answers": [
       "Exchanges manipulate price",
+      "Traders stop using stop-losses",
       "All indicators reset",
-      "Liquidity thins and algorithmic trading reacts instantly",
-      "Traders stop using stop-losses"
+      "Liquidity thins and algorithmic trading reacts instantly"
     ],
-    "correct": 2
+    "correct": 3
   },
   {
     "number": 9,
     "text": "When price consolidates tightly below resistance, what does it often signal?",
     "answers": [
       "A guaranteed crash",
-      "A potential breakout",
       "Market inactivity",
-      "Trend reversal confirmed"
+      "Trend reversal confirmed",
+      "A potential breakout"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 10,
     "text": "What is the main function of Open Interest?",
     "answers": [
-      "Displays exchange fees",
       "Shows new long/short positions entering the market",
-      "Measures chart patterns",
-      "Tracks funding rates only"
+      "Displays exchange fees",
+      "Tracks funding rates only",
+      "Measures chart patterns"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 11,
     "text": "What is the psychological bias where traders hold losing positions hoping they recover?",
     "answers": [
-      "FOMO",
-      "Anchoring",
       "Confirmation bias",
-      "Scalping bias"
+      "Scalping bias",
+      "Anchoring",
+      "FOMO"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 12,
     "text": "What is the purpose of backtesting a strategy?",
     "answers": [
-      "To guarantee future wins",
       "To see how a strategy performs on historical data",
+      "To adjust leverage settings",
       "To find the best meme coin",
-      "To adjust leverage settings"
+      "To guarantee future wins"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 13,
     "text": "Which Coinwise feature gives users structured knowledge checks after lessons?",
     "answers": [
-      "Dashboard",
       "Quiz Arena",
-      "NFT viewer",
-      "Trading Hub"
+      "Trading Hub",
+      "Dashboard",
+      "NFT viewer"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 14,
     "text": "What does a clean break of structure (BOS) typically confirm?",
     "answers": [
+      "Price volatility is ending",
       "The trend has paused",
-      "A new trend direction is forming",
       "Market is neutral",
-      "Price volatility is ending"
+      "A new trend direction is forming"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 15,
     "text": "According to Coinwise risk management principles, what percentage per trade is recommended for beginners?",
     "answers": [
-      "20% risk",
-      "10% risk",
       "1–2% risk",
-      "Zero risk ever"
+      "10% risk",
+      "Zero risk ever",
+      "20% risk"
     ],
-    "correct": 2
+    "correct": 0
   }
 ]
