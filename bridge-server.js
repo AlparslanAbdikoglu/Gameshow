@@ -41,6 +41,16 @@ const performanceMetrics = {
   }
 };
 
+// Track server health metrics (used by WebSocket handlers and monitoring)
+let serverHealth = {
+  startTime: Date.now(),
+  crashCount: 0,
+  lastCrash: null,
+  memoryWarnings: 0,
+  connectionCount: 0,
+  lastHeartbeat: Date.now()
+};
+
 // Function to track vote processing performance
 function trackVoteProcessing(processingTime, rejected = false, duplicate = false) {
   performanceMetrics.lifeline.votesProcessed++;
@@ -11889,16 +11899,6 @@ server.listen(PORT, HOST, () => {
 
 // 🔒 CRITICAL ERROR HANDLING & SERVER REINFORCEMENT SYSTEM
 // ========================================================
-
-// Track server health metrics
-let serverHealth = {
-  startTime: Date.now(),
-  crashCount: 0,
-  lastCrash: null,
-  memoryWarnings: 0,
-  connectionCount: 0,
-  lastHeartbeat: Date.now()
-};
 
 // Enhanced Performance Monitoring System (using existing performanceMetrics)
 // Note: performanceMetrics is already defined earlier in the file at line 22
