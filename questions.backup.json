@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What’s the name of the other Kimba.tv Twitch channel?",
+    "text": "What is a common reason beginners misuse Fibonacci retracements?",
     "answers": [
-      "To the Balcony",
-      "Kimba IRL",
-      "Kimba Gaming",
-      "k1m6aMobile"
+      "Dragging from wick to candle body",
+      "Pulling it to the wrong direction",
+      "Using log scale incorrectly",
+      "Wrong colors"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 2,
-    "text": "Which feature was recently updated in the Kimba Dashboard related to NFTs?",
+    "text": "What’s a typical sign that retail is FOMOing?",
     "answers": [
-      "Minting is now free",
-      "Profile view now shows NFT rarity & rank",
-      "Automatic trading via NFTs",
-      "NFTs can be converted to DOGE"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 3,
-    "text": "Which indicator is mainly used to measure volume flow balance between buyers & sellers?",
-    "answers": [
-      "RSI",
-      "VWAP",
-      "OBV = On-Balance Volume",
-      "Delta / CVD"
+      "High borrow rate",
+      "Candle goes sideways",
+      "No liquidity",
+      "Sudden volume spikes"
     ],
     "correct": 3
   },
   {
-    "number": 4,
-    "text": "What happens when price strongly rejects from a key liquidity zone?",
+    "number": 3,
+    "text": "What’s the best indicator for new traders to start with if they interested in volume?",
     "answers": [
-      "Price often reverses rapidly due to absorption",
-      "TradingView closes automatically",
-      "All leverage is disabled",
-      "Chart switches to 1-second timeframe"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 5,
-    "text": "When was the last FOMC this year?",
-    "answers": [
-      "August 10th",
-      "October 29th",
-      "March 14th",
-      "December 8th"
+      "Order blocks",
+      "VWAP",
+      "MACD",
+      "EMA"
     ],
     "correct": 1
   },
   {
-    "number": 6,
-    "text": "When was the last stream from Kimba himself?",
+    "number": 4,
+    "text": "What is a common beginner mistake during breakouts?",
     "answers": [
-      "The end of August",
-      "Around September",
-      "February around Valentines Day",
-      "New Year’s Eve"
+      "Entering early",
+      "Entering late",
+      "Not setting stops",
+      "All of the above"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 5,
+    "text": "Which CoinWise quiz category focuses on mindset?",
+    "answers": [
+      "Macro",
+      "Strategy",
+      "Psychology",
+      "Liquidity"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 6,
+    "text": "What’s the benefit of using multiple timeframes?",
+    "answers": [
+      "Confirmation",
+      "Bigger candles",
+      "More data the better",
+      "Less confusing"
     ],
     "correct": 0
   },
   {
     "number": 7,
-    "text": "Which lion was the first to win a Hot Seat double round?",
+    "text": "What is the first rule of risk management?",
     "answers": [
-      "InkyDeranged",
-      "Snake",
-      "Nitrogen",
-      "6Sierra"
+      "Trade more",
+      "Add leverage",
+      "Protect capital",
+      "Ignore emotions"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 8,
+    "text": "When funding rates stay positive for an extended period, what does this imply?",
+    "answers": [
+      "Short bias",
+      "Nothing changes",
+      "Shorts dominate open interest",
+      "Longs are paying shorts → bullish over-leveraged"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 9,
+    "text": "Which factor strengthens a breakout’s validity the most?",
+    "answers": [
+      "High volume expansion",
+      "Using 50 indicators",
+      "A meme coin pump",
+      "Long wick"
     ],
     "correct": 0
   },
   {
-    "number": 8,
-    "text": "What does the acronym VWAP stand for?",
-    "answers": [
-      "Value Weighted Analysis Process",
-      "Volume Weighted Average Price",
-      "Verified Whale Activity Protocol",
-      "Virtual Weighted Ask Price"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 9,
-    "text": "Which chart type shows time distribution at price levels?",
-    "answers": [
-      "Anchored range chart",
-      "Volume bars",
-      "TPO / Market Profile",
-      "Renko chart"
-    ],
-    "correct": 2
-  },
-  {
     "number": 10,
-    "text": "How old is the Hu Jhu Xin channel?",
+    "text": "Which lesson on Coinwise talks about the Ticks and TPO Ticks settings?",
     "answers": [
-      "1 year",
-      "Less than a month",
-      "10 months",
-      "3 years"
+      "Introduction to Ticks",
+      "Market halts",
+      "Volume disappears",
+      "RSI reset"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 11,
-    "text": "Why do whales target liquidation clusters?",
+    "text": "When multiple timeframes show aligned market structure, what is this called?",
     "answers": [
-      "To boost staking APR",
-      "To gain Twitch subscribers",
-      "To trigger liquidity sweeps and fill large orders with better pricing",
-      "Because it looks cool on charts"
+      "Displacement",
+      "Multi-bias",
+      "Confluence",
+      "Orderblock fusion"
     ],
     "correct": 2
   },
   {
     "number": 12,
-    "text": "Coinwise new beginner lesson talks about what?",
+    "text": "What typically confirms that a trend reversal is strong rather than just a pullback?",
     "answers": [
-      "Talks about the foundations of candlestick reading",
-      "Teaches OrderBlock",
-      "Talks about the newest indicator",
-      "How to connect your exchange to TradingView"
+      "RSI hitting 50",
+      "Low volume exhaustion",
+      "Break of structure + retest + volume shift",
+      "A single engulfing candle"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 13,
-    "text": "What trading style is characterized by quick entries & exits within minutes?",
+    "text": "Which chart type provides more detailed information about market sentiment?",
     "answers": [
-      "Swing trading",
-      "Scalping",
-      "Investing",
-      "Position trading"
+      "Renko charts",
+      "Bar charts",
+      "Line charts",
+      "Candlestick charts"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 14,
-    "text": "What mental trap leads traders to open bigger positions after losses?",
+    "text": "What does a classic Head & Shoulders pattern typically signal?",
     "answers": [
-      "Boredom",
-      "Revenge trading",
-      "Lack of caffeine",
-      "FOMO reduction"
+      "Strong accumulation",
+      "A potential trend reversal",
+      "Trend continuation",
+      "A bullish breakout"
     ],
     "correct": 1
   },
   {
     "number": 15,
-    "text": "Which exchange is used most frequently when viewing BTC chart during Market Nerdouts?",
+    "text": "According to Dow Theory taught by Coinwise, a bullish primary trend consists of?",
     "answers": [
-      "Coinbase",
-      "BitMEX",
-      "Weex",
-      "Bybit"
+      "A single large candle and RSI crossing 50",
+      "Accumulation phase, Public participation, Distribution phase",
+      "A news event going viral and Higher highs created",
+      "RSI crossing 50 while open interest goes down"
     ],
-    "correct": 0
+    "correct": 1
   }
 ]
