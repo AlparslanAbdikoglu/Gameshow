@@ -6764,7 +6764,10 @@ function getCurrentGameLeaderboardEntries(options = {}) {
     ...entry,
     displayRank: index + 1
   }));
-  const rankStart = rankedEligibleEntries.length;
+  // Keep ignored winners out of podium spots (and below the configured limit)
+  const rankStart = (typeof limit === 'number' && limit > 0)
+    ? Math.max(limit, rankedEligibleEntries.length)
+    : rankedEligibleEntries.length;
   const rankedIgnoredEntries = ignoredEntries.map((entry, index) => ({
     ...entry,
     displayRank: rankStart + index + 1
