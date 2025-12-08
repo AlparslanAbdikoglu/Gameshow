@@ -6757,12 +6757,11 @@ function getCurrentGameLeaderboardEntries(options = {}) {
 
   const eligibleEntries = entries.filter((entry) => !ignoredUsers.includes(entry.username.toLowerCase()));
   const limitedEligibleEntries = typeof limit === 'number' ? eligibleEntries.slice(0, limit) : eligibleEntries;
-
-  const rankStart = typeof limit === 'number' ? limit : limitedEligibleEntries.length;
   const rankedEligibleEntries = limitedEligibleEntries.map((entry, index) => ({
     ...entry,
     displayRank: index + 1
   }));
+  const rankStart = rankedEligibleEntries.length;
   const rankedIgnoredEntries = ignoredEntries.map((entry, index) => ({
     ...entry,
     displayRank: rankStart + index + 1

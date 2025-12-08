@@ -5937,24 +5937,41 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     };
     periodBadge.textContent = periodLabels[period] || 'Current Game';
     
-    // Request latest data from server if we don't have it
-    if (!currentLeaderboardData) {
+    // Request latest data from server if we don't have it or if the payload is unexpectedly empty
+    const useCachedData = Boolean(currentLeaderboardData);
+    const renderFromData = (data) => {
+        currentLeaderboardData = data;
+        const periodData = data[period] || data.current_game || [];
+
+        if (!Array.isArray(periodData) || periodData.length === 0) {
+            // Fallback to live fetch if the structure is missing or empty so broadcast "show" always populates
+            fetch('/api/leaderboard')
+                .then(response => response.json())
+                .then(freshData => {
+                    currentLeaderboardData = freshData;
+                    const freshPeriodData = freshData[period] || freshData.current_game || [];
+                    renderLeaderboardEntries(freshPeriodData, period);
+                })
+                .catch(error => {
+                    console.error('❌ Error fetching leaderboard:', error);
+                    renderLeaderboardEntries([], period);
+                });
+            return;
+        }
+
+        renderLeaderboardEntries(periodData, period);
+    };
+
+    if (!useCachedData) {
         fetch('/api/leaderboard')
             .then(response => response.json())
-            .then(data => {
-                currentLeaderboardData = data;
-                // Data structure is {current_game: [...], daily: [...], etc}
-                const periodData = data[period] || data.current_game || [];
-                renderLeaderboardEntries(periodData, period);
-            })
+            .then(data => renderFromData(data))
             .catch(error => {
                 console.error('❌ Error fetching leaderboard:', error);
                 renderLeaderboardEntries([], period);
             });
     } else {
-        // Use cached data - data structure is {current_game: [...], daily: [...], etc}
-        const periodData = currentLeaderboardData[period] || currentLeaderboardData.current_game || [];
-        renderLeaderboardEntries(periodData, period);
+        renderFromData(currentLeaderboardData);
     }
     
     // Trigger animation with a small delay for smooth effect
