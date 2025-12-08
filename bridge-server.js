@@ -5865,7 +5865,9 @@ function getTopPlayers(period = 'current_game', count = 10) {
   const ignoredUsers = getCachedIgnoredList();
 
   if (period === 'current_game') {
-    return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit: count })
+    const limit = Math.max(count || leaderboardSettings.display_count || 10, 3);
+
+    return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit })
       .map((entry, index) => ({
         username: entry.username,
         points: entry.points,
@@ -6742,7 +6744,7 @@ function importPreviousWinners(importData) {
 
 // Get formatted leaderboard statistics
 function getCurrentGameLeaderboardEntries(options = {}) {
-  const { includeIgnored = false, limit = 10 } = options;
+  const { includeIgnored = false, limit = leaderboardSettings.display_count || 10 } = options;
   const ignoredUsers = getCachedIgnoredList();
   const entries = Object.entries(leaderboardData.current_game || {})
     .map(([username, stats]) => ({
@@ -6768,9 +6770,8 @@ function getCurrentGameLeaderboardEntries(options = {}) {
     displayRank: index + 1
   }));
   // Keep ignored winners out of podium spots (and below the configured limit)
-  const rankStart = (typeof limit === 'number' && limit > 0)
-    ? Math.max(limit, rankedEligibleEntries.length)
-    : rankedEligibleEntries.length;
+  const podiumGuard = Math.max(typeof limit === 'number' && limit > 0 ? limit : rankedEligibleEntries.length, 3);
+  const rankStart = Math.max(podiumGuard, rankedEligibleEntries.length);
   const rankedIgnoredEntries = ignoredEntries.map((entry, index) => ({
     ...entry,
     displayRank: rankStart + index + 1
@@ -6791,7 +6792,8 @@ function getLeaderboardStats() {
     const isCurrentGame = period === 'current_game';
 
     if (isCurrentGame) {
-      return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit: 10 });
+      const limit = Math.max(leaderboardSettings.display_count || 10, 3);
+      return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit });
     }
 
     return Object.entries(data)
