@@ -5870,7 +5870,8 @@ function getTopPlayers(period = 'current_game', count = 10) {
         accuracy: entry.total_answers > 0 ? Math.round((entry.correct_answers / entry.total_answers) * 100) : 0,
         streak: entry.current_streak,
         isIgnoredWinner: Boolean(entry.isIgnoredWinner),
-        rank: entry.displayRank || index + 1
+        rank: entry.displayRank || index + 1,
+        displayRank: entry.displayRank || index + 1
       }))
       // Preserve the server-defined display rank even if clients attempt to sort
       .sort((a, b) => (a.rank || 0) - (b.rank || 0));
@@ -5891,12 +5892,14 @@ function getTopPlayers(period = 'current_game', count = 10) {
 
 function broadcastLeaderboardUpdate() {
   const topPlayers = getTopPlayers(leaderboardSettings.display_mode, leaderboardSettings.display_count);
-  
+  const fullStats = getLeaderboardStats();
+
   broadcastToClients({
     type: 'leaderboard_update',
     data: {
       period: leaderboardSettings.display_mode,
       top_players: topPlayers,
+      leaderboard: fullStats,
       settings: leaderboardSettings,
       timestamp: Date.now()
     }

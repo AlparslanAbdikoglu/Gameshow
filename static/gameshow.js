@@ -5867,24 +5867,50 @@ let currentLeaderboardPeriod = 'current_game';
 
 function handleLeaderboardUpdate(message) {
     console.log("📊 Leaderboard update received:", message);
-    
+
     // Store the leaderboard data
     if (message.data) {
-        currentLeaderboardData = message.data;
-        
+        // Prefer a full leaderboard payload when available
+        currentLeaderboardData = message.data.leaderboard || message.data;
+
         // If leaderboard is currently visible, update the display
         const overlay = document.getElementById('leaderboard-overlay');
         if (overlay && !overlay.classList.contains('hidden')) {
-            // Get the correct period data from the leaderboard structure
-            const displayPeriod = currentLeaderboardPeriod || 'current_game';
-            
-            // The data structure is {current_game: [...], daily: [...], weekly: [...], etc}
-            const periodData = message.data[displayPeriod] || message.data.current_game || [];
-            
-            console.log(`📊 Updating leaderboard display for period: ${displayPeriod} with ${periodData.length} players`);
-            
-            // Update the display with new data
-            renderLeaderboardEntries(periodData, displayPeriod);
+            const displayPeriod = currentLeaderboardPeriod || message.data.period || 'current_game';
+
+            const applyRender = (payload) => {
+                const leaderboardPayload = payload.leaderboard && typeof payload.leaderboard === 'object'
+                    ? payload.leaderboard
+                    : payload;
+
+                let periodData = leaderboardPayload[displayPeriod] || leaderboardPayload.current_game || [];
+
+                // Fallback to top_players when incremental updates are sent
+                if ((!Array.isArray(periodData) || periodData.length === 0) && Array.isArray(payload.top_players)) {
+                    periodData = payload.top_players;
+                }
+
+                // If still empty, fetch the latest data to keep the overlay populated
+                if (!Array.isArray(periodData) || periodData.length === 0) {
+                    fetch('/api/leaderboard')
+                        .then(response => response.json())
+                        .then(freshData => {
+                            currentLeaderboardData = freshData;
+                            const freshPeriodData = freshData[displayPeriod] || freshData.current_game || [];
+                            renderLeaderboardEntries(freshPeriodData, displayPeriod);
+                        })
+                        .catch(error => {
+                            console.error('❌ Error fetching leaderboard during update:', error);
+                            renderLeaderboardEntries([], displayPeriod);
+                        });
+                    return;
+                }
+
+                renderLeaderboardEntries(periodData, displayPeriod);
+            };
+
+            console.log(`📊 Updating leaderboard display for period: ${displayPeriod}`);
+            applyRender(message.data);
         }
     }
 }
