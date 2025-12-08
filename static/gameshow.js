@@ -5963,8 +5963,6 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     };
     periodBadge.textContent = periodLabels[period] || 'Current Game';
     
-    // Request latest data from server if we don't have it or if the payload is unexpectedly empty
-    const useCachedData = Boolean(currentLeaderboardData);
     const renderFromData = (data) => {
         currentLeaderboardData = data;
         const periodData = data[period] || data.current_game || [];
@@ -5988,17 +5986,19 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
         renderLeaderboardEntries(periodData, period);
     };
 
-    if (!useCachedData) {
-        fetch('/api/leaderboard')
-            .then(response => response.json())
-            .then(data => renderFromData(data))
-            .catch(error => {
-                console.error('❌ Error fetching leaderboard:', error);
+    // Always refresh from the API to guarantee the sidebar is populated when "Show" is pressed
+    fetch('/api/leaderboard')
+        .then(response => response.json())
+        .then(data => renderFromData(data))
+        .catch(error => {
+            console.error('❌ Error fetching leaderboard:', error);
+            // Fall back to any cached data if available
+            if (currentLeaderboardData) {
+                renderFromData(currentLeaderboardData);
+            } else {
                 renderLeaderboardEntries([], period);
-            });
-    } else {
-        renderFromData(currentLeaderboardData);
-    }
+            }
+        });
     
     // Trigger animation with a small delay for smooth effect
     requestAnimationFrame(() => {
@@ -6216,6 +6216,13 @@ function renderLeaderboardEntries(players, period) {
         }
         if (rankA !== null) return -1;
         if (rankB !== null) return 1;
+
+        // Without explicit ranks, keep ignored winners beneath eligible players
+        const aIgnored = Boolean(a.isIgnoredWinner);
+        const bIgnored = Boolean(b.isIgnoredWinner);
+        if (aIgnored !== bIgnored) {
+            return aIgnored ? 1 : -1;
+        }
 
         const pointsA = a.points || a.total_points || 0;
         const pointsB = b.points || b.total_points || 0;
