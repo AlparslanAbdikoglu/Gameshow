@@ -2190,27 +2190,21 @@ wss.on('connection', (ws, req) => {
         });
         
         // Award points for chat participation
-        if (leaderboardSettings.chat_participation_enabled && 
+        if (leaderboardSettings.chat_participation_enabled &&
             leaderboardSettings.points.chat_participation > 0) {
-          
-          // Check if user is ignored
-          const ignoredUsers = getCachedIgnoredList();
-          if (ignoredUsers.includes(data.username.toLowerCase())) {
-            console.log(`🚫 Skipping chat points for ignored user: ${data.username}`);
-          } else {
-            const lastChatTime = chatParticipationTracker.get(data.username) || 0;
-            const timeSinceLastChat = Date.now() - lastChatTime;
-            const cooldown = leaderboardSettings.chat_participation_cooldown || 60000;
-            
-            if (timeSinceLastChat >= cooldown) {
-              addPointsToPlayer(
-                data.username, 
-                leaderboardSettings.points.chat_participation, 
-                'chat participation'
-              );
-              chatParticipationTracker.set(data.username, Date.now());
-              console.log(`💬 ${data.username} earned chat participation points (cooldown: ${cooldown}ms)`);
-            }
+
+          const lastChatTime = chatParticipationTracker.get(data.username) || 0;
+          const timeSinceLastChat = Date.now() - lastChatTime;
+          const cooldown = leaderboardSettings.chat_participation_cooldown || 60000;
+
+          if (timeSinceLastChat >= cooldown) {
+            addPointsToPlayer(
+              data.username,
+              leaderboardSettings.points.chat_participation,
+              'chat participation'
+            );
+            chatParticipationTracker.set(data.username, Date.now());
+            console.log(`💬 ${data.username} earned chat participation points (cooldown: ${cooldown}ms)`);
           }
         }
         
@@ -5762,13 +5756,6 @@ function initializePlayerInLeaderboard(username, period = 'current_game') {
 }
 
 function addPointsToPlayer(username, points, reason = '') {
-  // Check if user is in ignored list
-  const ignoredUsers = getCachedIgnoredList();
-  if (ignoredUsers.includes(username.toLowerCase())) {
-    console.log(`🚫 Skipping points for ignored user: ${username}`);
-    return;
-  }
-  
   // Only add to current game if a game is active
   if (gameState.game_active) {
     initializePlayerInLeaderboard(username, 'current_game');
@@ -5875,29 +5862,49 @@ function checkAndAwardStreakBonus(username) {
 }
 
 function getTopPlayers(period = 'current_game', count = 10) {
+  const ignoredUsers = getCachedIgnoredList();
+
+  if (period === 'current_game') {
+    const limit = Math.max(count || leaderboardSettings.display_count || 10, 3);
+
+    return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit })
+      .map((entry, index) => ({
+        username: entry.username,
+        points: entry.points,
+        accuracy: entry.total_answers > 0 ? Math.round((entry.correct_answers / entry.total_answers) * 100) : 0,
+        streak: entry.current_streak,
+        isIgnoredWinner: Boolean(entry.isIgnoredWinner),
+        rank: entry.displayRank || index + 1,
+        displayRank: entry.displayRank || index + 1
+      }))
+      // Preserve the server-defined display rank even if clients attempt to sort
+      .sort((a, b) => (a.rank || 0) - (b.rank || 0));
+  }
+
   const players = Object.entries(leaderboardData[period])
+    .filter(([username]) => !ignoredUsers.includes(username.toLowerCase()))
     .map(([username, stats]) => ({
       username,
-      points: period === 'current_game' ? stats.points : stats.total_points,
-      accuracy: period === 'current_game' 
-        ? (stats.total_answers > 0 ? Math.round((stats.correct_answers / stats.total_answers) * 100) : 0)
-        : stats.accuracy_percentage,
-      streak: period === 'current_game' ? stats.current_streak : stats.best_streak
+      points: stats.total_points,
+      accuracy: stats.accuracy_percentage,
+      streak: stats.best_streak
     }))
     .sort((a, b) => b.points - a.points)
     .slice(0, count);
-  
+
   return players;
 }
 
 function broadcastLeaderboardUpdate() {
   const topPlayers = getTopPlayers(leaderboardSettings.display_mode, leaderboardSettings.display_count);
-  
+  const fullStats = getLeaderboardStats();
+
   broadcastToClients({
     type: 'leaderboard_update',
     data: {
       period: leaderboardSettings.display_mode,
       top_players: topPlayers,
+      leaderboard: fullStats,
       settings: leaderboardSettings,
       timestamp: Date.now()
     }
@@ -5911,9 +5918,11 @@ function getTopLeaderboardPlayers(count = 10) {
   if (!stats || stats.length === 0) {
     return [];
   }
-  
+
   // Return top N players
-  return stats.slice(0, count).map((player, index) => ({
+  const eligibleStats = stats.filter((player) => !player.isIgnoredWinner);
+
+  return eligibleStats.slice(0, count).map((player, index) => ({
     ...player,
     rank: index + 1,
     isWinner: true
@@ -5935,16 +5944,19 @@ function finalizeGameLeaderboard() {
   // Get final game stats
   const finalStats = getLeaderboardStats().current_game;
   gameState.final_game_stats = finalStats;
-  gameState.final_game_winners = Array.isArray(finalStats) ? finalStats.slice(0, 3) : [];
+  const eligibleFinalStats = Array.isArray(finalStats)
+    ? finalStats.filter((player) => !player.isIgnoredWinner)
+    : [];
+  gameState.final_game_winners = eligibleFinalStats.slice(0, 3);
   gameState.pending_endgame_sequence = false;
   gameState.endgame_ready_timestamp = Date.now();
 
   // Log the winner if there are players
-  if (finalStats && finalStats.length > 0) {
-    const winner = finalStats[0];
+  if (eligibleFinalStats && eligibleFinalStats.length > 0) {
+    const winner = eligibleFinalStats[0];
     console.log(`🏆 GAME WINNER: ${winner.username} with ${winner.points} points!`);
     console.log('📊 Top 3 Players:');
-    finalStats.slice(0, 3).forEach((player, index) => {
+    eligibleFinalStats.slice(0, 3).forEach((player, index) => {
       const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉';
       console.log(`${medal} ${player.username}: ${player.points} points (${player.correct_answers}/${player.total_votes} correct)`);
     });
@@ -5954,7 +5966,7 @@ function finalizeGameLeaderboard() {
   broadcastToClients({
     type: 'game_completed',
     final_leaderboard: finalStats,
-    winner: finalStats && finalStats.length > 0 ? finalStats[0] : null,
+    winner: eligibleFinalStats && eligibleFinalStats.length > 0 ? eligibleFinalStats[0] : null,
     total_players: finalStats ? finalStats.length : 0,
     timestamp: Date.now()
   });
@@ -6503,7 +6515,9 @@ function updatePreviousWinnersFromFinalStats(finalStats, context = {}) {
       ? new Date(context.completedAt).toISOString()
       : deriveIsoDateFromGameBaseId(baseId);
     const questionsCompleted = context.questionsCompleted || gameState.current_question + 1;
-    const topPlayers = finalStats.slice(0, 3);
+    const topPlayers = finalStats
+      .filter((player) => !player.isIgnoredWinner)
+      .slice(0, 3);
     const newEntries = topPlayers
       .map((player) => createWinnerEntryFromPlayer(player, {
         baseId,
@@ -6730,10 +6744,9 @@ function importPreviousWinners(importData) {
 
 // Get formatted leaderboard statistics
 function getCurrentGameLeaderboardEntries(options = {}) {
-  const { includeIgnored = false, limit = 10 } = options;
-  const ignoredUsers = includeIgnored ? [] : getCachedIgnoredList();
+  const { includeIgnored = false, limit = leaderboardSettings.display_count || 10 } = options;
+  const ignoredUsers = getCachedIgnoredList();
   const entries = Object.entries(leaderboardData.current_game || {})
-    .filter(([username]) => includeIgnored || !ignoredUsers.includes(username.toLowerCase()))
     .map(([username, stats]) => ({
       username,
       ...stats,
@@ -6746,10 +6759,30 @@ function getCurrentGameLeaderboardEntries(options = {}) {
     }))
     .sort((a, b) => (b.points || 0) - (a.points || 0));
 
-  if (typeof limit === 'number') {
-    return entries.slice(0, limit);
+  const ignoredEntries = entries
+    .filter((entry) => ignoredUsers.includes(entry.username.toLowerCase()))
+    .map((entry) => ({ ...entry, isIgnoredWinner: true }));
+
+  const eligibleEntries = entries.filter((entry) => !ignoredUsers.includes(entry.username.toLowerCase()));
+  const limitedEligibleEntries = typeof limit === 'number' ? eligibleEntries.slice(0, limit) : eligibleEntries;
+  const rankedEligibleEntries = limitedEligibleEntries.map((entry, index) => ({
+    ...entry,
+    displayRank: index + 1
+  }));
+  // Keep ignored winners out of podium spots (and below the configured limit)
+  const podiumGuard = Math.max(typeof limit === 'number' && limit > 0 ? limit : rankedEligibleEntries.length, 3);
+  const rankStart = Math.max(podiumGuard, rankedEligibleEntries.length);
+  const rankedIgnoredEntries = ignoredEntries.map((entry, index) => ({
+    ...entry,
+    displayRank: rankStart + index + 1
+  }));
+
+  if (!includeIgnored) {
+    return rankedEligibleEntries;
   }
-  return entries;
+
+  // Always append ignored winners beneath the main leaderboard so they stay visible
+  return [...rankedEligibleEntries, ...rankedIgnoredEntries];
 }
 
 function getLeaderboardStats() {
@@ -6757,6 +6790,11 @@ function getLeaderboardStats() {
 
   const formatLeaderboard = (data, period) => {
     const isCurrentGame = period === 'current_game';
+
+    if (isCurrentGame) {
+      const limit = Math.max(leaderboardSettings.display_count || 10, 3);
+      return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit });
+    }
 
     return Object.entries(data)
       .filter(([username]) => !ignoredUsers.includes(username.toLowerCase()))
@@ -6781,7 +6819,7 @@ function getLeaderboardStats() {
   };
 
   return {
-    current_game: getCurrentGameLeaderboardEntries({ includeIgnored: false, limit: 10 }),
+    current_game: formatLeaderboard(leaderboardData.current_game, 'current_game'),
     daily: formatLeaderboard(leaderboardData.daily, 'daily'),
     weekly: formatLeaderboard(leaderboardData.weekly, 'weekly'),
     monthly: formatLeaderboard(leaderboardData.monthly, 'monthly'),

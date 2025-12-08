@@ -5867,24 +5867,50 @@ let currentLeaderboardPeriod = 'current_game';
 
 function handleLeaderboardUpdate(message) {
     console.log("📊 Leaderboard update received:", message);
-    
+
     // Store the leaderboard data
     if (message.data) {
-        currentLeaderboardData = message.data;
-        
+        // Prefer a full leaderboard payload when available
+        currentLeaderboardData = message.data.leaderboard || message.data;
+
         // If leaderboard is currently visible, update the display
         const overlay = document.getElementById('leaderboard-overlay');
         if (overlay && !overlay.classList.contains('hidden')) {
-            // Get the correct period data from the leaderboard structure
-            const displayPeriod = currentLeaderboardPeriod || 'current_game';
-            
-            // The data structure is {current_game: [...], daily: [...], weekly: [...], etc}
-            const periodData = message.data[displayPeriod] || message.data.current_game || [];
-            
-            console.log(`📊 Updating leaderboard display for period: ${displayPeriod} with ${periodData.length} players`);
-            
-            // Update the display with new data
-            renderLeaderboardEntries(periodData, displayPeriod);
+            const displayPeriod = currentLeaderboardPeriod || message.data.period || 'current_game';
+
+            const applyRender = (payload) => {
+                const leaderboardPayload = payload.leaderboard && typeof payload.leaderboard === 'object'
+                    ? payload.leaderboard
+                    : payload;
+
+                let periodData = leaderboardPayload[displayPeriod] || leaderboardPayload.current_game || [];
+
+                // Fallback to top_players when incremental updates are sent
+                if ((!Array.isArray(periodData) || periodData.length === 0) && Array.isArray(payload.top_players)) {
+                    periodData = payload.top_players;
+                }
+
+                // If still empty, fetch the latest data to keep the overlay populated
+                if (!Array.isArray(periodData) || periodData.length === 0) {
+                    fetch('/api/leaderboard')
+                        .then(response => response.json())
+                        .then(freshData => {
+                            currentLeaderboardData = freshData;
+                            const freshPeriodData = freshData[displayPeriod] || freshData.current_game || [];
+                            renderLeaderboardEntries(freshPeriodData, displayPeriod);
+                        })
+                        .catch(error => {
+                            console.error('❌ Error fetching leaderboard during update:', error);
+                            renderLeaderboardEntries([], displayPeriod);
+                        });
+                    return;
+                }
+
+                renderLeaderboardEntries(periodData, displayPeriod);
+            };
+
+            console.log(`📊 Updating leaderboard display for period: ${displayPeriod}`);
+            applyRender(message.data);
         }
     }
 }
@@ -5937,25 +5963,42 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     };
     periodBadge.textContent = periodLabels[period] || 'Current Game';
     
-    // Request latest data from server if we don't have it
-    if (!currentLeaderboardData) {
-        fetch('/api/leaderboard')
-            .then(response => response.json())
-            .then(data => {
-                currentLeaderboardData = data;
-                // Data structure is {current_game: [...], daily: [...], etc}
-                const periodData = data[period] || data.current_game || [];
-                renderLeaderboardEntries(periodData, period);
-            })
-            .catch(error => {
-                console.error('❌ Error fetching leaderboard:', error);
-                renderLeaderboardEntries([], period);
-            });
-    } else {
-        // Use cached data - data structure is {current_game: [...], daily: [...], etc}
-        const periodData = currentLeaderboardData[period] || currentLeaderboardData.current_game || [];
+    const renderFromData = (data) => {
+        currentLeaderboardData = data;
+        const periodData = data[period] || data.current_game || [];
+
+        if (!Array.isArray(periodData) || periodData.length === 0) {
+            // Fallback to live fetch if the structure is missing or empty so broadcast "show" always populates
+            fetch('/api/leaderboard')
+                .then(response => response.json())
+                .then(freshData => {
+                    currentLeaderboardData = freshData;
+                    const freshPeriodData = freshData[period] || freshData.current_game || [];
+                    renderLeaderboardEntries(freshPeriodData, period);
+                })
+                .catch(error => {
+                    console.error('❌ Error fetching leaderboard:', error);
+                    renderLeaderboardEntries([], period);
+                });
+            return;
+        }
+
         renderLeaderboardEntries(periodData, period);
-    }
+    };
+
+    // Always refresh from the API to guarantee the sidebar is populated when "Show" is pressed
+    fetch('/api/leaderboard')
+        .then(response => response.json())
+        .then(data => renderFromData(data))
+        .catch(error => {
+            console.error('❌ Error fetching leaderboard:', error);
+            // Fall back to any cached data if available
+            if (currentLeaderboardData) {
+                renderFromData(currentLeaderboardData);
+            } else {
+                renderLeaderboardEntries([], period);
+            }
+        });
     
     // Trigger animation with a small delay for smooth effect
     requestAnimationFrame(() => {
@@ -6162,8 +6205,25 @@ function renderLeaderboardEntries(players, period) {
         return;
     }
     
-    // Sort players by points (descending)
+    // Sort players using server-provided display ranks when available to keep ignored winners
+    // beneath eligible placements. Fallback to points for legacy periods.
     const sortedPlayers = [...players].sort((a, b) => {
+        const rankA = typeof a.displayRank === 'number' ? a.displayRank : null;
+        const rankB = typeof b.displayRank === 'number' ? b.displayRank : null;
+
+        if (rankA !== null && rankB !== null) {
+            return rankA - rankB;
+        }
+        if (rankA !== null) return -1;
+        if (rankB !== null) return 1;
+
+        // Without explicit ranks, keep ignored winners beneath eligible players
+        const aIgnored = Boolean(a.isIgnoredWinner);
+        const bIgnored = Boolean(b.isIgnoredWinner);
+        if (aIgnored !== bIgnored) {
+            return aIgnored ? 1 : -1;
+        }
+
         const pointsA = a.points || a.total_points || 0;
         const pointsB = b.points || b.total_points || 0;
         return pointsB - pointsA;
@@ -6176,10 +6236,13 @@ function renderLeaderboardEntries(players, period) {
     sortedPlayers.forEach((player, index) => {
         const entry = document.createElement('div');
         entry.className = 'leaderboard-entry';
-        
+
+        // Create rank display
+        const displayRank = typeof player.displayRank === 'number' ? player.displayRank : index + 1;
+
         // Add special class for top 3
-        if (index < 3) {
-            entry.classList.add(`rank-${index + 1}`);
+        if (displayRank <= 3) {
+            entry.classList.add(`rank-${displayRank}`);
         }
         
         // Get points value (handle different data structures)
@@ -6190,12 +6253,11 @@ function renderLeaderboardEntries(players, period) {
         // Format points with commas
         const formattedPoints = points.toLocaleString();
         
-        // Create rank display
         let rankDisplay = '';
-        if (index === 0) rankDisplay = '🥇';
-        else if (index === 1) rankDisplay = '🥈';
-        else if (index === 2) rankDisplay = '🥉';
-        else rankDisplay = `#${index + 1}`;
+        if (displayRank === 1) rankDisplay = '🥇';
+        else if (displayRank === 2) rankDisplay = '🥈';
+        else if (displayRank === 3) rankDisplay = '🥉';
+        else rankDisplay = `#${displayRank}`;
         
         entry.innerHTML = `
             <div class="leaderboard-rank">${rankDisplay}</div>
