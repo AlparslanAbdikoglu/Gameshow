@@ -5862,6 +5862,8 @@ function checkAndAwardStreakBonus(username) {
 }
 
 function getTopPlayers(period = 'current_game', count = 10) {
+  const ignoredUsers = getCachedIgnoredList();
+
   if (period === 'current_game') {
     return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit: count })
       .map((entry, index) => ({
@@ -5878,6 +5880,7 @@ function getTopPlayers(period = 'current_game', count = 10) {
   }
 
   const players = Object.entries(leaderboardData[period])
+    .filter(([username]) => !ignoredUsers.includes(username.toLowerCase()))
     .map(([username, stats]) => ({
       username,
       points: stats.total_points,
