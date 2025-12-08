@@ -41,6 +41,16 @@ const performanceMetrics = {
   }
 };
 
+// Track server health metrics (used by WebSocket handlers and monitoring)
+let serverHealth = {
+  startTime: Date.now(),
+  crashCount: 0,
+  lastCrash: null,
+  memoryWarnings: 0,
+  connectionCount: 0,
+  lastHeartbeat: Date.now()
+};
+
 // Function to track vote processing performance
 function trackVoteProcessing(processingTime, rejected = false, duplicate = false) {
   performanceMetrics.lifeline.votesProcessed++;
@@ -401,7 +411,8 @@ let leaderboardData = {
 let leaderboardSettings = {
   display_enabled: true,
   display_mode: 'current_game', // 'current_game', 'daily', 'weekly', 'monthly', 'all_time'
-  display_count: 5,        // Number of players to show
+  display_count: 10,        // Number of players to show
+  // Keep the leaderboard visible while questions are shown; set to true to auto-hide during Q&A
   auto_hide_during_questions: false,
   show_animations: true,
   show_point_changes: true,
@@ -5865,7 +5876,7 @@ function getTopPlayers(period = 'current_game', count = 10) {
   const ignoredUsers = getCachedIgnoredList();
 
   if (period === 'current_game') {
-    const limit = Math.max(count || leaderboardSettings.display_count || 10, 3);
+    const limit = Math.max(count || leaderboardSettings.display_count || 10, 10);
 
     return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit })
       .map((entry, index) => ({
@@ -6745,6 +6756,7 @@ function importPreviousWinners(importData) {
 // Get formatted leaderboard statistics
 function getCurrentGameLeaderboardEntries(options = {}) {
   const { includeIgnored = false, limit = leaderboardSettings.display_count || 10 } = options;
+  const safeLimit = Math.max(typeof limit === 'number' ? limit : leaderboardSettings.display_count || 10, 10);
   const ignoredUsers = getCachedIgnoredList();
   const entries = Object.entries(leaderboardData.current_game || {})
     .map(([username, stats]) => ({
@@ -6764,13 +6776,15 @@ function getCurrentGameLeaderboardEntries(options = {}) {
     .map((entry) => ({ ...entry, isIgnoredWinner: true }));
 
   const eligibleEntries = entries.filter((entry) => !ignoredUsers.includes(entry.username.toLowerCase()));
-  const limitedEligibleEntries = typeof limit === 'number' ? eligibleEntries.slice(0, limit) : eligibleEntries;
+  const limitedEligibleEntries = typeof safeLimit === 'number'
+    ? eligibleEntries.slice(0, safeLimit)
+    : eligibleEntries;
   const rankedEligibleEntries = limitedEligibleEntries.map((entry, index) => ({
     ...entry,
     displayRank: index + 1
   }));
   // Keep ignored winners out of podium spots (and below the configured limit)
-  const podiumGuard = Math.max(typeof limit === 'number' && limit > 0 ? limit : rankedEligibleEntries.length, 3);
+  const podiumGuard = Math.max(typeof safeLimit === 'number' && safeLimit > 0 ? safeLimit : rankedEligibleEntries.length, 3);
   const rankStart = Math.max(podiumGuard, rankedEligibleEntries.length);
   const rankedIgnoredEntries = ignoredEntries.map((entry, index) => ({
     ...entry,
@@ -6792,7 +6806,7 @@ function getLeaderboardStats() {
     const isCurrentGame = period === 'current_game';
 
     if (isCurrentGame) {
-      const limit = Math.max(leaderboardSettings.display_count || 10, 3);
+      const limit = Math.max(leaderboardSettings.display_count || 10, 10);
       return getCurrentGameLeaderboardEntries({ includeIgnored: true, limit });
     }
 
@@ -11789,6 +11803,9 @@ function startAudiencePoll() {
 
 // Duplicate function removed - using the proper vote validation logic at line 8858
 
+const SKIP_SERVER_RUNTIME = process.env.NODE_ENV === 'test' && process.env.SKIP_SERVER_RUNTIME === 'true';
+
+if (!SKIP_SERVER_RUNTIME) {
 const PORT = 8081;
 const HOST = '0.0.0.0';  // Listen on all interfaces
 const PUBLIC_IP = '75.119.154.213'; // <-- replace with your VPS IP
@@ -11882,16 +11899,6 @@ server.listen(PORT, HOST, () => {
 
 // 🔒 CRITICAL ERROR HANDLING & SERVER REINFORCEMENT SYSTEM
 // ========================================================
-
-// Track server health metrics
-let serverHealth = {
-  startTime: Date.now(),
-  crashCount: 0,
-  lastCrash: null,
-  memoryWarnings: 0,
-  connectionCount: 0,
-  lastHeartbeat: Date.now()
-};
 
 // Enhanced Performance Monitoring System (using existing performanceMetrics)
 // Note: performanceMetrics is already defined earlier in the file at line 22
@@ -12509,14 +12516,14 @@ setInterval(() => {
 setInterval(() => {
   const oneHourAgo = Date.now() - 3600000; // 1 hour ago
   let cleanedCount = 0;
-  
+
   for (const [username, timestamp] of chatParticipationTracker.entries()) {
     if (timestamp < oneHourAgo) {
       chatParticipationTracker.delete(username);
       cleanedCount++;
     }
   }
-  
+
   if (cleanedCount > 0) {
     console.log(`🧹 Cleaned ${cleanedCount} old chat participation entries (${chatParticipationTracker.size} active)`);
   }
@@ -12535,3 +12542,17 @@ console.log(`💾 Memory monitoring: ✅ Active`);
 console.log(`🛡️  Error handling: ✅ Active`);
 console.log(`💾 State backup: ✅ Active (every 5 minutes)`);
 console.log(`🔄 Graceful shutdown: ✅ Active`);
+
+}
+
+if (process.env.NODE_ENV === 'test') {
+  module.exports = {
+    addPointsToPlayer,
+    getCurrentGameLeaderboardEntries,
+    getLeaderboardStats,
+    getTopPlayers,
+    initializePlayerInLeaderboard,
+    leaderboardData,
+    leaderboardSettings
+  };
+}
