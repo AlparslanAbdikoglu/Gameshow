@@ -1909,7 +1909,9 @@ wss.on('connection', (ws, req) => {
       if (data.type === 'credits_complete') {
         console.log('🎬 Credits roll completed, game fully finished');
         gameState.credits_shown = true;
-        
+
+        uploadGameArchiveFolder('credits_complete');
+
         // Optionally reset for next game
         broadcastToClients({
           type: 'game_fully_complete',
@@ -2268,6 +2270,7 @@ wss.on('connection', (ws, req) => {
         gameState.credits_rolling = false;
         gameState.credits_scrolling = false;
         console.log('🎭 Credits state cleared - ready for next game');
+        uploadGameArchiveFolder('credits_complete');
         broadcastState();
       }
       
@@ -6012,6 +6015,8 @@ function finalizeGameLeaderboard() {
     contestant: gameState.contestant_name || null
   });
 
+  uploadGameArchiveFolder('game_finalized');
+
   broadcastState(true);
 }
 
@@ -6226,6 +6231,7 @@ function resetLeaderboard(period) {
 
 // Track last backup time
 let lastLeaderboardBackup = Date.now();
+let lastArchiveUploadTime = 0;
 
 // Save leaderboard data to file with atomic write
 function saveLeaderboardData() {
@@ -6296,6 +6302,66 @@ function saveLeaderboardBackup() {
     }
   } catch (error) {
     console.error('❌ Error creating leaderboard backup:', error);
+  }
+}
+
+function copyLeaderboardSnapshots(targetDir) {
+  const workDir = path.join(__dirname, 'workinprogress');
+
+  // Copy today's daily snapshot if it exists
+  const today = new Date().toISOString().slice(0, 10);
+  const dailySnapshot = path.join(workDir, `leaderboard-daily-${today}.json`);
+  if (fs.existsSync(dailySnapshot)) {
+    fs.copyFileSync(dailySnapshot, path.join(targetDir, path.basename(dailySnapshot)));
+    console.log(`📄 Copied daily leaderboard snapshot: ${path.basename(dailySnapshot)}`);
+  }
+
+  // Copy the most recent rolling backup
+  if (fs.existsSync(workDir)) {
+    const backups = fs.readdirSync(workDir)
+      .filter(f => f.startsWith('leaderboard-backup-') && f.endsWith('.json'))
+      .sort();
+
+    const latestBackup = backups[backups.length - 1];
+    if (latestBackup) {
+      fs.copyFileSync(path.join(workDir, latestBackup), path.join(targetDir, latestBackup));
+      console.log(`📂 Copied leaderboard backup: ${latestBackup}`);
+    }
+  }
+}
+
+function uploadGameArchiveFolder(reason = 'manual_trigger') {
+  try {
+    const now = Date.now();
+
+    // Throttle uploads to prevent duplicate work if multiple events fire in quick succession
+    if (now - lastArchiveUploadTime < 30000) {
+      return null;
+    }
+
+    const archiveDir = path.join(__dirname, 'Games Archive');
+    if (!fs.existsSync(archiveDir)) {
+      console.warn('⚠️ No Games Archive folder to upload.');
+      return null;
+    }
+
+    const backupRoot = path.join(__dirname, 'workinprogress', 'game-archive-uploads');
+    fs.mkdirSync(backupRoot, { recursive: true });
+
+    const timestamp = new Date(now).toISOString().replace(/[:.]/g, '-').slice(0, -5);
+    const destination = path.join(backupRoot, `game-archive-${timestamp}`);
+    const archiveTarget = path.join(destination, 'Games Archive');
+
+    fs.mkdirSync(destination, { recursive: true });
+    fs.cpSync(archiveDir, archiveTarget, { recursive: true });
+    copyLeaderboardSnapshots(destination);
+
+    lastArchiveUploadTime = now;
+    console.log(`📤 Game archive uploaded to ${destination} (${reason})`);
+    return destination;
+  } catch (error) {
+    console.error('❌ Error uploading game archive folder:', error);
+    return null;
   }
 }
 
