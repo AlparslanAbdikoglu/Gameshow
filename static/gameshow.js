@@ -5824,6 +5824,22 @@ function hidePreviousWinners({ immediate = false } = {}) {
     }, 400);
 }
 
+function triggerOverlayPopAnimation(overlay) {
+    if (!overlay) {
+        return;
+    }
+
+    const content = overlay.querySelector('.leaderboard-overlay-content');
+    if (!content) {
+        return;
+    }
+
+    content.classList.remove('overlay-pop');
+    // Force reflow so the animation can restart when re-showing
+    void content.offsetWidth;
+    content.classList.add('overlay-pop');
+}
+
 async function showPreviousWinners() {
     console.log('🏆 Showing previous winners leaderboard');
     isShowingPreviousWinners = true;
@@ -5851,6 +5867,7 @@ async function showPreviousWinners() {
     overlay.style.opacity = '0';
     overlay.style.transform = 'translateY(40px)';
     overlay.classList.remove('hidden');
+    triggerOverlayPopAnimation(overlay);
 
     requestAnimationFrame(() => {
         overlay.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
@@ -5952,6 +5969,7 @@ function showLeaderboard(period = 'current_game', leaderboardData = null) {
     overlay.style.opacity = '0';
     overlay.style.transform = 'translateX(100%)';
     overlay.classList.remove('hidden');
+    triggerOverlayPopAnimation(overlay);
     
     // Update period badge text
     const periodLabels = {

@@ -236,7 +236,7 @@ let gameState = {
   processed_mod_messages: new Set(), // Dedupe mod messages
   ask_a_mod_include_vips: false, // Whether VIPs can also respond during Ask a Mod
   // Hot Seat Feature States
-  hot_seat_enabled: false,    // Master toggle for hot seat feature
+  hot_seat_enabled: true,     // Master toggle for hot seat feature (defaults to enabled)
   hot_seat_active: false,     // Is hot seat mode active for current question
   hot_seat_user: null,        // Primary username of the active hot seat player
   hot_seat_users: [],         // Array of hot seat winners (for display and history)
@@ -1248,6 +1248,50 @@ const server = http.createServer(async (req, res) => {
       });
       res.end(data);
       console.log(`🎵 Served audio file: ${fileName}`);
+    });
+    return;
+  }
+
+  // Serve graphics assets (e.g., stage art, overlays)
+  if (pathname.startsWith('/assets/graphics/')) {
+    const relativePath = pathname.replace('/assets/', '');
+    const assetsRoot = path.join(__dirname, 'assets', 'graphics');
+    const filePath = path.join(__dirname, 'assets', relativePath);
+
+    if (!filePath.startsWith(assetsRoot)) {
+      res.writeHead(400);
+      res.end('Invalid graphics path');
+      return;
+    }
+
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        console.error('❌ Graphics asset not found:', filePath);
+        res.writeHead(404);
+        res.end('Graphics asset not found');
+        return;
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      let contentType = 'application/octet-stream';
+
+      if (ext === '.png') {
+        contentType = 'image/png';
+      } else if (ext === '.svg') {
+        contentType = 'image/svg+xml';
+      } else if (ext === '.jpg' || ext === '.jpeg') {
+        contentType = 'image/jpeg';
+      } else if (ext === '.webp') {
+        contentType = 'image/webp';
+      }
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(data);
+      console.log(`🖼️  Served graphics asset: ${pathname}`);
     });
     return;
   }
@@ -4852,6 +4896,12 @@ function handleVoteUpdate(data) {
 // Start the entry period for hot seat
 function startHotSeatEntryPeriod() {
   console.log('🎯 Starting hot seat entry period');
+
+  // Ensure the feature is enabled so chat JOIN commands are processed
+  if (!gameState.hot_seat_enabled) {
+    console.log('ℹ️ Hot seat was disabled - enabling now for entry period');
+    gameState.hot_seat_enabled = true;
+  }
 
   if (gameState.hot_seat_prestart_interval) {
     clearInterval(gameState.hot_seat_prestart_interval);
@@ -9893,10 +9943,35 @@ async function handleAPI(req, res, pathname) {
                 color: '#FFD700', // Gold color for host
                 isHost: true
               };
-              
+
               broadcastToClients(hostChatMessage);
               console.log('📡 Host message broadcasted to all clients');
-              
+
+              // Allow host messages to participate in JOIN-based features (hot seat & slot machine)
+              const joined = processJoinCommand({
+                gameState,
+                username: hostChatMessage.username,
+                messageText: hostChatMessage.text,
+                addSlotMachineEntry: (entryName) => addSlotMachineEntry(entryName),
+                onHotSeatEntryAdded: ({ username, totalEntries }) => {
+                  console.log(`🎯 Hot Seat Entry (host): ${username} joined! (Total entries: ${totalEntries})`);
+                  broadcastToClients({
+                    type: 'hot_seat_entry_update',
+                    entries: totalEntries,
+                    username,
+                    timestamp: Date.now()
+                  });
+                },
+                onHotSeatDuplicate: (username) => {
+                  console.log(`ℹ️ Ignoring duplicate hot seat entry from host message by ${username}`);
+                }
+              });
+
+              if (joined && hostChatMessage.username && !gameState.gameshow_participants.includes(hostChatMessage.username)) {
+                gameState.gameshow_participants.push(hostChatMessage.username);
+                console.log(`🎭 Added ${hostChatMessage.username} to participants via host chat (Total: ${gameState.gameshow_participants.length})`);
+              }
+
               // Process host message for votes if voting is active
               if (gameState.audience_poll_active) {
                 if (DEBUG_VERBOSE_LOGGING) console.log('🗳️ Processing host message as potential audience poll vote');
