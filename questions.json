@@ -118,7 +118,7 @@
       "Anchoring",
       "FOMO"
     ],
-    "correct": 2
+    "correct": 3
   },
   {
     "number": 12,
@@ -133,7 +133,7 @@
   },
   {
     "number": 13,
-    "text": "Which Coinwise feature gives users structured knowledge checks after lessons?",
+    "text": "Which Coinwise feature gives users points for the leaderboard?",
     "answers": [
       "Quiz Arena",
       "Trading Hub",
@@ -144,12 +144,12 @@
   },
   {
     "number": 14,
-    "text": "What does a clean break of structure (BOS) typically confirm?",
+    "text": "Who won the Last Talent Show?",
     "answers": [
-      "Price volatility is ending",
-      "The trend has paused",
-      "Market is neutral",
-      "A new trend direction is forming"
+      "buzo",
+      "cyper22",
+      "XlrdTV",
+      "Alegator"
     ],
     "correct": 3
   },
