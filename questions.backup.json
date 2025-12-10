@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What is a common reason beginners misuse Fibonacci retracements?",
+    "text": "What is the main purpose of Coinwise for traders?",
     "answers": [
-      "Dragging from wick to candle body",
-      "Pulling it to the wrong direction",
-      "Using log scale incorrectly",
-      "Wrong colors"
+      "To replace crypto exchanges",
+      "To offer structured trading education & tools",
+      "To predict the next meme coin",
+      "To provide gaming tournaments"
     ],
     "correct": 1
   },
   {
     "number": 2,
-    "text": "What’s a typical sign that retail is FOMOing?",
+    "text": "Which module on Coinwise teaches core concepts like candlestick basics and structure?",
     "answers": [
-      "High borrow rate",
-      "Candle goes sideways",
-      "No liquidity",
-      "Sudden volume spikes"
+      "Market Journal",
+      "Beginner Lessons",
+      "Quiz Arena",
+      "Strategy Lab"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 3,
-    "text": "What’s the best indicator for new traders to start with if they interested in volume?",
+    "text": "What does the Trading Journal on Coinwise help traders track?",
     "answers": [
-      "Order blocks",
-      "VWAP",
-      "MACD",
-      "EMA"
+      "Twitch chat activity",
+      "Past trades, emotions, and performance",
+      "Crypto tax exemptions",
+      "Upcoming CPI dates"
     ],
     "correct": 1
   },
   {
     "number": 4,
-    "text": "What is a common beginner mistake during breakouts?",
+    "text": "What market behavior is most common right before an FOMC rate decision?",
     "answers": [
-      "Entering early",
-      "Entering late",
-      "Not setting stops",
-      "All of the above"
+      "Guaranteed dump",
+      "Low volatility and consolidation as traders wait",
+      "Guaranteed pump",
+      "Extremely predictable trends"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 5,
-    "text": "Which CoinWise quiz category focuses on mindset?",
+    "text": "What do traders primarily look for in the FOMC statement?",
     "answers": [
-      "Macro",
-      "Strategy",
-      "Psychology",
-      "Liquidity"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 6,
-    "text": "What’s the benefit of using multiple timeframes?",
-    "answers": [
-      "Confirmation",
-      "Bigger candles",
-      "More data the better",
-      "Less confusing"
+      "Hints about future interest rate policy",
+      "Exchange maintenance windows",
+      "NFT market performance",
+      "New crypto regulations"
     ],
     "correct": 0
   },
   {
-    "number": 7,
-    "text": "What is the first rule of risk management?",
+    "number": 6,
+    "text": "What does Coinwise emphasize as the foundation for consistent improvement?",
     "answers": [
-      "Trade more",
-      "Add leverage",
-      "Protect capital",
-      "Ignore emotions"
+      "Watching 100 indicators",
+      "Developing strong psychology",
+      "Trading during low liquidity only",
+      "Copying whales"
     ],
-    "correct": 2
+    "correct": 1
+  },
+  {
+    "number": 7,
+    "text": "How does a rate hike from the FOMC typically impact risk-on assets like crypto in the short term?",
+    "answers": [
+      "Strong immediate pump",
+      "No effect at all",
+      "Guaranteed sideways movement",
+      "Usually increased selling pressure"
+    ],
+    "correct": 3
   },
   {
     "number": 8,
-    "text": "When funding rates stay positive for an extended period, what does this imply?",
+    "text": "Why does volatility often spike during the exact minute of an FOMC announcement?",
     "answers": [
-      "Short bias",
-      "Nothing changes",
-      "Shorts dominate open interest",
-      "Longs are paying shorts → bullish over-leveraged"
+      "Exchanges manipulate price",
+      "Traders stop using stop-losses",
+      "All indicators reset",
+      "Liquidity thins and algorithmic trading reacts instantly"
     ],
     "correct": 3
   },
   {
     "number": 9,
-    "text": "Which factor strengthens a breakout’s validity the most?",
+    "text": "When price consolidates tightly below resistance, what does it often signal?",
     "answers": [
-      "High volume expansion",
-      "Using 50 indicators",
-      "A meme coin pump",
-      "Long wick"
+      "A guaranteed crash",
+      "Market inactivity",
+      "Trend reversal confirmed",
+      "A potential breakout"
     ],
-    "correct": 0
+    "correct": 3
   },
   {
     "number": 10,
-    "text": "Which lesson on Coinwise talks about the Ticks and TPO Ticks settings?",
+    "text": "What is the main function of Open Interest?",
     "answers": [
-      "Introduction to Ticks",
-      "Market halts",
-      "Volume disappears",
-      "RSI reset"
+      "Shows new long/short positions entering the market",
+      "Displays exchange fees",
+      "Tracks funding rates only",
+      "Measures chart patterns"
     ],
     "correct": 0
   },
   {
     "number": 11,
-    "text": "When multiple timeframes show aligned market structure, what is this called?",
+    "text": "What is the psychological bias where traders hold losing positions hoping they recover?",
     "answers": [
-      "Displacement",
-      "Multi-bias",
-      "Confluence",
-      "Orderblock fusion"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 12,
-    "text": "What typically confirms that a trend reversal is strong rather than just a pullback?",
-    "answers": [
-      "RSI hitting 50",
-      "Low volume exhaustion",
-      "Break of structure + retest + volume shift",
-      "A single engulfing candle"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 13,
-    "text": "Which chart type provides more detailed information about market sentiment?",
-    "answers": [
-      "Renko charts",
-      "Bar charts",
-      "Line charts",
-      "Candlestick charts"
+      "Confirmation bias",
+      "Scalping bias",
+      "Anchoring",
+      "FOMO"
     ],
     "correct": 3
   },
   {
-    "number": 14,
-    "text": "What does a classic Head & Shoulders pattern typically signal?",
+    "number": 12,
+    "text": "What is the purpose of backtesting a strategy?",
     "answers": [
-      "Strong accumulation",
-      "A potential trend reversal",
-      "Trend continuation",
-      "A bullish breakout"
+      "To see how a strategy performs on historical data",
+      "To adjust leverage settings",
+      "To find the best meme coin",
+      "To guarantee future wins"
     ],
-    "correct": 1
+    "correct": 0
+  },
+  {
+    "number": 13,
+    "text": "Which Coinwise feature gives users points for the leaderboard?",
+    "answers": [
+      "Quiz Arena",
+      "Trading Hub",
+      "Dashboard",
+      "NFT viewer"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 14,
+    "text": "Who won the Last Talent Show?",
+    "answers": [
+      "buzo",
+      "cyper22",
+      "XlrdTV",
+      "Alligator"
+    ],
+    "correct": 3
   },
   {
     "number": 15,
-    "text": "According to Dow Theory taught by Coinwise, a bullish primary trend consists of?",
+    "text": "According to Coinwise risk management principles, what percentage per trade is recommended for beginners?",
     "answers": [
-      "A single large candle and RSI crossing 50",
-      "Accumulation phase, Public participation, Distribution phase",
-      "A news event going viral and Higher highs created",
-      "RSI crossing 50 while open interest goes down"
+      "1–2% risk",
+      "10% risk",
+      "Zero risk ever",
+      "20% risk"
     ],
-    "correct": 1
+    "correct": 0
   }
 ]

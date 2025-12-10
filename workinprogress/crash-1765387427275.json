@@ -1,0 +1,19 @@
+{
+  "type": "uncaughtException",
+  "error": "client is not defined",
+  "stack": "ReferenceError: client is not defined\n    at Timeout._onTimeout (C:\\Users\\MSI\\Desktop\\code\\Gameshow\\bridge-server.js:1896:66)\n    at listOnTimeout (node:internal/timers:581:17)\n    at process.processTimers (node:internal/timers:519:7)",
+  "timestamp": 1765387427275,
+  "serverHealth": {
+    "startTime": 1765385493941,
+    "crashCount": 1,
+    "lastCrash": 1765387427226,
+    "memoryWarnings": 0,
+    "connectionCount": 6,
+    "lastHeartbeat": 1765387423892
+  },
+  "gameState": {
+    "active": true,
+    "question": 4,
+    "contestant": "10th of December"
+  }
+}

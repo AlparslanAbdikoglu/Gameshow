@@ -1251,6 +1251,50 @@ const server = http.createServer(async (req, res) => {
     });
     return;
   }
+
+  // Serve graphics assets (e.g., stage art, overlays)
+  if (pathname.startsWith('/assets/graphics/')) {
+    const relativePath = pathname.replace('/assets/', '');
+    const assetsRoot = path.join(__dirname, 'assets', 'graphics');
+    const filePath = path.join(__dirname, 'assets', relativePath);
+
+    if (!filePath.startsWith(assetsRoot)) {
+      res.writeHead(400);
+      res.end('Invalid graphics path');
+      return;
+    }
+
+    fs.readFile(filePath, (err, data) => {
+      if (err) {
+        console.error('❌ Graphics asset not found:', filePath);
+        res.writeHead(404);
+        res.end('Graphics asset not found');
+        return;
+      }
+
+      const ext = path.extname(filePath).toLowerCase();
+      let contentType = 'application/octet-stream';
+
+      if (ext === '.png') {
+        contentType = 'image/png';
+      } else if (ext === '.svg') {
+        contentType = 'image/svg+xml';
+      } else if (ext === '.jpg' || ext === '.jpeg') {
+        contentType = 'image/jpeg';
+      } else if (ext === '.webp') {
+        contentType = 'image/webp';
+      }
+
+      res.writeHead(200, {
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600',
+        'Access-Control-Allow-Origin': '*'
+      });
+      res.end(data);
+      console.log(`🖼️  Served graphics asset: ${pathname}`);
+    });
+    return;
+  }
   
   // Default route - redirect to game show
   res.writeHead(302, { 'Location': '/gameshow' });
