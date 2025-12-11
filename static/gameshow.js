@@ -125,6 +125,97 @@ let previousWinnersLastFetched = 0;
 let previousWinnersFetchPromise = null;
 let isShowingPreviousWinners = false;
 const PREVIOUS_WINNERS_CACHE_MS = 60 * 1000;
+const leaderboardAutoScrollController = { frameId: null, active: false };
+const previousWinnersAutoScrollController = { frameId: null, active: false };
+
+function stopAutoScroll(controller) {
+    if (!controller) {
+        return;
+    }
+
+    controller.active = false;
+    if (controller.frameId) {
+        cancelAnimationFrame(controller.frameId);
+        controller.frameId = null;
+    }
+}
+
+function startAutoScroll(element, controller, options = {}) {
+    if (!element || !controller) {
+        return;
+    }
+
+    stopAutoScroll(controller);
+
+    const scrollDistance = element.scrollHeight - element.clientHeight;
+    if (scrollDistance <= 0) {
+        return;
+    }
+
+    const speed = typeof options.speed === 'number' ? options.speed : 0.06; // px per ms
+    const pauseDuration = typeof options.pauseDuration === 'number' ? options.pauseDuration : 1400;
+
+    controller.active = true;
+    let direction = 1;
+    let lastTimestamp = null;
+    let pausedUntil = 0;
+
+    const step = (timestamp) => {
+        if (!controller.active) {
+            return;
+        }
+
+        if (lastTimestamp === null) {
+            lastTimestamp = timestamp;
+        }
+
+        if (timestamp < pausedUntil) {
+            controller.frameId = requestAnimationFrame(step);
+            return;
+        }
+
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+
+        const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
+        const atBottom = element.scrollTop >= maxScroll - 1;
+        const atTop = element.scrollTop <= 1;
+
+        if (atBottom || atTop) {
+            direction = atBottom ? -1 : 1;
+            pausedUntil = timestamp + pauseDuration;
+        } else {
+            const deltaPixels = direction * speed * delta;
+            element.scrollTop = Math.min(maxScroll, Math.max(0, element.scrollTop + deltaPixels));
+        }
+
+        controller.frameId = requestAnimationFrame(step);
+    };
+
+    controller.frameId = requestAnimationFrame(step);
+}
+
+function restartLeaderboardAutoScroll() {
+    const overlay = document.getElementById('leaderboard-overlay');
+    if (!overlay || overlay.classList.contains('hidden')) {
+        stopAutoScroll(leaderboardAutoScrollController);
+        return;
+    }
+
+    const listContainer = document.getElementById('leaderboard-list');
+    startAutoScroll(listContainer, leaderboardAutoScrollController, { speed: 0.05, pauseDuration: 1600 });
+}
+
+function restartPreviousWinnersAutoScroll() {
+    const overlay = document.getElementById('previous-winners-overlay');
+    if (!overlay || overlay.classList.contains('hidden')) {
+        stopAutoScroll(previousWinnersAutoScrollController);
+        return;
+    }
+
+    const listContainer = document.getElementById('previous-winners-list');
+    startAutoScroll(listContainer, previousWinnersAutoScrollController, { speed: 0.05, pauseDuration: 1600 });
+}
 
 function normalizeSlotMachineSymbol(symbol) {
     if (!symbol) {
@@ -923,6 +1014,9 @@ function handleWebSocketMessage(message) {
             // Track when an answer is locked
             if (message.answer) {
                 updateAnswerStates('locked', [message.answer]);
+            }
+            if (isHotSeatDisplayActive()) {
+                lockHotSeatTimer('Answer locked by host');
             }
             break;
             
@@ -4638,6 +4732,8 @@ let hotSeatCountdownState = {
 let hotSeatCountdownResetTimeout = null;
 let hotSeatBaseStatusMessage = '';
 let hotSeatInitialTimerValue = 60;
+let hotSeatTimerLocked = false;
+let hotSeatLockedRemaining = null;
 
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
@@ -4663,6 +4759,75 @@ function formatHotSeatSelectionMethod(method) {
         default:
             return 'Hot seat selection';
     }
+}
+
+function resetHotSeatTimerLock() {
+    hotSeatTimerLocked = false;
+    hotSeatLockedRemaining = null;
+
+    const timerEl = document.getElementById('hot-seat-timer');
+    const hudTimer = document.getElementById('hot-seat-hud-timer');
+
+    if (timerEl) {
+        timerEl.classList.remove('locked');
+    }
+
+    if (hudTimer && hudTimer.textContent && hudTimer.textContent.startsWith('Timer locked')) {
+        hudTimer.textContent = '';
+    }
+}
+
+function lockHotSeatTimer(reason = '', lockedValue = null) {
+    const timerEl = document.getElementById('hot-seat-timer');
+    const statusEl = document.getElementById('hot-seat-status');
+    const hudTimer = document.getElementById('hot-seat-hud-timer');
+
+    if (hotSeatCountdownResetTimeout) {
+        clearTimeout(hotSeatCountdownResetTimeout);
+        hotSeatCountdownResetTimeout = null;
+    }
+
+    hotSeatCountdownState.active = false;
+    hotSeatCountdownState.remaining = 0;
+    hotSeatTimerLocked = true;
+
+    let safeLockedValue = lockedValue;
+    if (!Number.isFinite(safeLockedValue) && typeof (currentState && currentState.hot_seat_timer) === 'number') {
+        safeLockedValue = currentState.hot_seat_timer;
+    }
+
+    if (!Number.isFinite(safeLockedValue) && timerEl && timerEl.textContent) {
+        const parsed = parseInt(timerEl.textContent.replace(/\D+/g, ''), 10);
+        if (Number.isFinite(parsed)) {
+            safeLockedValue = parsed;
+        }
+    }
+
+    hotSeatLockedRemaining = Number.isFinite(safeLockedValue)
+        ? Math.max(0, Math.round(safeLockedValue))
+        : null;
+
+    if (timerEl) {
+        timerEl.className = 'hot-seat-timer locked';
+        timerEl.textContent = hotSeatLockedRemaining !== null ? `${hotSeatLockedRemaining}s` : 'Locked';
+    }
+
+    if (hudTimer) {
+        hudTimer.textContent = hotSeatLockedRemaining !== null
+            ? `Timer locked at ${hotSeatLockedRemaining}s`
+            : 'Timer locked';
+    }
+
+    if (statusEl && reason) {
+        statusEl.textContent = reason;
+        statusEl.style.color = '#9be7ff';
+    }
+}
+
+function isHotSeatDisplayActive() {
+    return typeof document !== 'undefined'
+        && document.body
+        && document.body.classList.contains('hot-seat-active');
 }
 
 function hideHotSeatProfileCard(instant = false) {
@@ -4869,6 +5034,8 @@ function handleHotSeatActivated(message) {
         ? Math.max(0, Math.round(message.countdown))
         : 0;
 
+    resetHotSeatTimerLock();
+
     if (hotSeatCountdownResetTimeout) {
         clearTimeout(hotSeatCountdownResetTimeout);
         hotSeatCountdownResetTimeout = null;
@@ -5001,6 +5168,8 @@ function handleHotSeatActivated(message) {
         currentState.hot_seat_user = primaryUser;
         currentState.hot_seat_users = participants;
         currentState.hot_seat_timer = timerValue;
+        currentState.hot_seat_active = true;
+        currentState.hot_seat_answered = false;
     }
 
     const audioController = (typeof window !== 'undefined' && window.soundSystem && typeof window.soundSystem.playLockIn === 'function')
@@ -5016,7 +5185,11 @@ function handleHotSeatTimerUpdate(message) {
     const timerEl = document.getElementById("hot-seat-timer");
     const hudTimer = document.getElementById("hot-seat-hud-timer");
 
-    if (hotSeatCountdownState.active) {
+    if (typeof message.timer === 'number' && currentState) {
+        currentState.hot_seat_timer = message.timer;
+    }
+
+    if (hotSeatCountdownState.active || hotSeatTimerLocked) {
         return;
     }
 
@@ -5044,6 +5217,10 @@ function handleHotSeatCountdown(message) {
         : null;
 
     if (remaining === null) {
+        return;
+    }
+
+    if (hotSeatTimerLocked) {
         return;
     }
 
@@ -5123,6 +5300,19 @@ function handleHotSeatCountdown(message) {
 function handleHotSeatAnswered(message) {
     console.log("🎯 HOT SEAT ANSWER:", message.user, "selected", message.answer);
 
+    const lockedSeconds = typeof message.timeRemaining === 'number'
+        ? Math.max(0, Math.round(message.timeRemaining))
+        : null;
+
+    lockHotSeatTimer('', lockedSeconds);
+
+    if (currentState) {
+        currentState.hot_seat_answered = true;
+        if (lockedSeconds !== null) {
+            currentState.hot_seat_timer = lockedSeconds;
+        }
+    }
+
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;
     if (hotSeatCountdownResetTimeout) {
@@ -5156,6 +5346,8 @@ function handleHotSeatAnswered(message) {
 function handleHotSeatTimeout(message) {
     console.log("⏰ HOT SEAT TIMEOUT for", message.user);
 
+    lockHotSeatTimer('Time expired');
+
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;
     if (hotSeatCountdownResetTimeout) {
@@ -5188,6 +5380,8 @@ function handleHotSeatTimeout(message) {
 
 function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
+
+    resetHotSeatTimerLock();
 
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;
@@ -5232,6 +5426,10 @@ function handleHotSeatEnded(message) {
     }
 
     document.body.classList.remove('hot-seat-active');
+
+    if (currentState) {
+        currentState.hot_seat_active = false;
+    }
 
     setHotSeatBanner({ visible: false });
 
@@ -5766,6 +5964,8 @@ function renderPreviousWinnersEntries(data) {
     if (totalEl) {
         totalEl.textContent = `${sorted.length} Champion${sorted.length === 1 ? '' : 's'}`;
     }
+
+    restartPreviousWinnersAutoScroll();
 }
 
 function hideLeaderboardOverlay({ immediate = false } = {}) {
@@ -5773,6 +5973,8 @@ function hideLeaderboardOverlay({ immediate = false } = {}) {
     if (!overlay) {
         return;
     }
+
+    stopAutoScroll(leaderboardAutoScrollController);
 
     if (immediate) {
         overlay.classList.add('hidden');
@@ -5802,6 +6004,8 @@ function hidePreviousWinners({ immediate = false } = {}) {
     if (!overlay) {
         return;
     }
+
+    stopAutoScroll(previousWinnersAutoScrollController);
 
     if (immediate) {
         overlay.classList.add('hidden');
@@ -6308,6 +6512,8 @@ function renderLeaderboardEntries(players, period) {
         const playerCount = sortedPlayers.length;
         totalPlayersEl.textContent = `${playerCount} Player${playerCount !== 1 ? 's' : ''}`;
     }
-    
+
     console.log(`✅ Rendered ${sortedPlayers.length} leaderboard entries for ${period}`);
+
+    restartLeaderboardAutoScroll();
 }

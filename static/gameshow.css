@@ -3581,6 +3581,13 @@ body {
     font-family: "Orbitron", monospace;
 }
 
+.hot-seat-timer.locked {
+    color: #9be7ff;
+    text-shadow: 0 0 14px rgba(155, 231, 255, 0.6);
+    letter-spacing: 1px;
+    animation: none;
+}
+
 .hot-seat-timer.countdown {
     color: #FFE082;
     font-size: 40px;
