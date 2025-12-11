@@ -214,6 +214,9 @@ function restartPreviousWinnersAutoScroll() {
     }
 
     const listContainer = document.getElementById('previous-winners-list');
+    if (listContainer) {
+        listContainer.scrollTop = 0;
+    }
     startAutoScroll(listContainer, previousWinnersAutoScrollController, { speed: 0.05, pauseDuration: 1600 });
 }
 
@@ -6056,6 +6059,13 @@ async function showPreviousWinners() {
         return;
     }
 
+    // Make the overlay visible before rendering so auto-scroll can measure heights correctly
+    overlay.style.display = 'flex';
+    overlay.style.opacity = '0';
+    overlay.style.transform = 'translateY(40px)';
+    overlay.classList.remove('hidden');
+    triggerOverlayPopAnimation(overlay);
+
     try {
         await ensureLeaderboardDataLoaded();
         const data = await loadPreviousWinners(true);
@@ -6067,16 +6077,13 @@ async function showPreviousWinners() {
         renderPreviousWinnersEntries({ winners: [], metadata: {} });
     }
 
-    overlay.style.display = 'flex';
-    overlay.style.opacity = '0';
-    overlay.style.transform = 'translateY(40px)';
-    overlay.classList.remove('hidden');
-    triggerOverlayPopAnimation(overlay);
-
     requestAnimationFrame(() => {
         overlay.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
         overlay.style.opacity = '1';
         overlay.style.transform = 'translateY(0)';
+
+        // Kick off auto-scroll once the layout has settled and dimensions are measurable
+        requestAnimationFrame(() => restartPreviousWinnersAutoScroll());
     });
 
     if (typeof soundSystem !== 'undefined' && soundSystem && typeof soundSystem.playApplause === 'function') {
