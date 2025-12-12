@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What is the main purpose of Coinwise for traders?",
+    "text": "What was the size of the interest rate cut announced by the FOMC at this meeting?",
     "answers": [
-      "To replace crypto exchanges",
-      "To offer structured trading education & tools",
-      "To predict the next meme coin",
-      "To provide gaming tournaments"
+      "A half percentage point (50 basis points)",
+      "A quarter percentage point (25 basis points)",
+      "Three-quarters of a percentage point (75 basis points)",
+      "A full percentage point (100 basis points)"
     ],
     "correct": 1
   },
   {
     "number": 2,
-    "text": "Which module on Coinwise teaches core concepts like candlestick basics and structure?",
+    "text": "What is the amount of shorter-term Treasury securities the Fed announced it would purchase in the first month?",
     "answers": [
-      "Market Journal",
-      "Beginner Lessons",
-      "Quiz Arena",
-      "Strategy Lab"
+      "$40 million",
+      "$40 billion",
+      "$100 billion",
+      "$40 trillion"
     ],
     "correct": 1
   },
   {
     "number": 3,
-    "text": "What does the Trading Journal on Coinwise help traders track?",
+    "text": "What is the new target range for the federal funds rate following the rate cut decision?",
     "answers": [
-      "Twitch chat activity",
-      "Past trades, emotions, and performance",
-      "Crypto tax exemptions",
-      "Upcoming CPI dates"
+      "4% to 4.25%",
+      "3.5% to 3.75%",
+      "5.4% to 5.75%",
+      "2.25% to 2.5%"
     ],
     "correct": 1
   },
   {
     "number": 4,
-    "text": "What market behavior is most common right before an FOMC rate decision?",
+    "text": "What Star Wars character’s name was used to describe the large, two-sided market movement?",
     "answers": [
-      "Guaranteed dump",
-      "Low volatility and consolidation as traders wait",
-      "Guaranteed pump",
-      "Extremely predictable trends"
+      "Yoda",
+      "Luke Skywalker",
+      "Darth Maul",
+      "Chewbacca"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 5,
-    "text": "What do traders primarily look for in the FOMC statement?",
+    "text": "On which platform is the ongoing space-themed trading competition being held?",
     "answers": [
-      "Hints about future interest rate policy",
-      "Exchange maintenance windows",
-      "NFT market performance",
-      "New crypto regulations"
+      "Toobit",
+      "Kcex",
+      "Blofin",
+      "Weex"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 6,
-    "text": "What does Coinwise emphasize as the foundation for consistent improvement?",
+    "text": "What were the two goals of the Federal Reserve’s dual mandate?",
     "answers": [
-      "Watching 100 indicators",
-      "Developing strong psychology",
-      "Trading during low liquidity only",
-      "Copying whales"
+      "Fiscal support and currency valuation",
+      "Maximum employment and stable prices",
+      "GDP growth and low mortgage rates",
+      "Treasury liquidity and reserve growth"
     ],
     "correct": 1
   },
   {
     "number": 7,
-    "text": "How does a rate hike from the FOMC typically impact risk-on assets like crypto in the short term?",
+    "text": "According to the FOMC’s median projection, what was the total PCE inflation expected to be for the following year (2025)?",
     "answers": [
-      "Strong immediate pump",
-      "No effect at all",
-      "Guaranteed sideways movement",
-      "Usually increased selling pressure"
+      "1.7%",
+      "3.1%",
+      "2.4%",
+      "3.4%"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 8,
-    "text": "Why does volatility often spike during the exact minute of an FOMC announcement?",
+    "text": "What was the stated purpose of the Federal Reserve’s decision to purchase shorter-term Treasury securities?",
     "answers": [
-      "Exchanges manipulate price",
-      "Traders stop using stop-losses",
-      "All indicators reset",
-      "Liquidity thins and algorithmic trading reacts instantly"
+      "To enact monetary stimulus",
+      "To fund government debt",
+      "To maintain an ample supply of reserves over time",
+      "To counteract global tariffs"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 9,
-    "text": "When price consolidates tightly below resistance, what does it often signal?",
+    "text": "In FOMC context, what is the “dot plot”?",
     "answers": [
-      "A guaranteed crash",
-      "Market inactivity",
-      "Trend reversal confirmed",
-      "A potential breakout"
+      "A chart of CPI prints",
+      "A visual of Fed balance sheet assets",
+      "A chart of each policymaker’s projected future policy rate",
+      "A graph of unemployment vs GDP"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 10,
-    "text": "What is the main function of Open Interest?",
+    "text": "Which of the following are highlighted by the CoinWise Levels indicator?",
     "answers": [
-      "Shows new long/short positions entering the market",
-      "Displays exchange fees",
-      "Tracks funding rates only",
-      "Measures chart patterns"
+      "Only RSI overbought/oversold zones",
+      "Opens, highs, lows, midpoints, VWAPs, and POCs",
+      "Only weekly moving averages",
+      "Arbitrary lines drawn by AI"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 11,
-    "text": "What is the psychological bias where traders hold losing positions hoping they recover?",
+    "text": "Jerome Powell stated that activity in which economic sector “remains weak”?",
     "answers": [
-      "Confirmation bias",
-      "Scalping bias",
-      "Anchoring",
-      "FOMO"
+      "Consumer spending",
+      "Business fixed investment",
+      "The housing sector",
+      "The labor market"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 12,
-    "text": "What is the purpose of backtesting a strategy?",
+    "text": "How many regularly scheduled FOMC meetings are typically held each year?",
     "answers": [
-      "To see how a strategy performs on historical data",
-      "To adjust leverage settings",
-      "To find the best meme coin",
-      "To guarantee future wins"
+      "4",
+      "6",
+      "8",
+      "12"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 13,
-    "text": "Which Coinwise feature gives users points for the leaderboard?",
+    "text": "When the Fed says it will be “data-dependent,” what does that mean?",
     "answers": [
-      "Quiz Arena",
-      "Trading Hub",
-      "Dashboard",
-      "NFT viewer"
+      "It will follow the stock market index",
+      "It will act based on politics",
+      "It will adjust policy based on inflation & employment data",
+      "It will stop press conferences"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 14,
-    "text": "Who won the Last Talent Show?",
+    "text": "Which of the following is directly targeted by FOMC policy decisions?",
     "answers": [
-      "buzo",
-      "cyper22",
-      "XlrdTV",
-      "Alegator"
+      "Mortgage rates",
+      "The federal funds rate",
+      "Credit card APRs",
+      "30-year Treasury yields"
     ],
-    "correct": 3
+    "correct": 1
   },
   {
     "number": 15,
-    "text": "According to Coinwise risk management principles, what percentage per trade is recommended for beginners?",
+    "text": "Which Coinwise indicator can detect hidden shifts between price and underlying momentum?",
     "answers": [
-      "1–2% risk",
-      "10% risk",
-      "Zero risk ever",
-      "20% risk"
+      "TPO PVP",
+      "RTH / ETH gaps",
+      "Orderblocks",
+      "Divergences"
     ],
-    "correct": 0
+    "correct": 3
   }
 ]
