@@ -395,6 +395,17 @@ function broadcastLifelineVoteUpdate(updateMessage) {
 }
 
 // Leaderboard System Data
+function getCanonicalUsername(username) {
+  if (typeof username !== 'string') return '';
+  return username.trim().toLowerCase();
+}
+
+function getDisplayUsername(username, fallback = '') {
+  if (typeof username !== 'string') return fallback;
+  const trimmed = username.trim();
+  return trimmed || fallback;
+}
+
 let leaderboardData = {
   current_game: {},  // Live game tracking
   daily: {},         // Daily leaderboard
@@ -5779,9 +5790,14 @@ function endHotSeat(wasCorrect = null, timeout = false) {
 
 // Leaderboard System Functions
 function initializePlayerInLeaderboard(username, period = 'current_game') {
-  if (!leaderboardData[period][username]) {
+  const canonicalName = getCanonicalUsername(username);
+  if (!canonicalName) return null;
+
+  const displayName = getDisplayUsername(username, canonicalName);
+
+  if (!leaderboardData[period][canonicalName]) {
     if (period === 'current_game') {
-      leaderboardData[period][username] = {
+      leaderboardData[period][canonicalName] = {
         votes: [],
         correct_answers: 0,
         total_answers: 0,
@@ -5790,10 +5806,11 @@ function initializePlayerInLeaderboard(username, period = 'current_game') {
         current_streak: 0,
         best_streak: 0,
         hot_seat_performance: null,
-        first_seen: Date.now()
+        first_seen: Date.now(),
+        display_name: displayName
       };
     } else {
-      leaderboardData[period][username] = {
+      leaderboardData[period][canonicalName] = {
         games_played: period === 'current_game' ? 1 : 0,
         total_votes: 0,
         correct_votes: 0,
@@ -5809,31 +5826,39 @@ function initializePlayerInLeaderboard(username, period = 'current_game') {
         daily_best_streak: 0,
         weekly_best_streak: 0,
         monthly_best_streak: 0,
-        last_active: Date.now()
+        last_active: Date.now(),
+        display_name: displayName
       };
     }
+  } else if (!leaderboardData[period][canonicalName].display_name) {
+    leaderboardData[period][canonicalName].display_name = displayName;
   }
-  return leaderboardData[period][username];
+  return leaderboardData[period][canonicalName];
 }
 
 function addPointsToPlayer(username, points, reason = '') {
+  const canonicalName = getCanonicalUsername(username);
+  if (!canonicalName) return;
+
+  const displayName = getDisplayUsername(username, canonicalName);
+
   // Only add to current game if a game is active
   if (gameState.game_active) {
-    initializePlayerInLeaderboard(username, 'current_game');
-    leaderboardData.current_game[username].points += points;
-    console.log(`🏆 ${username} earned ${points} points for current game (${reason})`);
+    initializePlayerInLeaderboard(displayName, 'current_game');
+    leaderboardData.current_game[canonicalName].points += points;
+    console.log(`🏆 ${displayName} earned ${points} points for current game (${reason})`);
   }
-  
+
   // Add to all period leaderboards
   ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-    initializePlayerInLeaderboard(username, period);
-    leaderboardData[period][username].total_points += points;
-    leaderboardData[period][username].last_active = Date.now();
+    initializePlayerInLeaderboard(displayName, period);
+    leaderboardData[period][canonicalName].total_points += points;
+    leaderboardData[period][canonicalName].last_active = Date.now();
   });
   
   // Log appropriately based on game state
   if (!gameState.game_active) {
-    console.log(`📊 ${username} earned ${points} points for daily/weekly/monthly/all-time (${reason}) - no game active`);
+    console.log(`📊 ${displayName} earned ${points} points for daily/weekly/monthly/all-time (${reason}) - no game active`);
   }
   
   // Broadcast leaderboard update
@@ -5844,10 +5869,15 @@ function addPointsToPlayer(username, points, reason = '') {
 }
 
 function updatePlayerVoteStats(username, answer, isCorrect, responseTime) {
+  const canonicalName = getCanonicalUsername(username);
+  if (!canonicalName) return;
+
+  const displayName = getDisplayUsername(username, canonicalName);
+
   // Only update current game stats if a game is active
   let currentPlayer = null;
   if (gameState.game_active) {
-    currentPlayer = initializePlayerInLeaderboard(username, 'current_game');
+    currentPlayer = initializePlayerInLeaderboard(displayName, 'current_game');
     currentPlayer.total_answers++;
     
     if (isCorrect) {
@@ -5868,7 +5898,7 @@ function updatePlayerVoteStats(username, answer, isCorrect, responseTime) {
   
   // Update all period stats
   ['daily', 'weekly', 'monthly', 'all_time'].forEach(period => {
-    const player = initializePlayerInLeaderboard(username, period);
+    const player = initializePlayerInLeaderboard(displayName, period);
     player.total_votes++;
     if (isCorrect) player.correct_votes++;
     
@@ -5908,8 +5938,11 @@ function updatePlayerVoteStats(username, answer, isCorrect, responseTime) {
 function checkAndAwardStreakBonus(username) {
   // Only check streak bonuses if a game is active
   if (!gameState.game_active) return;
-  
-  const player = leaderboardData.current_game[username];
+
+  const canonicalName = getCanonicalUsername(username);
+  if (!canonicalName) return;
+
+  const player = leaderboardData.current_game[canonicalName];
   if (!player) return;
   
   const streak = player.current_streak;
@@ -6225,36 +6258,39 @@ function resetLeaderboard(period) {
   
   if (period === 'daily') {
     // Preserve best_streak (all-time) when resetting daily
-    Object.keys(leaderboardData.daily).forEach(username => {
-      const allTimeBest = leaderboardData.all_time[username]?.best_streak || 0;
-      leaderboardData.daily[username] = {
-        ...initializePlayerInLeaderboard(username, 'daily'),
+    Object.entries(leaderboardData.daily).forEach(([canonicalName, playerStats]) => {
+      const displayName = getDisplayUsername(playerStats?.display_name || canonicalName, canonicalName);
+      const allTimeBest = leaderboardData.all_time[canonicalName]?.best_streak || 0;
+      leaderboardData.daily[canonicalName] = {
+        ...initializePlayerInLeaderboard(displayName, 'daily'),
         best_streak: allTimeBest,  // Preserve all-time best
         daily_best_streak: 0       // Reset daily best
       };
     });
     leaderboardData.last_reset.daily = Date.now();
   }
-  
+
   if (period === 'weekly') {
     // Preserve best_streak (all-time) when resetting weekly
-    Object.keys(leaderboardData.weekly).forEach(username => {
-      const allTimeBest = leaderboardData.all_time[username]?.best_streak || 0;
-      leaderboardData.weekly[username] = {
-        ...initializePlayerInLeaderboard(username, 'weekly'),
+    Object.entries(leaderboardData.weekly).forEach(([canonicalName, playerStats]) => {
+      const displayName = getDisplayUsername(playerStats?.display_name || canonicalName, canonicalName);
+      const allTimeBest = leaderboardData.all_time[canonicalName]?.best_streak || 0;
+      leaderboardData.weekly[canonicalName] = {
+        ...initializePlayerInLeaderboard(displayName, 'weekly'),
         best_streak: allTimeBest,   // Preserve all-time best
         weekly_best_streak: 0        // Reset weekly best
       };
     });
     leaderboardData.last_reset.weekly = Date.now();
   }
-  
+
   if (period === 'monthly') {
     // Preserve best_streak (all-time) when resetting monthly
-    Object.keys(leaderboardData.monthly).forEach(username => {
-      const allTimeBest = leaderboardData.all_time[username]?.best_streak || 0;
-      leaderboardData.monthly[username] = {
-        ...initializePlayerInLeaderboard(username, 'monthly'),
+    Object.entries(leaderboardData.monthly).forEach(([canonicalName, playerStats]) => {
+      const displayName = getDisplayUsername(playerStats?.display_name || canonicalName, canonicalName);
+      const allTimeBest = leaderboardData.all_time[canonicalName]?.best_streak || 0;
+      leaderboardData.monthly[canonicalName] = {
+        ...initializePlayerInLeaderboard(displayName, 'monthly'),
         best_streak: allTimeBest,    // Preserve all-time best
         monthly_best_streak: 0        // Reset monthly best
       };
@@ -6349,12 +6385,75 @@ function saveLeaderboardBackup() {
   }
 }
 
+function mergePlayerStats(existing = {}, incoming = {}, displayNameFallback = '') {
+  const merged = { ...existing };
+  const numericFields = [
+    'points', 'total_points', 'total_votes', 'correct_votes', 'total_answers', 'correct_answers',
+    'games_played', 'current_streak', 'best_streak', 'hot_seat_appearances', 'hot_seat_correct',
+    'daily_best_streak', 'weekly_best_streak', 'monthly_best_streak', 'first_place_finishes'
+  ];
+
+  Object.entries(incoming || {}).forEach(([field, value]) => {
+    if (numericFields.includes(field)) {
+      merged[field] = (Number.isFinite(merged[field]) ? merged[field] : 0) + (Number(value) || 0);
+    } else if (field === 'votes' && Array.isArray(value)) {
+      merged.votes = Array.from([...(merged.votes || []), ...value]);
+    } else if (field === 'achievements' && Array.isArray(value)) {
+      const set = new Set([...(merged.achievements || []), ...value]);
+      merged.achievements = Array.from(set);
+    } else if (field === 'display_name') {
+      merged.display_name = merged.display_name || getDisplayUsername(value, displayNameFallback);
+    } else if (field === 'last_active') {
+      merged.last_active = Math.max(merged.last_active || 0, Number(value) || 0);
+    } else if (field === 'first_seen') {
+      const incomingFirstSeen = Number(value) || Date.now();
+      merged.first_seen = Math.min(merged.first_seen || incomingFirstSeen, incomingFirstSeen);
+    } else if (!(field in merged)) {
+      merged[field] = value;
+    }
+  });
+
+  if (!merged.display_name) {
+    merged.display_name = getDisplayUsername(displayNameFallback, displayNameFallback);
+  }
+
+  return merged;
+}
+
+function normalizeLeaderboardDataKeys(data) {
+  const periods = ['current_game', 'daily', 'weekly', 'monthly', 'all_time'];
+
+  periods.forEach((period) => {
+    const periodData = data[period];
+    if (!periodData || typeof periodData !== 'object') return;
+
+    const normalized = {};
+
+    Object.entries(periodData).forEach(([rawUsername, stats]) => {
+      const canonicalName = getCanonicalUsername(rawUsername);
+      if (!canonicalName) return;
+
+      const displayName = getDisplayUsername(stats?.display_name || rawUsername, canonicalName);
+      if (!normalized[canonicalName]) {
+        normalized[canonicalName] = { ...stats, display_name: displayName };
+      } else {
+        normalized[canonicalName] = mergePlayerStats(normalized[canonicalName], stats, displayName);
+      }
+    });
+
+    data[period] = normalized;
+  });
+
+  return data;
+}
+
 // Load leaderboard data from file
 function loadLeaderboardData() {
   try {
     if (fs.existsSync('./leaderboard-data.json')) {
       const data = fs.readFileSync('./leaderboard-data.json', 'utf8');
       leaderboardData = JSON.parse(data);
+      leaderboardData = normalizeLeaderboardDataKeys(leaderboardData);
       console.log('📂 Leaderboard data loaded successfully');
       
       // Check if resets are needed based on time
@@ -6367,6 +6466,7 @@ function loadLeaderboardData() {
     console.error('❌ Error loading leaderboard data:', error);
     // Initialize with default if load fails
     initializeLeaderboardData();
+    leaderboardData = normalizeLeaderboardDataKeys(leaderboardData);
   }
 }
 
@@ -6652,8 +6752,16 @@ function savePreviousWinners(winnersData) {
 
 function archiveWinner(username) {
   try {
+    const canonicalName = getCanonicalUsername(username);
+    if (!canonicalName) {
+      return {
+        success: false,
+        error: `Player ${username} not found in current game leaderboard`
+      };
+    }
+
     // Find the player in current_game leaderboard
-    const playerData = leaderboardData.current_game[username.toLowerCase()];
+    const playerData = leaderboardData.current_game[canonicalName];
     
     if (!playerData) {
       return {
@@ -6666,18 +6774,19 @@ function archiveWinner(username) {
     const winnersData = loadPreviousWinners();
     
     // Generate unique game ID
-    const gameId = `game_${Date.now()}_${username.toLowerCase()}`;
+    const gameId = `game_${Date.now()}_${canonicalName}`;
     
     // Create winner entry
     const winnerEntry = {
       game_id: gameId,
       date: new Date().toISOString(),
-      username: username,
-      final_points: playerData.points || 0,
-      correct_answers: playerData.correct_answers || 0,
-      total_answers: playerData.total_answers || 0,
-      accuracy: playerData.total_answers > 0 
-        ? Math.round((playerData.correct_answers / playerData.total_answers) * 100)
+      username: playerData.display_name || getDisplayUsername(username, canonicalName),
+      canonical_username: canonicalName,
+      final_points: playerData.points || playerData.total_points || 0,
+      correct_answers: playerData.correct_answers || playerData.correct_votes || 0,
+      total_answers: playerData.total_answers || playerData.total_votes || 0,
+      accuracy: (playerData.total_answers || playerData.total_votes || 0) > 0
+        ? Math.round(((playerData.correct_answers || playerData.correct_votes || 0) / (playerData.total_answers || playerData.total_votes)) * 100)
         : 0,
       best_streak: playerData.best_streak || 0,
       fastest_correct_time: playerData.fastest_correct_time || null,
@@ -6809,16 +6918,20 @@ function getCurrentGameLeaderboardEntries(options = {}) {
   const safeLimit = Math.max(typeof limit === 'number' ? limit : leaderboardSettings.display_count || 10, 10);
   const ignoredUsers = getCachedIgnoredList();
   const entries = Object.entries(leaderboardData.current_game || {})
-    .map(([username, stats]) => ({
-      username,
-      ...stats,
-      points: stats.points || stats.total_points || 0,
-      total_answers: stats.total_answers || stats.total_votes || 0,
-      total_votes: stats.total_votes || stats.total_answers || 0,
-      correct_answers: stats.correct_answers || stats.correct_votes || 0,
-      current_streak: stats.current_streak || 0,
-      best_streak: stats.best_streak || 0
-    }))
+    .map(([canonicalName, stats]) => {
+      const displayName = getDisplayUsername(stats.display_name || canonicalName, canonicalName);
+      return {
+        username: displayName,
+        canonical_username: canonicalName,
+        ...stats,
+        points: stats.points || stats.total_points || 0,
+        total_answers: stats.total_answers || stats.total_votes || 0,
+        total_votes: stats.total_votes || stats.total_answers || 0,
+        correct_answers: stats.correct_answers || stats.correct_votes || 0,
+        current_streak: stats.current_streak || 0,
+        best_streak: stats.best_streak || 0
+      };
+    })
     .sort((a, b) => (b.points || 0) - (a.points || 0));
 
   const ignoredEntries = entries
@@ -6862,18 +6975,22 @@ function getLeaderboardStats() {
 
     return Object.entries(data)
       .filter(([username]) => !ignoredUsers.includes(username.toLowerCase()))
-      .map(([username, stats]) => ({
-        username,
-        ...stats,
-        points: stats.points || stats.total_points || 0,
-        total_votes: isCurrentGame ? (stats.total_answers || 0) : (stats.total_votes || 0),
-        correct_answers: isCurrentGame ? (stats.correct_answers || 0) : (stats.correct_votes || 0),
-        current_streak: isCurrentGame ? (stats.current_streak || 0) : 0,
-        best_streak: stats.best_streak || 0,
-        daily_best_streak: stats.daily_best_streak || 0,
-        weekly_best_streak: stats.weekly_best_streak || 0,
-        monthly_best_streak: stats.monthly_best_streak || 0
-      }))
+      .map(([canonicalName, stats]) => {
+        const displayName = getDisplayUsername(stats.display_name || canonicalName, canonicalName);
+        return {
+          username: displayName,
+          canonical_username: canonicalName,
+          ...stats,
+          points: stats.points || stats.total_points || 0,
+          total_votes: isCurrentGame ? (stats.total_answers || 0) : (stats.total_votes || 0),
+          correct_answers: isCurrentGame ? (stats.correct_answers || 0) : (stats.correct_votes || 0),
+          current_streak: isCurrentGame ? (stats.current_streak || 0) : 0,
+          best_streak: stats.best_streak || 0,
+          daily_best_streak: stats.daily_best_streak || 0,
+          weekly_best_streak: stats.weekly_best_streak || 0,
+          monthly_best_streak: stats.monthly_best_streak || 0
+        };
+      })
       .sort((a, b) => {
         const aValue = isCurrentGame ? (a.points || 0) : (a.total_points || 0);
         const bValue = isCurrentGame ? (b.points || 0) : (b.total_points || 0);
@@ -11501,14 +11618,21 @@ async function handleAPI(req, res, pathname) {
             if (leaderboardData[period] && typeof leaderboardData[period] === 'object') {
               Object.keys(importData.leaderboard[period]).forEach(username => {
                 if (importData.leaderboard[period][username]) {
+                  const canonicalName = getCanonicalUsername(username);
+                  if (!canonicalName) return;
+
+                  const player = importData.leaderboard[period][username];
+                  const displayName = getDisplayUsername(player?.display_name || username, canonicalName);
+
                   // Merge user data
-                  if (!leaderboardData[period][username]) {
-                    leaderboardData[period][username] = importData.leaderboard[period][username];
+                  if (!leaderboardData[period][canonicalName]) {
+                    leaderboardData[period][canonicalName] = { ...player, display_name: displayName };
                   } else {
-                    // Add points and stats
-                    leaderboardData[period][username].points += importData.leaderboard[period][username].points || 0;
-                    leaderboardData[period][username].correct_answers += importData.leaderboard[period][username].correct_answers || 0;
-                    leaderboardData[period][username].total_votes += importData.leaderboard[period][username].total_votes || 0;
+                    leaderboardData[period][canonicalName] = mergePlayerStats(
+                      leaderboardData[period][canonicalName],
+                      player,
+                      displayName
+                    );
                   }
                 }
               });
@@ -11516,7 +11640,7 @@ async function handleAPI(req, res, pathname) {
           });
         } else {
           // Replace entire leaderboard
-          leaderboardData = importData.leaderboard;
+          leaderboardData = normalizeLeaderboardDataKeys(importData.leaderboard);
         }
         
         saveLeaderboardData();

@@ -4587,7 +4587,8 @@ function showCredits(participants = [], winners = []) {
 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'credits-winner-name';
-                nameSpan.textContent = (winner.username || winner.name || 'Winner').toUpperCase();
+                const displayName = winner.display_name || winner.username || winner.canonical_username || winner.name || 'Winner';
+                nameSpan.textContent = displayName.toUpperCase();
 
                 const pointsValue = winner.points ?? winner.final_points;
                 if (pointsValue !== undefined) {
@@ -5683,13 +5684,14 @@ function mergeAggregatedPreviousWinnersWithAllTime(entries) {
 
     const index = new Map();
     allTimeEntries.forEach(entry => {
-        if (entry && entry.username) {
-            index.set(String(entry.username).trim().toLowerCase(), entry);
+        if (entry && (entry.username || entry.canonical_username)) {
+            const key = String(entry.canonical_username || entry.username).trim().toLowerCase();
+            index.set(key, entry);
         }
     });
 
     return entries.map(winner => {
-        const key = String(winner.username).trim().toLowerCase();
+        const key = String(winner.canonical_username || winner.username).trim().toLowerCase();
         const match = index.get(key);
         if (!match) {
             return winner;
@@ -5913,7 +5915,7 @@ function renderPreviousWinnersEntries(data) {
 
         const nameEl = document.createElement('div');
         nameEl.className = 'previous-winner-name';
-        nameEl.textContent = winner.username;
+        nameEl.textContent = winner.display_name || winner.username || winner.canonical_username || winner.name || 'Winner';
 
         const metaRow = document.createElement('div');
         metaRow.className = 'previous-winner-meta';
@@ -6305,6 +6307,7 @@ function showEndGameLeaderboard(winners, prizeConfig) {
     
     // Render winners with special styling
     winners.forEach((player, index) => {
+        const displayName = player.display_name || player.username || player.canonical_username || 'Unknown';
         const entry = document.createElement('div');
         entry.className = 'leaderboard-entry winner-entry';
         entry.style.opacity = '0';
@@ -6320,7 +6323,7 @@ function showEndGameLeaderboard(winners, prizeConfig) {
         entry.innerHTML = `
             <div class="leaderboard-rank" style="font-size: 28px;">${medal}</div>
             <div class="leaderboard-player">
-                <div class="leaderboard-name" style="font-size: 20px; color: #FFD700;">${player.username}</div>
+                <div class="leaderboard-name" style="font-size: 20px; color: #FFD700;">${displayName}</div>
                 <div class="leaderboard-stats">
                     <span class="stat-points" style="font-size: 18px;">${player.points} pts</span>
                     <span class="stat-accuracy">${player.correct_answers}/${player.total_votes} correct</span>
@@ -6475,6 +6478,7 @@ function renderLeaderboardEntries(players, period) {
     
     // Render each player entry to temporary container
     sortedPlayers.forEach((player, index) => {
+        const displayName = player.display_name || player.username || player.canonical_username || 'Unknown';
         const entry = document.createElement('div');
         entry.className = 'leaderboard-entry';
 
@@ -6503,7 +6507,7 @@ function renderLeaderboardEntries(players, period) {
         entry.innerHTML = `
             <div class="leaderboard-rank">${rankDisplay}</div>
             <div class="leaderboard-info">
-                <div class="leaderboard-username">${player.username}</div>
+                <div class="leaderboard-username">${displayName}</div>
                 <div class="leaderboard-stats">
                     ${correct > 0 ? `✓${correct}` : ''}
                     ${votes > 0 ? ` • ${votes} votes` : ''}
