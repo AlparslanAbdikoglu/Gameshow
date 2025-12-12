@@ -125,8 +125,8 @@ let previousWinnersLastFetched = 0;
 let previousWinnersFetchPromise = null;
 let isShowingPreviousWinners = false;
 const PREVIOUS_WINNERS_CACHE_MS = 60 * 1000;
-const leaderboardAutoScrollController = { frameId: null, active: false };
-const previousWinnersAutoScrollController = { frameId: null, active: false };
+const leaderboardAutoScrollController = { frameId: null, active: false, retryTimeout: null };
+const previousWinnersAutoScrollController = { frameId: null, active: false, retryTimeout: null };
 
 function stopAutoScroll(controller) {
     if (!controller) {
@@ -134,6 +134,10 @@ function stopAutoScroll(controller) {
     }
 
     controller.active = false;
+    if (controller.retryTimeout) {
+        clearTimeout(controller.retryTimeout);
+        controller.retryTimeout = null;
+    }
     if (controller.frameId) {
         cancelAnimationFrame(controller.frameId);
         controller.frameId = null;
@@ -146,53 +150,61 @@ function startAutoScroll(element, controller, options = {}) {
     }
 
     stopAutoScroll(controller);
-
-    const scrollDistance = element.scrollHeight - element.clientHeight;
-    if (scrollDistance <= 0) {
-        return;
-    }
-
     const speed = typeof options.speed === 'number' ? options.speed : 0.06; // px per ms
     const pauseDuration = typeof options.pauseDuration === 'number' ? options.pauseDuration : 1400;
+    let remainingAttempts = typeof options.retryAttempts === 'number' ? options.retryAttempts : 6;
 
-    controller.active = true;
-    let direction = 1;
-    let lastTimestamp = null;
-    let pausedUntil = 0;
-
-    const step = (timestamp) => {
-        if (!controller.active) {
+    const attemptStart = () => {
+        const scrollDistance = element.scrollHeight - element.clientHeight;
+        if (scrollDistance <= 0) {
+            if (remainingAttempts-- > 0) {
+                controller.retryTimeout = setTimeout(attemptStart, 120);
+            }
             return;
         }
 
-        if (lastTimestamp === null) {
+        controller.retryTimeout = null;
+        controller.active = true;
+        let direction = 1;
+        let lastTimestamp = null;
+        let pausedUntil = 0;
+
+        const step = (timestamp) => {
+            if (!controller.active) {
+                return;
+            }
+
+            if (lastTimestamp === null) {
+                lastTimestamp = timestamp;
+            }
+
+            if (timestamp < pausedUntil) {
+                controller.frameId = requestAnimationFrame(step);
+                return;
+            }
+
+            const delta = timestamp - lastTimestamp;
             lastTimestamp = timestamp;
-        }
 
-        if (timestamp < pausedUntil) {
+            const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
+            const atBottom = element.scrollTop >= maxScroll - 1;
+            const atTop = element.scrollTop <= 1;
+
+            if (atBottom || atTop) {
+                direction = atBottom ? -1 : 1;
+                pausedUntil = timestamp + pauseDuration;
+            } else {
+                const deltaPixels = direction * speed * delta;
+                element.scrollTop = Math.min(maxScroll, Math.max(0, element.scrollTop + deltaPixels));
+            }
+
             controller.frameId = requestAnimationFrame(step);
-            return;
-        }
-
-        const delta = timestamp - lastTimestamp;
-        lastTimestamp = timestamp;
-
-        const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
-        const atBottom = element.scrollTop >= maxScroll - 1;
-        const atTop = element.scrollTop <= 1;
-
-        if (atBottom || atTop) {
-            direction = atBottom ? -1 : 1;
-            pausedUntil = timestamp + pauseDuration;
-        } else {
-            const deltaPixels = direction * speed * delta;
-            element.scrollTop = Math.min(maxScroll, Math.max(0, element.scrollTop + deltaPixels));
-        }
+        };
 
         controller.frameId = requestAnimationFrame(step);
     };
 
-    controller.frameId = requestAnimationFrame(step);
+    attemptStart();
 }
 
 function restartLeaderboardAutoScroll() {
