@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What was the size of the interest rate cut announced by the FOMC at this meeting?",
+    "text": "Friday’s Kimbillionaire Gameshow mainly focused on which event?",
     "answers": [
-      "A half percentage point (50 basis points)",
-      "A quarter percentage point (25 basis points)",
-      "Three-quarters of a percentage point (75 basis points)",
-      "A full percentage point (100 basis points)"
+      "Market Open",
+      "Market Resumption",
+      "FOMC",
+      "CPI"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 2,
-    "text": "What is the amount of shorter-term Treasury securities the Fed announced it would purchase in the first month?",
+    "text": "What’s the weekly prize pool for the Blofin space trading competition?",
     "answers": [
-      "$40 million",
-      "$40 billion",
-      "$100 billion",
-      "$40 trillion"
+      "$250",
+      "$100",
+      "$10,000",
+      "$2,000"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 3,
-    "text": "What is the new target range for the federal funds rate following the rate cut decision?",
+    "text": "What’s the command for the space-themed trading competition?",
     "answers": [
-      "4% to 4.25%",
-      "3.5% to 3.75%",
-      "5.4% to 5.75%",
-      "2.25% to 2.5%"
+      "!KOJ",
+      "!KOJA",
+      "!KOH",
+      "!KOL"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 4,
-    "text": "What Star Wars character’s name was used to describe the large, two-sided market movement?",
+    "text": "What was Tony Soprano's fun fact regarding his work ethic during the talent show?",
     "answers": [
-      "Yoda",
-      "Luke Skywalker",
-      "Darth Maul",
-      "Chewbacca"
+      "He loves music and connecting with people",
+      "He once sold a waffle in exchange for friendship",
+      "He once worked a night shift by falling asleep and told everyone security was extra vigilant",
+      "He has 100 pets"
     ],
     "correct": 2
   },
   {
     "number": 5,
-    "text": "On which platform is the ongoing space-themed trading competition being held?",
+    "text": "Which platform is hosting the ongoing space-themed trading competition?",
     "answers": [
-      "Toobit",
-      "Kcex",
+      "!KOJ",
       "Blofin",
-      "Weex"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 6,
-    "text": "What were the two goals of the Federal Reserve’s dual mandate?",
-    "answers": [
-      "Fiscal support and currency valuation",
-      "Maximum employment and stable prices",
-      "GDP growth and low mortgage rates",
-      "Treasury liquidity and reserve growth"
+      "Bitget",
+      "KCEX"
     ],
     "correct": 1
   },
   {
-    "number": 7,
-    "text": "According to the FOMC’s median projection, what was the total PCE inflation expected to be for the following year (2025)?",
+    "number": 6,
+    "text": "Which two PSG members competed against each other in the second round of Liquania's Got Talent?",
     "answers": [
-      "1.7%",
-      "3.1%",
-      "2.4%",
-      "3.4%"
+      "Arcus and Tony Soprano",
+      "Mccillem and XLRD TV",
+      "Nitrogen and Insistence",
+      "Vouble1 Maestro and Alligator"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 7,
+    "text": "What platform must participants use to receive prizes and giveaways by updating their UID?",
+    "answers": [
+      "The Blofin exchange",
+      "The CoinWise Discord #redeem channel",
+      "The Kimba Dashboard",
+      "The Twitch chat during the Hot Seat"
     ],
     "correct": 2
   },
   {
     "number": 8,
-    "text": "What was the stated purpose of the Federal Reserve’s decision to purchase shorter-term Treasury securities?",
+    "text": "Who were the three top finalists from Season 1 of Liquania's Got Talent?",
     "answers": [
-      "To enact monetary stimulus",
-      "To fund government debt",
-      "To maintain an ample supply of reserves over time",
-      "To counteract global tariffs"
+      "Nitrogen, Arcus, and Insistence",
+      "Vouble1 Maestro, Alligator, and Henry",
+      "Mcillem, XLRD TV, and Wrong Person",
+      "Matin B, NeilChang44, and Meta Beast"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 9,
-    "text": "In FOMC context, what is the “dot plot”?",
+    "text": "Which five topics are featured in the newly released CoinWise Beginner quizzes?",
     "answers": [
-      "A chart of CPI prints",
-      "A visual of Fed balance sheet assets",
-      "A chart of each policymaker’s projected future policy rate",
-      "A graph of unemployment vs GDP"
+      "Beginner Gaps, Psychology, Opening Levels, Tick Sizing, and Candlesticks",
+      "Beginner FOMC, Market Close, Resumption, and Stream Schedule",
+      "Beginner Divergences, VWAPs, Order Blocks, and Liquidity",
+      "Beginner CPI Data, Interest Rates, and Treasury Yields"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 10,
-    "text": "Which of the following are highlighted by the CoinWise Levels indicator?",
+    "text": "Who was the previous winner of Friday’s Kimbillionaire Gameshow?",
     "answers": [
-      "Only RSI overbought/oversold zones",
-      "Opens, highs, lows, midpoints, VWAPs, and POCs",
-      "Only weekly moving averages",
-      "Arbitrary lines drawn by AI"
+      "Nitrogen203",
+      "Mj28",
+      "Xxxxxx1999",
+      "Raptorist259"
     ],
     "correct": 1
   },
   {
     "number": 11,
-    "text": "Jerome Powell stated that activity in which economic sector “remains weak”?",
+    "text": "Besides submitting lyrics, when is the next opportunity to submit songs for Liquania's Got Talent?",
     "answers": [
-      "Consumer spending",
-      "Business fixed investment",
-      "The housing sector",
-      "The labor market"
+      "By contacting Season 1 champion Henry",
+      "During the CME resumption stream with Kagewins",
+      "During listening parties held the following week",
+      "Submissions close every Sunday"
     ],
     "correct": 2
   },
   {
     "number": 12,
-    "text": "How many regularly scheduled FOMC meetings are typically held each year?",
+    "text": "What does sustained absorption at a key level usually indicate?",
     "answers": [
-      "4",
-      "6",
-      "8",
-      "12"
+      "No market interest",
+      "Large players are defending or building positions",
+      "Indicators are lagging",
+      "Volatility must stop"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 13,
-    "text": "When the Fed says it will be “data-dependent,” what does that mean?",
+    "text": "What specific prize does CoinWise offer for winning a Hot Seat round?",
     "answers": [
-      "It will follow the stock market index",
-      "It will act based on politics",
-      "It will adjust policy based on inflation & employment data",
-      "It will stop press conferences"
+      "A free lifetime CoinWise Pro Plus subscription",
+      "A 14-day free trial of CoinWise Pro Plus",
+      "$250 exchange credit",
+      "Access to the CoinWise #redeem Discord channel"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 14,
-    "text": "Which of the following is directly targeted by FOMC policy decisions?",
+    "text": "How many Season 2 winners of Liquania's Got Talent are there so far?",
     "answers": [
-      "Mortgage rates",
-      "The federal funds rate",
-      "Credit card APRs",
-      "30-year Treasury yields"
+      "Two (Vouble1 Maestro)",
+      "Three (Vouble1 Maestro, Alligator)",
+      "Four (Vouble1 Maestro, Alligator, Arcus)",
+      "Five (Vouble1 Maestro, Alligator, Arcus, Nitrogen)"
     ],
     "correct": 1
   },
   {
     "number": 15,
-    "text": "Which Coinwise indicator can detect hidden shifts between price and underlying momentum?",
+    "text": "What is the primary goal of using CoinWise tools together (Levels, RTH/ETH, Structure)?",
     "answers": [
-      "TPO PVP",
-      "RTH / ETH gaps",
-      "Orderblocks",
-      "Divergences"
+      "To predict exact tops and bottoms",
+      "To trade with context, confirmation, and risk control",
+      "To avoid stop-losses",
+      "To trade more frequently"
     ],
-    "correct": 3
+    "correct": 1
   }
 ]
