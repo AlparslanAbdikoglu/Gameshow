@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "What is the main purpose of Coinwise for traders?",
+    "text": "Friday’s Kimbillionare Gameshow mainly focused on which event?",
     "answers": [
-      "To replace crypto exchanges",
-      "To offer structured trading education & tools",
-      "To predict the next meme coin",
-      "To provide gaming tournaments"
+      "CPI",
+      "Market Open",
+      "FOMC",
+      "Market Resumption"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 2,
-    "text": "Which module on Coinwise teaches core concepts like candlestick basics and structure?",
+    "text": "What’s the prize pool for the Blofin space trading competition every week?",
     "answers": [
-      "Market Journal",
-      "Beginner Lessons",
-      "Quiz Arena",
-      "Strategy Lab"
+      "$100",
+      "$2,000",
+      "$10,000",
+      "$250"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 3,
-    "text": "What does the Trading Journal on Coinwise help traders track?",
+    "text": "What does the !KOJ command activate during the stream?",
     "answers": [
-      "Twitch chat activity",
-      "Past trades, emotions, and performance",
-      "Crypto tax exemptions",
-      "Upcoming CPI dates"
+      "It displays the competition leaderboard",
+      "It displays a link to join the space trading competition",
+      "It joins a random giveaway draw",
+      "It unlocks bonus leverage on Blofin"
     ],
     "correct": 1
   },
   {
     "number": 4,
-    "text": "What market behavior is most common right before an FOMC rate decision?",
+    "text": "What was Tony Soprano's fun fact regarding his work ethic during the talent show?",
     "answers": [
-      "Guaranteed dump",
-      "Low volatility and consolidation as traders wait",
-      "Guaranteed pump",
-      "Extremely predictable trends"
+      "He once sold a waffle in exchange for friendship",
+      "He once worked a night shift by falling asleep and told everyone security was extra vigilant",
+      "He loves music, connecting with people",
+      "He has 100 pets"
     ],
     "correct": 1
   },
   {
     "number": 5,
-    "text": "What do traders primarily look for in the FOMC statement?",
+    "text": "What is one of the required conditions to participate in the BloFin Space Trading Competition?",
     "answers": [
-      "Hints about future interest rate policy",
-      "Exchange maintenance windows",
-      "NFT market performance",
-      "New crypto regulations"
+      "You must sign up using the K1M6A referral link",
+      "You must be invited by another competition participant",
+      "You must trade a minimum of 100 futures contracts",
+      "You must hold a specific amount of BLO token"
     ],
     "correct": 0
   },
   {
     "number": 6,
-    "text": "What does Coinwise emphasize as the foundation for consistent improvement?",
+    "text": "Which two PSG members competed against each other in the second round of Liquania's Got Talent Season 2?",
     "answers": [
-      "Watching 100 indicators",
-      "Developing strong psychology",
-      "Trading during low liquidity only",
-      "Copying whales"
+      "Nitrogen and Insistence",
+      "Arhus and Tony Soprano",
+      "Mcillem and XLRD TV",
+      "V_001 Maestro and Alligator"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 7,
+    "text": "What platform must participants be signed up on to receive prizes?",
+    "answers": [
+      "The Kimba dashboard (!dashboard)",
+      "All of them",
+      "The Coinwise Discord #redeem channel",
+      "The Blofin exchange"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 8,
+    "text": "Who were Season One's top three finalists from Liquania’s Got Talent?",
+    "answers": [
+      "V_001 Maestro, Alligator, and Henry",
+      "Mcillem, XLRD TV, and Wrong Person",
+      "Matin B, NeilChang44, and Meta Beast",
+      "Nitrogen, Arcus, and Insistence"
     ],
     "correct": 1
   },
   {
-    "number": 7,
-    "text": "How does a rate hike from the FOMC typically impact risk-on assets like crypto in the short term?",
-    "answers": [
-      "Strong immediate pump",
-      "No effect at all",
-      "Guaranteed sideways movement",
-      "Usually increased selling pressure"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 8,
-    "text": "Why does volatility often spike during the exact minute of an FOMC announcement?",
-    "answers": [
-      "Exchanges manipulate price",
-      "Traders stop using stop-losses",
-      "All indicators reset",
-      "Liquidity thins and algorithmic trading reacts instantly"
-    ],
-    "correct": 3
-  },
-  {
     "number": 9,
-    "text": "When price consolidates tightly below resistance, what does it often signal?",
+    "text": "Which two topics are featured in the recently released Coinwise Beginner quizzes?",
     "answers": [
-      "A guaranteed crash",
-      "Market inactivity",
-      "Trend reversal confirmed",
-      "A potential breakout"
+      "Order Blocks and Liquidity Sweeps",
+      "FOMC Decisions and Treasury Yields",
+      "Psychology and Candlesticks",
+      "VWAPs and Advanced Divergences"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 10,
-    "text": "What is the main function of Open Interest?",
+    "text": "Who was the previous Hot Seat player of the Kimbillionaire Gameshow on Friday?",
     "answers": [
-      "Shows new long/short positions entering the market",
-      "Displays exchange fees",
-      "Tracks funding rates only",
-      "Measures chart patterns"
+      "Kerviz",
+      "Nitrogen203",
+      "Raptorist259",
+      "Xxxxxx1999"
     ],
     "correct": 0
   },
   {
     "number": 11,
-    "text": "What is the psychological bias where traders hold losing positions hoping they recover?",
+    "text": "Besides submitting lyrics, when is the next opportunity for participants to submit their songs for Liquania's Got Talent?",
     "answers": [
-      "Confirmation bias",
-      "Scalping bias",
-      "Anchoring",
-      "FOMO"
+      "Submissions close every Sunday with no exceptions",
+      "During the CME resumption stream with Kagewins",
+      "By tuning in for the listening parties held the following week",
+      "By contacting the Season One champion, Henry"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 12,
+    "text": "What Coinwise tool helps traders identify institutional zones of interest?",
+    "answers": [
+      "Coinwise Gaps",
+      "Coinwise Journal",
+      "Coinwise Divergences",
+      "Coinwise Orderblocks"
     ],
     "correct": 3
   },
   {
-    "number": 12,
-    "text": "What is the purpose of backtesting a strategy?",
-    "answers": [
-      "To see how a strategy performs on historical data",
-      "To adjust leverage settings",
-      "To find the best meme coin",
-      "To guarantee future wins"
-    ],
-    "correct": 0
-  },
-  {
     "number": 13,
-    "text": "Which Coinwise feature gives users points for the leaderboard?",
+    "text": "What specific prize does Coinwise offer for winning a Hot Seat round?",
     "answers": [
-      "Quiz Arena",
-      "Trading Hub",
-      "Dashboard",
-      "NFT viewer"
+      "A 14-day free trial of the Coinwise Pro Plus educational plan",
+      "A free lifetime subscription to the Coinwise Pro Plus plan",
+      "Access to the exclusive Coinwise fanclub",
+      "$250 credited to the winner’s exchange account"
     ],
     "correct": 0
   },
   {
     "number": 14,
-    "text": "Who won the Last Talent Show?",
+    "text": "How many winners does Season 2 of Liquania’s Got Talent have so far?",
     "answers": [
-      "buzo",
-      "cyper22",
-      "XlrdTV",
-      "Alligator"
+      "Five (V_001, Maestro, Alligator, Arcus, Nitrogen)",
+      "Two (V_001, Maestro)",
+      "Four (V_001, Maestro, Ael1gtr, Nitrogen)",
+      "Three (V_001, Maestro, Alligator)"
     ],
-    "correct": 3
+    "correct": 2
   },
   {
     "number": 15,
-    "text": "According to Coinwise risk management principles, what percentage per trade is recommended for beginners?",
+    "text": "What is the primary goal of using Coinwise tools together (Levels, Gaps, TPO PVP)?",
     "answers": [
-      "1–2% risk",
-      "10% risk",
-      "Zero risk ever",
-      "20% risk"
+      "To trade with context, confirmation, and risk control",
+      "To avoid stop-losses",
+      "To trade more frequently",
+      "To predict exact tops and bottoms"
     ],
     "correct": 0
   }

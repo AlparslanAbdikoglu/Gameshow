@@ -1,23 +1,23 @@
 [
   {
     "number": 1,
-    "text": "Friday’s Kimbillionaire Gameshow mainly focused on which event?",
+    "text": "Friday’s Kimbillionare Gameshow mainly focused on which event?",
     "answers": [
+      "CPI",
       "Market Open",
-      "Market Resumption",
       "FOMC",
-      "CPI"
+      "Market Resumption"
     ],
     "correct": 2
   },
   {
     "number": 2,
-    "text": "What’s the prize pool for the Blofin \"space trading competition\" every week?",
+    "text": "What’s the prize pool for the Blofin space trading competition every week?",
     "answers": [
-      "$250",
       "$100",
+      "$2,000",
       "$10,000",
-      "$2,000"
+      "$250"
     ],
     "correct": 2
   },
@@ -25,143 +25,143 @@
     "number": 3,
     "text": "What does the !KOJ command activate during the stream?",
     "answers": [
-      "It joins a random giveaway draw",
       "It displays the competition leaderboard",
-      "It registers a trader into the active space competition",
+      "It displays a link to join the space trading competition",
+      "It joins a random giveaway draw",
       "It unlocks bonus leverage on Blofin"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 4,
     "text": "What was Tony Soprano's fun fact regarding his work ethic during the talent show?",
     "answers": [
-      "He loves music and connecting with people",
       "He once sold a waffle in exchange for friendship",
       "He once worked a night shift by falling asleep and told everyone security was extra vigilant",
+      "He loves music, connecting with people",
       "He has 100 pets"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 5,
-    "text": "Why is Blofin used for the space-themed trading competition?",
-    "answers": [
-      "It offers the lowest fees across all exchanges",
-      "It supports the competition’s leaderboard tracking and UID integration",
-      "It has the highest leverage in crypto",
-      "It is the newest exchange on the market"
     ],
     "correct": 1
   },
   {
-    "number": 6,
-    "text": "Which two PSG members competed against each other in the second round of Liquania's Got Talent?",
+    "number": 5,
+    "text": "What is one of the required conditions to participate in the BloFin Space Trading Competition?",
     "answers": [
-      "Arcus and Tony Soprano",
-      "McKillum and XLRD TV",
+      "You must sign up using the K1M6A referral link",
+      "You must be invited by another competition participant",
+      "You must trade a minimum of 100 futures contracts",
+      "You must hold a specific amount of BLO token"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 6,
+    "text": "Which two PSG members competed against each other in the second round of Liquania's Got Talent Season 2?",
+    "answers": [
       "Nitrogen and Insistence",
+      "Arhus and Tony Soprano",
+      "Mcillem and XLRD TV",
       "V_001 Maestro and Alligator"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 7,
-    "text": "What platform must participants be signed up on to receive prizes and giveaways?",
+    "text": "What platform must participants be signed up on to receive prizes?",
     "answers": [
-      "The Blofin exchange",
-      "The CoinWise Discord #redeem channel",
       "The Kimba dashboard (!dashboard)",
-      "The Twitch chat during the Hot Seat"
+      "All of them",
+      "The Coinwise Discord #redeem channel",
+      "The Blofin exchange"
     ],
-    "correct": 2
+    "correct": 0
   },
   {
     "number": 8,
-    "text": "Who were the three top finalists from Season 1 of Liquania's Got Talent?",
+    "text": "Who were Season One's top three finalists from Liquania’s Got Talent?",
     "answers": [
-      "Nitrogen, Arcus, and Insistence",
       "V_001 Maestro, Alligator, and Henry",
       "Mcillem, XLRD TV, and Wrong Person",
-      "Matin B, NeilChang44, and Meta Beast"
+      "Matin B, NeilChang44, and Meta Beast",
+      "Nitrogen, Arcus, and Insistence"
     ],
     "correct": 1
   },
   {
     "number": 9,
-    "text": "Which two topics are featured in the recently released CoinWise Beginner quizzes?",
+    "text": "Which two topics are featured in the recently released Coinwise Beginner quizzes?",
     "answers": [
-      "Psychology and Candlesticks",
-      "FOMC Decisions and Treasury Yields",
       "Order Blocks and Liquidity Sweeps",
+      "FOMC Decisions and Treasury Yields",
+      "Psychology and Candlesticks",
       "VWAPs and Advanced Divergences"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 10,
-    "text": "Who was the previous 1st place winner of the Kimbillionaire Gameshow on Friday?",
+    "text": "Who was the previous Hot Seat player of the Kimbillionaire Gameshow on Friday?",
     "answers": [
+      "Kerviz",
       "Nitrogen203",
-      "Mj28",
-      "Xxxxxx1999",
-      "Raptorist259"
+      "Raptorist259",
+      "Xxxxxx1999"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 11,
     "text": "Besides submitting lyrics, when is the next opportunity for participants to submit their songs for Liquania's Got Talent?",
     "answers": [
-      "By contacting the Season 1 champion, Henry",
+      "Submissions close every Sunday with no exceptions",
       "During the CME resumption stream with Kagewins",
       "By tuning in for the listening parties held the following week",
-      "Submissions close every Sunday with no exceptions"
+      "By contacting the Season One champion, Henry"
     ],
     "correct": 2
   },
   {
     "number": 12,
-    "text": "What does sustained absorption at a key level usually mean?",
+    "text": "What Coinwise tool helps traders identify institutional zones of interest?",
     "answers": [
-      "No market interest",
-      "Large players are defending or building positions",
-      "Indicators are lagging",
-      "Volatility must stop"
+      "Coinwise Gaps",
+      "Coinwise Journal",
+      "Coinwise Divergences",
+      "Coinwise Orderblocks"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 13,
-    "text": "What specific prize does CoinWise offer for winning a Hot Seat round?",
+    "text": "What specific prize does Coinwise offer for winning a Hot Seat round?",
     "answers": [
-      "A free lifetime CoinWise Pro Plus subscription",
-      "A 14-day free trial of the CoinWise Pro Plus educational plan",
-      "$250 credited to the winner’s exchange account",
-      "Access to the CoinWise #redeem Discord channel"
+      "A 14-day free trial of the Coinwise Pro Plus educational plan",
+      "A free lifetime subscription to the Coinwise Pro Plus plan",
+      "Access to the exclusive Coinwise fanclub",
+      "$250 credited to the winner’s exchange account"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 14,
     "text": "How many winners does Season 2 of Liquania’s Got Talent have so far?",
     "answers": [
+      "Five (V_001, Maestro, Alligator, Arcus, Nitrogen)",
       "Two (V_001, Maestro)",
-      "Three (V_001, Maestro, Alligator)",
-      "Four (V_001, Maestro, Alligator, Arcus)",
-      "Five (V_001, Maestro, Alligator, Arcus, Nitrogen)"
+      "Four (V_001, Maestro, Ael1gtr, Nitrogen)",
+      "Three (V_001, Maestro, Alligator)"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 15,
-    "text": "What is the primary goal of using CoinWise tools together (Levels, Gaps, TPO PVP)?",
+    "text": "What is the primary goal of using Coinwise tools together (Levels, Gaps, TPO PVP)?",
     "answers": [
-      "To predict exact tops and bottoms",
       "To trade with context, confirmation, and risk control",
       "To avoid stop-losses",
-      "To trade more frequently"
+      "To trade more frequently",
+      "To predict exact tops and bottoms"
     ],
-    "correct": 1
+    "correct": 0
   }
 ]
