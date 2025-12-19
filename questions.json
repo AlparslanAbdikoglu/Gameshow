@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What market condition is best confirmed by a rising price and rising Open Interest (OI)?",
+    "text": "How many major global trading sessions are typically recognized in financial markets?",
     "answers": [
-      "Fake breakout (lack of commitment)",
-      "Long build-up (strong trend confirmation)",
-      "Short covering (trend weakening)",
-      "Long liquidation (panic selling)"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 2,
-    "text": "In the context of Cumulative Volume Delta (CVD), what is absorption?",
-    "answers": [
-      "Price makes a lower low while CVD makes a higher low, indicating passive buying absorbing selling pressure",
-      "Price makes a higher high and CVD also makes a higher high",
-      "Volume Delta bars are all positive and exceed the average daily range",
-      "Price moves sideways while CVD rises rapidly, signaling hidden accumulation"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 3,
-    "text": "What does the TPO Value Area (TVA) represent?",
-    "answers": [
-      "The range where only single prints occurred",
-      "The price range where price spent most of the session time (about 70%)",
-      "The price range where the highest volume was traded",
-      "The area between the session high and low"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 4,
-    "text": "What is the TPO Point of Control (TPOC)?",
-    "answers": [
-      "The midpoint of the session range",
-      "The price level with the highest traded volume",
-      "The price level where the session closed",
-      "The price level where the most time was spent during the session"
+      "Frankfurt, Chicago, Hong Kong, São Paulo",
+      "Asia, Europe, Africa, America",
+      "Tokyo, Paris, Toronto, Dubai",
+      "Asian, London, New York, Sydney"
     ],
     "correct": 3
   },
   {
-    "number": 5,
-    "text": "A large sell limit order appears above price and disappears as price approaches it. What is this behavior called?",
+    "number": 2,
+    "text": "What is the primary difference between an EMA and an SMA?",
     "answers": [
-      "Quote stuffing",
-      "Spoofing",
-      "Iceberg order",
-      "High Volume Node (HVN) creation"
+      "SMA uses volume while EMA uses price",
+      "EMA reacts faster to recent price changes than SMA",
+      "SMA is only calculated on daily charts",
+      "EMA only works on crypto markets"
     ],
     "correct": 1
+  },
+  {
+    "number": 3,
+    "text": "What does the Chaikin Money Flow (CMF) indicator primarily measure?",
+    "answers": [
+      "Overbought and oversold levels",
+      "Market volatility",
+      "Trend direction only",
+      "Buying and selling pressure based on volume and price location"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 4,
+    "text": "What is the purpose of CME Settlement Levels on Coinwise charts?",
+    "answers": [
+      "To show institutional reference prices from futures settlements",
+      "To predict overnight gaps",
+      "To mark daily support and resistance for retail traders",
+      "To replace VWAP and POC levels"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 5,
+    "text": "Why are session overlaps (e.g. London–New York) important to traders?",
+    "answers": [
+      "They eliminate false breakouts",
+      "They pause algorithmic trading",
+      "They reduce market volatility",
+      "They often bring increased liquidity and volatility"
+    ],
+    "correct": 3
   },
   {
     "number": 6,
-    "text": "What is a Naked Point of Control (NPOC)?",
+    "text": "What CPI value released during the CPI stream was described as “cool” and bullish by Mandalo?",
     "answers": [
-      "A newly formed POC in the current session",
-      "A prior session’s POC that price has not revisited",
-      "A POC that already acted as support or resistance",
-      "A POC formed only during low-volume sessions"
+      "2.9",
+      "2.5",
+      "2.7",
+      "3.1"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 7,
-    "text": "What is the key difference between TPO-based levels and Volume Profile levels?",
+    "text": "According to Market Profile concepts, how long does the Initial Balance (IB) usually last?",
     "answers": [
-      "TPO focuses on time spent at price, not traded volume",
-      "Volume Profile ignores market structure",
-      "TPO uses volume while Volume Profile uses time",
-      "TPO only works on higher timeframes"
+      "The first 4 hours",
+      "The first 1 hour",
+      "The first 15 minutes",
+      "The first 30 minutes"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 8,
-    "text": "How can Buy & Sell Volume help confirm an imbalance continuation or fade?",
+    "text": "What was the total prize pool for the Blofin trading competition mentioned by the Kimba Gang?",
     "answers": [
-      "By tracking how many indicators are on the chart",
-      "By identifying dominant buying or selling pressure within the candle",
-      "By measuring candle color only",
-      "By comparing volume to the daily high"
+      "$1,000",
+      "$5,000",
+      "$10,000",
+      "$50,000"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 9,
-    "text": "How does Buy & Sell Volume help distinguish absorption from a true breakout?",
+    "text": "In Lions trading terminology, what does the phrase “dip the tip” describe?",
     "answers": [
-      "Absorption shows dominant volume without price continuation, while breakouts align volume with price movement",
-      "Absorption shows low volume while breakouts show high volume",
-      "Breakouts always occur at session highs or lows",
-      "Absorption occurs only during low-volatility sessions"
+      "Putting 100% of an account into a single trade",
+      "Holding a trade through the entire weekend",
+      "A quick wick into a gap or level followed by an immediate reversal",
+      "Closing a position at the exact bottom"
     ],
-    "correct": 0
+    "correct": 2
   },
   {
     "number": 10,
-    "text": "What is the benefit of using combined SPOT & PERP aggregation?",
+    "text": "What major event occurs on the Friday following the CPI release, described as having “all powers combined”?",
     "answers": [
-      "It highlights only retail trading activity",
-      "It removes derivatives noise entirely",
-      "It provides a more complete view of total market participation",
-      "It prioritizes spot volume over futures volume"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 11,
-    "text": "Which market structure best defines a bullish trend?",
-    "answers": [
-      "Equal highs and equal lows",
-      "Lower highs and lower lows",
-      "Higher highs and higher lows",
-      "Lower highs and higher lows"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 12,
-    "text": "A trader has a $10,000 account and risks 1% per trade. With a 50-point stop and $1 per point value, what is the correct contract?",
-    "answers": [
-      "10 contracts",
-      "1 contract",
-      "2 contracts",
-      "5 contracts"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 13,
-    "text": "Which RSI reading is most commonly considered overbought?",
-    "answers": [
-      "RSI above 30",
-      "RSI above 70",
-      "RSI below 20",
-      "RSI between 40 and 50"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 14,
-    "text": "What is a classic bullish signal in the MACD indicator?",
-    "answers": [
-      "MACD line crossing above the signal line",
-      "Signal line flattening during consolidation",
-      "Histogram turning negative below zero",
-      "MACD crossing below signal above zero"
+      "Yearly, quarterly, monthly, and weekly options expiry (OpEx)",
+      "The launch of a new crypto exchange",
+      "A 24-hour charity talent show",
+      "The official Bitcoin halving"
     ],
     "correct": 0
   },
   {
-    "number": 15,
-    "text": "Price is in an uptrend with higher highs and higher lows. Buy volume dominates at support, RSI holds above 50 means?",
+    "number": 11,
+    "text": "Why does options expiry (OpEx) often increase market volatility?",
     "answers": [
-      "A range-bound mean reversion trade",
-      "A bullish trend continuation with strong confluence",
-      "A high-risk countertrend reversal",
-      "A short setup due to exhaustion"
+      "Retail traders stop trading",
+      "Exchanges widen spreads intentionally",
+      "Funding rates reset automatically",
+      "Large hedging and position rollovers occur"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 12,
+    "text": "What theme is planned for the Liquania’s Got Talent show on Christmas Day?",
+    "answers": [
+      "A retrospective on the year’s worst trades",
+      "A show consisting entirely of Christmas carols",
+      "An interview with the creator of Bitcoin",
+      "High-leverage trading only"
     ],
     "correct": 1
+  },
+  {
+    "number": 13,
+    "text": "What price level must be reclaimed to open the door to higher targets like 125k?",
+    "answers": [
+      "91k",
+      "94k",
+      "98k",
+      "88k"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 14,
+    "text": "Why do traders pay close attention to Initial Balance breaks?",
+    "answers": [
+      "They only matter in crypto",
+      "They remove the need for stop-losses",
+      "They often define the session’s directional bias",
+      "They guarantee trend continuation"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 15,
+    "text": "Why are CME settlement levels important reference points?",
+    "answers": [
+      "Predict exact tops and bottoms",
+      "Only apply to stocks",
+      "Reflect where large institutional positions were settled",
+      "Replace volume profile"
+    ],
+    "correct": 2
   }
 ]
