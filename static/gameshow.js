@@ -4751,6 +4751,43 @@ let hotSeatInitialTimerValue = 60;
 let hotSeatTimerLocked = false;
 let hotSeatLockedRemaining = null;
 
+function showHotSeatTimerSpotlight(timerValue = null) {
+    const overlay = document.getElementById('hot-seat-timer-overlay');
+    const countEl = document.getElementById('hot-seat-timer-count');
+    const headlineEl = document.getElementById('hot-seat-timer-headline');
+    const messageEl = document.getElementById('hot-seat-timer-message');
+
+    if (!overlay || !countEl || !headlineEl || !messageEl) {
+        return;
+    }
+
+    const activeUser = (currentState && currentState.hot_seat_user) || '';
+    headlineEl.textContent = activeUser
+        ? `${activeUser} is on the hot seat!`
+        : 'Hot Seat Live!';
+    messageEl.textContent = 'Type JOIN in chat to grab the next hot seat.';
+
+    if (timerValue !== null && Number.isFinite(timerValue)) {
+        countEl.textContent = `${timerValue}s`;
+    }
+
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => overlay.classList.add('show'));
+}
+
+function hideHotSeatTimerSpotlight() {
+    const overlay = document.getElementById('hot-seat-timer-overlay');
+
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove('show');
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 250);
+}
+
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
         .replace(/&/g, '&amp;')
@@ -4806,6 +4843,8 @@ function lockHotSeatTimer(reason = '', lockedValue = null) {
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;
     hotSeatTimerLocked = true;
+
+    hideHotSeatTimerSpotlight();
 
     let safeLockedValue = lockedValue;
     if (!Number.isFinite(safeLockedValue) && typeof (currentState && currentState.hot_seat_timer) === 'number') {
@@ -5221,10 +5260,12 @@ function handleHotSeatTimerUpdate(message) {
             timerEl.className = "hot-seat-timer critical";
         }
     }
-    
+
     if (hudTimer) {
         hudTimer.textContent = message.timer + " seconds remaining";
     }
+
+    showHotSeatTimerSpotlight(message.timer);
 }
 
 function handleHotSeatCountdown(message) {
@@ -5398,6 +5439,8 @@ function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
 
     resetHotSeatTimerLock();
+
+    hideHotSeatTimerSpotlight();
 
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;
