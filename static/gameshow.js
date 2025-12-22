@@ -4751,7 +4751,7 @@ let hotSeatInitialTimerValue = 60;
 let hotSeatTimerLocked = false;
 let hotSeatLockedRemaining = null;
 
-function showHotSeatTimerSpotlight(timerValue = null) {
+function showHotSeatTimerSpotlight(timerValue = null, options = {}) {
     const overlay = document.getElementById('hot-seat-timer-overlay');
     const countEl = document.getElementById('hot-seat-timer-count');
     const headlineEl = document.getElementById('hot-seat-timer-headline');
@@ -4762,10 +4762,12 @@ function showHotSeatTimerSpotlight(timerValue = null) {
     }
 
     const activeUser = (currentState && currentState.hot_seat_user) || '';
-    headlineEl.textContent = activeUser
-        ? `${activeUser} is on the hot seat!`
-        : 'Hot Seat Live!';
-    messageEl.textContent = 'Type JOIN in chat to grab the next hot seat.';
+    const headlineText = options.headline
+        || (activeUser ? `${activeUser} is on the hot seat!` : 'Hot Seat Live!');
+    const messageText = options.message || 'Type JOIN in chat to grab the next hot seat.';
+
+    headlineEl.textContent = headlineText;
+    messageEl.textContent = messageText;
 
     if (timerValue !== null && Number.isFinite(timerValue)) {
         countEl.textContent = `${timerValue}s`;
@@ -4786,6 +4788,27 @@ function hideHotSeatTimerSpotlight() {
     setTimeout(() => {
         overlay.classList.add('hidden');
     }, 250);
+}
+
+function syncHotSeatEntrySpotlight() {
+    const shouldShowEntrySpotlight = hotSeatEntryState.active
+        && !hotSeatTimerLocked
+        && !(currentState && currentState.hot_seat_active);
+
+    if (!shouldShowEntrySpotlight) {
+        hideHotSeatTimerSpotlight();
+        return;
+    }
+
+    const entryMessage = hotSeatEntryState.message || 'Type JOIN in chat to enter the hot seat!';
+    const remaining = Number.isFinite(hotSeatEntryState.remainingSeconds)
+        ? hotSeatEntryState.remainingSeconds
+        : null;
+
+    showHotSeatTimerSpotlight(remaining, {
+        headline: 'Hot Seat Entry Live!',
+        message: entryMessage
+    });
 }
 
 function escapeHtml(unsafe = '') {
@@ -5015,6 +5038,8 @@ function mergeHotSeatEntryState(partial = {}) {
     currentState.hot_seat_entry_last_join = hotSeatEntryState.lastJoin;
 
     updateInfoPanel(currentState);
+
+    syncHotSeatEntrySpotlight();
 }
 
 function handleHotSeatEntryStarted(message) {
@@ -5109,6 +5134,8 @@ function handleHotSeatActivated(message) {
         message: '',
         lastJoin: null
     };
+
+    hideHotSeatTimerSpotlight();
 
     if (currentState && typeof currentState === 'object') {
         currentState.hot_seat_entry_active = false;
@@ -5264,8 +5291,6 @@ function handleHotSeatTimerUpdate(message) {
     if (hudTimer) {
         hudTimer.textContent = message.timer + " seconds remaining";
     }
-
-    showHotSeatTimerSpotlight(message.timer);
 }
 
 function handleHotSeatCountdown(message) {
