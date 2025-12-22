@@ -4751,6 +4751,66 @@ let hotSeatInitialTimerValue = 60;
 let hotSeatTimerLocked = false;
 let hotSeatLockedRemaining = null;
 
+function showHotSeatTimerSpotlight(timerValue = null, options = {}) {
+    const overlay = document.getElementById('hot-seat-timer-overlay');
+    const countEl = document.getElementById('hot-seat-timer-count');
+    const headlineEl = document.getElementById('hot-seat-timer-headline');
+    const messageEl = document.getElementById('hot-seat-timer-message');
+
+    if (!overlay || !countEl || !headlineEl || !messageEl) {
+        return;
+    }
+
+    const activeUser = (currentState && currentState.hot_seat_user) || '';
+    const headlineText = options.headline
+        || (activeUser ? `${activeUser} is on the hot seat!` : 'Hot Seat Live!');
+    const messageText = options.message || 'Type JOIN in chat to grab the next hot seat.';
+
+    headlineEl.textContent = headlineText;
+    messageEl.textContent = messageText;
+
+    if (timerValue !== null && Number.isFinite(timerValue)) {
+        countEl.textContent = `${timerValue}s`;
+    }
+
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(() => overlay.classList.add('show'));
+}
+
+function hideHotSeatTimerSpotlight() {
+    const overlay = document.getElementById('hot-seat-timer-overlay');
+
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove('show');
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+    }, 250);
+}
+
+function syncHotSeatEntrySpotlight() {
+    const shouldShowEntrySpotlight = hotSeatEntryState.active
+        && !hotSeatTimerLocked
+        && !(currentState && currentState.hot_seat_active);
+
+    if (!shouldShowEntrySpotlight) {
+        hideHotSeatTimerSpotlight();
+        return;
+    }
+
+    const entryMessage = hotSeatEntryState.message || 'Type JOIN in chat to enter the hot seat!';
+    const remaining = Number.isFinite(hotSeatEntryState.remainingSeconds)
+        ? hotSeatEntryState.remainingSeconds
+        : null;
+
+    showHotSeatTimerSpotlight(remaining, {
+        headline: 'Hot Seat Entry Live!',
+        message: entryMessage
+    });
+}
+
 function escapeHtml(unsafe = '') {
     return (unsafe || '')
         .replace(/&/g, '&amp;')
@@ -4806,6 +4866,8 @@ function lockHotSeatTimer(reason = '', lockedValue = null) {
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;
     hotSeatTimerLocked = true;
+
+    hideHotSeatTimerSpotlight();
 
     let safeLockedValue = lockedValue;
     if (!Number.isFinite(safeLockedValue) && typeof (currentState && currentState.hot_seat_timer) === 'number') {
@@ -4976,6 +5038,8 @@ function mergeHotSeatEntryState(partial = {}) {
     currentState.hot_seat_entry_last_join = hotSeatEntryState.lastJoin;
 
     updateInfoPanel(currentState);
+
+    syncHotSeatEntrySpotlight();
 }
 
 function handleHotSeatEntryStarted(message) {
@@ -5070,6 +5134,8 @@ function handleHotSeatActivated(message) {
         message: '',
         lastJoin: null
     };
+
+    hideHotSeatTimerSpotlight();
 
     if (currentState && typeof currentState === 'object') {
         currentState.hot_seat_entry_active = false;
@@ -5221,7 +5287,7 @@ function handleHotSeatTimerUpdate(message) {
             timerEl.className = "hot-seat-timer critical";
         }
     }
-    
+
     if (hudTimer) {
         hudTimer.textContent = message.timer + " seconds remaining";
     }
@@ -5398,6 +5464,8 @@ function handleHotSeatEnded(message) {
     console.log("🔚 HOT SEAT ENDED for", message.user);
 
     resetHotSeatTimerLock();
+
+    hideHotSeatTimerSpotlight();
 
     hotSeatCountdownState.active = false;
     hotSeatCountdownState.remaining = 0;

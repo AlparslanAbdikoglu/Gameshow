@@ -1,6 +1,54 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-12-22T17-48-23_imsin__",
+      "date": "2025-12-22T17:48:23.000Z",
+      "username": "imsin__",
+      "final_points": 213,
+      "correct_answers": 11,
+      "total_answers": 12,
+      "accuracy": 92,
+      "best_streak": 10,
+      "fastest_correct_time": 12350,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 213,
+      "contestant_name": "The week to be Jolly"
+    },
+    {
+      "game_id": "game_2025-12-22T17-48-23_bested14",
+      "date": "2025-12-22T17:48:23.000Z",
+      "username": "bested14",
+      "final_points": 167,
+      "correct_answers": 12,
+      "total_answers": 12,
+      "accuracy": 100,
+      "best_streak": 12,
+      "fastest_correct_time": 11625,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 167,
+      "contestant_name": "The week to be Jolly"
+    },
+    {
+      "game_id": "game_2025-12-22T17-48-23_aritodo",
+      "date": "2025-12-22T17:48:23.000Z",
+      "username": "aritodo",
+      "final_points": 159,
+      "correct_answers": 10,
+      "total_answers": 10,
+      "accuracy": 100,
+      "best_streak": 10,
+      "fastest_correct_time": 14948,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 159,
+      "contestant_name": "The week to be Jolly"
+    },
+    {
       "game_id": "game_2025-12-19T18-05-23_kerviz",
       "date": "2025-12-19T18:05:23.000Z",
       "username": "kerviz",
@@ -856,10 +904,10 @@
     }
   ],
   "metadata": {
-    "total_games": 18,
-    "last_updated": "2025-12-19T18:05:23.098Z",
+    "total_games": 19,
+    "last_updated": "2025-12-22T17:48:23.895Z",
     "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
-    "total_players": 30,
+    "total_players": 32,
     "total_source_entries": 25,
     "source_range": "2025-10-20 to 2025-11-12"
   }
