@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "How many major global trading sessions are typically recognized in financial markets?",
+    "text": "Before the birth of Jesus, in which town did Mary live when the angel first visited her?",
     "answers": [
-      "Frankfurt, Chicago, Hong Kong, São Paulo",
-      "Asia, Europe, Africa, America",
-      "Tokyo, Paris, Toronto, Dubai",
-      "Asian, London, New York, Sydney"
+      "Nazareth",
+      "Bethlehem",
+      "Egypt",
+      "Jerusalem"
     ],
-    "correct": 3
+    "correct": 0
   },
   {
     "number": 2,
-    "text": "What is the primary difference between an EMA and an SMA?",
+    "text": "Why did Mary and Joseph have to travel from Nazareth to Bethlehem?",
     "answers": [
-      "SMA uses volume while EMA uses price",
-      "EMA reacts faster to recent price changes than SMA",
-      "SMA is only calculated on daily charts",
-      "EMA only works on crypto markets"
+      "To find a place with a manger",
+      "To visit the three wise men",
+      "To be counted in a census ordered by Caesar Augustus",
+      "Because King Herod ordered them to leave"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 3,
-    "text": "What does the Chaikin Money Flow (CMF) indicator primarily measure?",
+    "text": "Since there was no room for them in Bethlehem, where was baby Jesus laid after he was born?",
     "answers": [
-      "Overbought and oversold levels",
-      "Market volatility",
-      "Trend direction only",
-      "Buying and selling pressure based on volume and price location"
+      "In a golden cradle",
+      "In a shepherd's tent",
+      "In a small wooden boat",
+      "In a manger"
     ],
     "correct": 3
   },
   {
     "number": 4,
-    "text": "What is the purpose of CME Settlement Levels on Coinwise charts?",
+    "text": "What three special gifts did the wise men from the Eastern lands bring to worship Jesus?",
     "answers": [
-      "To show institutional reference prices from futures settlements",
-      "To predict overnight gaps",
-      "To mark daily support and resistance for retail traders",
-      "To replace VWAP and POC levels"
+      "Gold, Frankincense, and Myrrh",
+      "Gold, Diamonds, and Pearls",
+      "Silver, Silk, and Spices",
+      "Bread, Wine, and Oil"
     ],
     "correct": 0
   },
   {
     "number": 5,
-    "text": "Why are session overlaps (e.g. London–New York) important to traders?",
+    "text": "Why did an angel warn Joseph in a dream to take Mary and Jesus and flee to Egypt?",
     "answers": [
-      "They eliminate false breakouts",
-      "They pause algorithmic trading",
-      "They reduce market volatility",
-      "They often bring increased liquidity and volatility"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 6,
-    "text": "What CPI value released during the CPI stream was described as “cool” and bullish by Mandalo?",
-    "answers": [
-      "2.9",
-      "2.5",
-      "2.7",
-      "3.1"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 7,
-    "text": "According to Market Profile concepts, how long does the Initial Balance (IB) usually last?",
-    "answers": [
-      "The first 4 hours",
-      "The first 1 hour",
-      "The first 15 minutes",
-      "The first 30 minutes"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 8,
-    "text": "What was the total prize pool for the Blofin trading competition mentioned by the Kimba Gang?",
-    "answers": [
-      "$1,000",
-      "$5,000",
-      "$10,000",
-      "$50,000"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 9,
-    "text": "In Lions trading terminology, what does the phrase “dip the tip” describe?",
-    "answers": [
-      "Putting 100% of an account into a single trade",
-      "Holding a trade through the entire weekend",
-      "A quick wick into a gap or level followed by an immediate reversal",
-      "Closing a position at the exact bottom"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 10,
-    "text": "What major event occurs on the Friday following the CPI release, described as having “all powers combined”?",
-    "answers": [
-      "Yearly, quarterly, monthly, and weekly options expiry (OpEx)",
-      "The launch of a new crypto exchange",
-      "A 24-hour charity talent show",
-      "The official Bitcoin halving"
+      "Because King Herod was looking to kill Jesus",
+      "Because there was a great famine in Israel",
+      "To find their new home in the town of Nazareth",
+      "Because the wise men invited them to their home"
     ],
     "correct": 0
   },
   {
-    "number": 11,
-    "text": "Why does options expiry (OpEx) often increase market volatility?",
+    "number": 6,
+    "text": "Who won the Friday Kimbillionaire Gameshow with the highest total score?",
     "answers": [
-      "Retail traders stop trading",
-      "Exchanges widen spreads intentionally",
-      "Funding rates reset automatically",
-      "Large hedging and position rollovers occur"
+      "JB4 with 184 points",
+      "Kerviz with 100 points",
+      "KukiMuhi with 210 points",
+      "Kerviz with 287 points"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 7,
+    "text": "During the Friday Kimbillionaire Gameshow, how many lifelines were used and for what type of question?",
+    "answers": [
+      "One lifeline was used for a Bitcoin price level question related to the $125k target",
+      "No lifelines were used during the game",
+      "Two lifelines were used for market structure questions",
+      "One lifeline was used for a Christmas-themed question"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 8,
+    "text": "Which specific cryptocurrency was Hu Jhu Xin trading in the latest episode?",
+    "answers": [
+      "Bitcoin (BTC)",
+      "Dogecoin (DOGE)",
+      "Solana (SOL)",
+      "Ethereum (Ether)"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 9,
+    "text": "What market direction did Hu Jhu Xin explicitly decide to take for his Ethereum trade?",
+    "answers": [
+      "He decided to hedge both ways",
+      "He decided to go Short",
+      "He decided to stay in cash",
+      "He decided to go Long"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 10,
+    "text": "After presenting their gifts to Jesus, why did the wise men return to their country by a different route instead of going back to King Herod?",
+    "answers": [
+      "They were invited to visit Egypt by an angel",
+      "They were warned by God in a dream to avoid Herod",
+      "The star they were following suddenly vanished",
+      "They discovered a faster trade route through the desert"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 11,
+    "text": "Which principle best summarizes the risk management?",
+    "answers": [
+      "Always aim for the highest possible leverage",
+      "Risk more when you feel confident in a trade",
+      "Focus only on entries and ignore exits",
+      "Plan risk first: define entry, stop, target, and position size before executing"
     ],
     "correct": 3
   },
   {
     "number": 12,
-    "text": "What theme is planned for the Liquania’s Got Talent show on Christmas Day?",
+    "text": "What is the name of the group Hu Jhu Xin addresses as his followers during the videos?",
     "answers": [
-      "A retrospective on the year’s worst trades",
-      "A show consisting entirely of Christmas carols",
-      "An interview with the creator of Bitcoin",
-      "High-leverage trading only"
+      "Nazareth Knights",
+      "Kimbillionaires",
+      "Panda Warriors",
+      "Lion Hyenas"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 13,
+    "text": "During the aggressive price action, how many units or contracts did Satto scream to fill in the latest video?",
+    "answers": [
+      "2,000",
+      "1,000",
+      "5,000",
+      "500"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 14,
+    "text": "After the trade turned against him, what did Satto believe he had received?",
+    "answers": [
+      "Bad luck",
+      "A curse",
+      "A warning",
+      "A blessing"
     ],
     "correct": 1
   },
   {
-    "number": 13,
-    "text": "What price level must be reclaimed to open the door to higher targets like 125k?",
-    "answers": [
-      "91k",
-      "94k",
-      "98k",
-      "88k"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 14,
-    "text": "Why do traders pay close attention to Initial Balance breaks?",
-    "answers": [
-      "They only matter in crypto",
-      "They remove the need for stop-losses",
-      "They often define the session’s directional bias",
-      "They guarantee trend continuation"
-    ],
-    "correct": 2
-  },
-  {
     "number": 15,
-    "text": "Why are CME settlement levels important reference points?",
+    "text": "What was Hu Jhu Xin's final message to his viewers at the very end of the latest video?",
     "answers": [
-      "Predict exact tops and bottoms",
-      "Only apply to stocks",
-      "Reflect where large institutional positions were settled",
-      "Replace volume profile"
+      "The victory is ours",
+      "Never short Ethereum",
+      "Merry Christmas",
+      "See you tomorrow"
     ],
-    "correct": 2
+    "correct": 0
   }
 ]
