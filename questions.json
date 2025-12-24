@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "Before the birth of Jesus, in which town did Mary live when the angel first visited her?",
+    "text": "Who appeared to Mary to announce that she would give birth to Jesus?",
     "answers": [
-      "Nazareth",
-      "Bethlehem",
-      "Egypt",
-      "Jerusalem"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 2,
-    "text": "Why did Mary and Joseph have to travel from Nazareth to Bethlehem?",
-    "answers": [
-      "To find a place with a manger",
-      "To visit the three wise men",
-      "To be counted in a census ordered by Caesar Augustus",
-      "Because King Herod ordered them to leave"
+      "Raphael",
+      "Michael",
+      "Gabriel",
+      "Uriel"
     ],
     "correct": 2
   },
   {
-    "number": 3,
-    "text": "Since there was no room for them in Bethlehem, where was baby Jesus laid after he was born?",
+    "number": 2,
+    "text": "According to popular tradition, where does Santa Claus live?",
     "answers": [
-      "In a golden cradle",
-      "In a shepherd's tent",
-      "In a small wooden boat",
-      "In a manger"
+      "The North Pole",
+      "Lapland",
+      "Alaska",
+      "Greenland"
     ],
-    "correct": 3
+    "correct": 0
+  },
+  {
+    "number": 3,
+    "text": "What is Santa Claus traditionally known for delivering on Christmas Eve?",
+    "answers": [
+      "Gifts and presents",
+      "Letters and cards",
+      "Snow and decorations",
+      "Food and candy only"
+    ],
+    "correct": 0
   },
   {
     "number": 4,
-    "text": "What three special gifts did the wise men from the Eastern lands bring to worship Jesus?",
+    "text": "How does Santa Claus typically enter homes to deliver gifts?",
     "answers": [
-      "Gold, Frankincense, and Myrrh",
-      "Gold, Diamonds, and Pearls",
-      "Silver, Silk, and Spices",
-      "Bread, Wine, and Oil"
+      "Down the chimney",
+      "Through the fireplace wall",
+      "Through the front door",
+      "Through a window"
     ],
     "correct": 0
   },
   {
     "number": 5,
-    "text": "Why did an angel warn Joseph in a dream to take Mary and Jesus and flee to Egypt?",
+    "text": "What phrase is Santa Claus famously known for saying?",
     "answers": [
-      "Because King Herod was looking to kill Jesus",
-      "Because there was a great famine in Israel",
-      "To find their new home in the town of Nazareth",
-      "Because the wise men invited them to their home"
+      "Ho Ho Ho!",
+      "Merry Trading!",
+      "Happy Holidays!",
+      "Oh UH Hot Dog!"
     ],
     "correct": 0
   },
   {
     "number": 6,
-    "text": "Who won the Friday Kimbillionaire Gameshow with the highest total score?",
+    "text": "What guided the wise men to Jesus?",
     "answers": [
-      "JB4 with 184 points",
-      "Kerviz with 100 points",
-      "KukiMuhi with 210 points",
-      "Kerviz with 287 points"
+      "A dream",
+      "A star",
+      "An angel",
+      "A prophecy scroll"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 7,
+    "text": "How many gifts did the wise men bring?",
+    "answers": [
+      "Five",
+      "Two",
+      "Four",
+      "Three"
     ],
     "correct": 3
   },
   {
-    "number": 7,
-    "text": "During the Friday Kimbillionaire Gameshow, how many lifelines were used and for what type of question?",
-    "answers": [
-      "One lifeline was used for a Bitcoin price level question related to the $125k target",
-      "No lifelines were used during the game",
-      "Two lifelines were used for market structure questions",
-      "One lifeline was used for a Christmas-themed question"
-    ],
-    "correct": 0
-  },
-  {
     "number": 8,
-    "text": "Which specific cryptocurrency was Hu Jhu Xin trading in the latest episode?",
+    "text": "What color is Santa Claus’s traditional suit?",
     "answers": [
-      "Bitcoin (BTC)",
-      "Dogecoin (DOGE)",
-      "Solana (SOL)",
-      "Ethereum (Ether)"
+      "Blue",
+      "Black",
+      "Green",
+      "Red"
     ],
     "correct": 3
   },
   {
     "number": 9,
-    "text": "What market direction did Hu Jhu Xin explicitly decide to take for his Ethereum trade?",
+    "text": "What animal traditionally pulls Santa’s sleigh?",
     "answers": [
-      "He decided to hedge both ways",
-      "He decided to go Short",
-      "He decided to stay in cash",
-      "He decided to go Long"
+      "Polar bears",
+      "Horses",
+      "Dogs",
+      "Reindeer"
     ],
     "correct": 3
   },
   {
     "number": 10,
-    "text": "After presenting their gifts to Jesus, why did the wise men return to their country by a different route instead?",
+    "text": "Which reindeer is known for having a red, glowing nose?",
     "answers": [
-      "They were invited to visit Egypt by an angel",
-      "They were warned by God in a dream to avoid King Herod",
-      "The star they were following suddenly vanished",
-      "They discovered a faster trade route through the desert"
+      "Comet",
+      "Dasher",
+      "Blitzen",
+      "Rudolph"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 11,
-    "text": "Which principle best summarizes the risk management?",
+    "text": "What list does Santa check to decide who gets presents?",
     "answers": [
-      "Always aim for the highest possible leverage",
-      "Risk more when you feel confident in a trade",
-      "Focus only on entries and ignore exits",
-      "Plan risk first: define entry, stop, target, and position size before executing"
+      "The holiday shopping list",
+      "The Christmas menu",
+      "The wish list",
+      "The naughty and nice list"
     ],
     "correct": 3
   },
   {
     "number": 12,
-    "text": "What is the name of the group Hu Jhu Xin addresses his followers during the videos?",
+    "text": "Who helps Santa make toys at his workshop?",
     "answers": [
-      "Nazareth Knights",
-      "Kimbillionaires",
-      "Panda Warriors",
-      "Lion Hyenas"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 13,
-    "text": "During the aggressive price action, how many units or contracts did Satto scream to fill in the latest video?",
-    "answers": [
-      "2,000",
-      "1,000",
-      "5,000",
-      "500"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 14,
-    "text": "After the trade turned against him, what did Satto believe he had received?",
-    "answers": [
-      "Bad luck",
-      "A curse",
-      "A warning",
-      "A blessing"
+      "Angels",
+      "Elves",
+      "Snowmen",
+      "Penguins"
     ],
     "correct": 1
   },
   {
-    "number": 15,
-    "text": "What was Hu Jhu Xin's final message to his viewers at the very end of the latest video?",
+    "number": 13,
+    "text": "On which night does Santa traditionally deliver gifts?",
     "answers": [
-      "The victory is ours",
-      "Never short Ethereum",
-      "Merry Christmas",
-      "See you tomorrow"
+      "Christmas Day morning",
+      "December 23rd",
+      "New Year’s Eve",
+      "Christmas Eve"
     ],
-    "correct": 0
+    "correct": 3
+  },
+  {
+    "number": 14,
+    "text": "What do children often leave out for Santa on Christmas Eve?",
+    "answers": [
+      "Candy canes only",
+      "Fruit and juice",
+      "Milk and cookies",
+      "Bread and cheese"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 15,
+    "text": "What does Santa use to travel around the world delivering gifts?",
+    "answers": [
+      "A magic carpet",
+      "A sleigh pulled by reindeer",
+      "A Christmas wagon",
+      "Useless Lines Record Green Bugatti"
+    ],
+    "correct": 1
   }
 ]
