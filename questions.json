@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "Who appeared to Mary to announce that she would give birth to Jesus?",
+    "text": "What is the cash prize amount a participant can win on their favorite exchange for winning the \"Liquania's Got Talent\" show?",
     "answers": [
-      "Raphael",
-      "Michael",
-      "Gabriel",
-      "Uriel"
+      "$100",
+      "$250",
+      "$500",
+      "$1,000"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 2,
-    "text": "According to popular tradition, where does Santa Claus live?",
+    "text": "According to Mandalo, what represents one of the strongest forms of institutional confluence on a Bitcoin chart?",
     "answers": [
-      "The North Pole",
-      "Lapland",
-      "Alaska",
-      "Greenland"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 3,
-    "text": "What is Santa Claus traditionally known for delivering on Christmas Eve?",
-    "answers": [
-      "Gifts and presents",
-      "Letters and cards",
-      "Snow and decorations",
-      "Food and candy only"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 4,
-    "text": "How does Santa Claus typically enter homes to deliver gifts?",
-    "answers": [
-      "Down the chimney",
-      "Through the fireplace wall",
-      "Through the front door",
-      "Through a window"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 5,
-    "text": "What phrase is Santa Claus famously known for saying?",
-    "answers": [
-      "Ho Ho Ho!",
-      "Merry Trading!",
-      "Happy Holidays!",
-      "Oh UH Hot Dog!"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 6,
-    "text": "What guided the wise men to Jesus?",
-    "answers": [
-      "A dream",
-      "A star",
-      "An angel",
-      "A prophecy scroll"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 7,
-    "text": "How many gifts did the wise men bring?",
-    "answers": [
-      "Five",
-      "Two",
-      "Four",
-      "Three"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 8,
-    "text": "What color is Santa Claus’s traditional suit?",
-    "answers": [
-      "Blue",
-      "Black",
-      "Green",
-      "Red"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 9,
-    "text": "What animal traditionally pulls Santa’s sleigh?",
-    "answers": [
-      "Polar bears",
-      "Horses",
-      "Dogs",
-      "Reindeer"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 10,
-    "text": "Which reindeer is known for having a red, glowing nose?",
-    "answers": [
-      "Comet",
-      "Dasher",
-      "Blitzen",
-      "Rudolph"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 11,
-    "text": "What list does Santa check to decide who gets presents?",
-    "answers": [
-      "The holiday shopping list",
-      "The Christmas menu",
-      "The wish list",
-      "The naughty and nice list"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 12,
-    "text": "Who helps Santa make toys at his workshop?",
-    "answers": [
-      "Angels",
-      "Elves",
-      "Snowmen",
-      "Penguins"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 13,
-    "text": "On which night does Santa traditionally deliver gifts?",
-    "answers": [
-      "Christmas Day morning",
-      "December 23rd",
-      "New Year’s Eve",
-      "Christmas Eve"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 14,
-    "text": "What do children often leave out for Santa on Christmas Eve?",
-    "answers": [
-      "Candy canes only",
-      "Fruit and juice",
-      "Milk and cookies",
-      "Bread and cheese"
+      "The intersection of the 200 EMA and the Daily Open",
+      "The 15-minute VWAP and the Golden Pocket",
+      "When the PDQ, previous Point of Control (POC), and settlement levels all align",
+      "An RSI divergence combined with a trendline break"
     ],
     "correct": 2
   },
   {
-    "number": 15,
-    "text": "What does Santa use to travel around the world delivering gifts?",
+    "number": 3,
+    "text": "What significant change is the NASDAQ reportedly moving toward for its US equities and ETF trading model?",
     "answers": [
-      "A magic carpet",
-      "A sleigh pulled by reindeer",
-      "A Christmas wagon",
-      "Useless Lines Record Green Bugatti"
+      "Moving to a weekend-only trading schedule",
+      "A 23-hour-a-day, 5-days-a-week trading model",
+      "Closing the markets for two weeks every December",
+      "A 24/7 trading model identical to cryptocurrency exchanges"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 4,
+    "text": "Which Liquania’s Got Talent participant from the latest show is originally from Amsterdam and joined the gang?",
+    "answers": [
+      "My Name Mango",
+      "Kagami",
+      "Day Day",
+      "Crypto Bro"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 5,
+    "text": "How many votes from the community are required to trigger the first merchandise giveaway during the talent show?",
+    "answers": [
+      "10 votes",
+      "25 votes",
+      "40 votes",
+      "50 votes"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 6,
+    "text": "What percentage discount is Coinwise currently offering on all their plans through January 4th?",
+    "answers": [
+      "15%",
+      "20%",
+      "30%",
+      "50%"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 7,
+    "text": "Before becoming a trader and bodybuilder, in which sport did Mandalo compete at a professional level?",
+    "answers": [
+      "Surfing",
+      "Soccer",
+      "Basketball",
+      "Tennis"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 8,
+    "text": "In the  trading vocabulary used by Mandalo, what does a dip the tip refer to?",
+    "answers": [
+      "Putting your entire account into one high-leverage trade",
+      "A price wick that briefly touches a gap or specific level before an immediate reversal",
+      "Closing a trade at the exact moment of a news release",
+      "Buying an asset at the very top of a candle"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 9,
+    "text": "Which specific promo code did Housty mention to claim the 30% discount on Coinwise subscriptions?",
+    "answers": [
+      "LIONGANG",
+      "JUICE30",
+      "WISE YEAR",
+      "XMAS2025"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 10,
+    "text": "Did Kagewins answer all the Hot Seat questions on the previous game?",
+    "answers": [
+      "Yes, he answered all 3",
+      "Yes, but he answered only 2",
+      "No, he missed one question",
+      "No, he missed all the questions"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 11,
+    "text": "Why does Mandalo state that he values volume more than trendlines or TPO profiles?",
+    "answers": [
+      "Because trendlines are too difficult to draw on a log chart",
+      "Because volume is a reflection of actual participation and transacted trades",
+      "Because volume is the only indicator that works during the London session",
+      "Because institutional bots do not use volume indicators"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 12,
+    "text": "What holiday beverage did Housty suggest the \"Lions\" bring to the Christmas special talent show?",
+    "answers": [
+      "Hot chocolate or eggnog",
+      "Energy drinks",
+      "Coffee and protein shakes",
+      "Sparkling water"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 13,
+    "text": "What specific prize can users win by participating in the Coinwise engagement giveaway on X (Twitter)?",
+    "answers": [
+      "A physical gold-plated Lion trophy",
+      "$250 in Bitcoin",
+      "30 days of Coinwise Pro Plus education",
+      "A private trading session with Kima"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 14,
+    "text": "Which talent show participant's journey began after a Bookmap Live YouTube channel they followed was banned?",
+    "answers": [
+      "My Name Mango",
+      "Kagami",
+      "Crypto Bro",
+      "Day Day"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 15,
+    "text": "Which two participants won the top-tier Pro Plus Education from Coinwise for placing in the top two of the talent show?",
+    "answers": [
+      "Crypto Bro and Day Day",
+      "My Name Mango and Kagami",
+      "Day Day and My Name Mango",
+      "Kagami and Crypto Bro"
     ],
     "correct": 1
   }
