@@ -1,167 +1,167 @@
 [
   {
     "number": 1,
-    "text": "What is the cash prize amount a participant can win on their favorite exchange for winning the \"Liquania's Got Talent\" show?",
+    "text": "What is the biggest risk when you hold a large leveraged position on a crypto exchange?",
     "answers": [
-      "$100",
-      "$250",
-      "$500",
-      "$1,000"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 2,
-    "text": "According to Mandalo, what represents one of the strongest forms of institutional confluence on a Bitcoin chart?",
-    "answers": [
-      "The intersection of the 200 EMA and the Daily Open",
-      "The 15-minute VWAP and the Golden Pocket",
-      "When the PDQ, previous Point of Control (POC), and settlement levels all align",
-      "An RSI divergence combined with a trendline break"
+      "Someone stealing your wallet private key",
+      "Government taking your funds",
+      "Getting liquidated if the price moves against you",
+      "High network fees"
     ],
     "correct": 2
   },
   {
-    "number": 3,
-    "text": "What significant change is the NASDAQ reportedly moving toward for its US equities and ETF trading model?",
+    "number": 2,
+    "text": "In crypto trading, a \"whale\" usually means:",
     "answers": [
-      "Moving to a weekend-only trading schedule",
-      "A 23-hour-a-day, 5-days-a-week trading model",
-      "Closing the markets for two weeks every December",
-      "A 24/7 trading model identical to cryptocurrency exchanges"
+      "Someone or a group that owns a huge amount of a cryptocurrency",
+      "A market maker on big exchanges",
+      "A trader who only uses charts",
+      "A developer who can change the project's code"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 3,
+    "text": "What does \"slippage\" mean when trading crypto?",
+    "answers": [
+      "Price slowly dropping in a bear market",
+      "The difference between the price you expected and the price you actually got",
+      "Fees paid to liquidity providers",
+      "Delay in confirming your order on the blockchain"
     ],
     "correct": 1
   },
   {
     "number": 4,
-    "text": "Which Liquania’s Got Talent participant from the latest show is originally from Amsterdam and joined the gang?",
+    "text": "Which on-chain metric is commonly used to check Bitcoin's network health and possible price direction?",
     "answers": [
-      "My Name Mango",
-      "Kagami",
-      "Day Day",
-      "Crypto Bro"
+      "How much Bitcoin flows in or out of exchanges",
+      "Google search trends",
+      "Daily mentions on Twitter",
+      "Only the trading volume on centralized exchanges"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 5,
+    "text": "When Bitcoin perpetual futures show a negative funding rate for many weeks in a row, plus very high open interest, it usually means:",
+    "answers": [
+      "The market sentiment is neutral with no clear direction",
+      "It's just temporary distortion before the next contract rollover",
+      "Longs are dominant and confident enough to pay shorts",
+      "A short squeeze is about to happen because too many shorts are leveraged"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 6,
+    "text": "What is a stop-loss order mainly used for in crypto trading?",
+    "answers": [
+      "Entering a trade only when price breaks a resistance level",
+      "Buying more during price dips",
+      "Automatically taking profits at a higher price",
+      "Limiting your losses by closing the trade at a set price"
     ],
     "correct": 3
   },
   {
-    "number": 5,
-    "text": "How many votes from the community are required to trigger the first merchandise giveaway during the talent show?",
+    "number": 7,
+    "text": "Which strategy means buying crypto cheaper on one exchange and selling it higher on another at the same time?",
     "answers": [
-      "10 votes",
-      "25 votes",
-      "40 votes",
-      "50 votes"
+      "Dollar-cost averaging",
+      "Arbitrage",
+      "Scalping",
+      "HODLing"
     ],
     "correct": 1
-  },
-  {
-    "number": 6,
-    "text": "What percentage discount is Coinwise currently offering on all their plans through January 4th?",
-    "answers": [
-      "15%",
-      "20%",
-      "30%",
-      "50%"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 7,
-    "text": "Before becoming a trader and bodybuilder, in which sport did Mandalo compete at a professional level?",
-    "answers": [
-      "Surfing",
-      "Soccer",
-      "Basketball",
-      "Tennis"
-    ],
-    "correct": 0
   },
   {
     "number": 8,
-    "text": "In the  trading vocabulary used by Mandalo, what does a dip the tip refer to?",
+    "text": "A positive funding rate in perpetual futures usually shows that:",
     "answers": [
-      "Putting your entire account into one high-leverage trade",
-      "A price wick that briefly touches a gap or specific level before an immediate reversal",
-      "Closing a trade at the exact moment of a news release",
-      "Buying an asset at the very top of a candle"
+      "The market is perfectly balanced",
+      "A contract expiration is coming soon",
+      "Shorts are paying longs",
+      "Longs are paying shorts"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 9,
+    "text": "On crypto lending platforms, some platforms lend out the same user-deposited coins multiple times to make extra profit. What is this risky practice called?",
+    "answers": [
+      "Proving reserves publicly on-chain",
+      "Re-lending the same deposits over and over",
+      "Withdrawing user funds",
+      "Converting everything to stablecoins automatically"
     ],
     "correct": 1
   },
   {
-    "number": 9,
-    "text": "Which specific promo code did Housty mention to claim the 30% discount on Coinwise subscriptions?",
+    "number": 10,
+    "text": "An experienced trader sees Bitcoin's Realized Price going up quickly while the spot price stays flat. This usually means:",
     "answers": [
-      "LIONGANG",
-      "JUICE30",
-      "WISE YEAR",
-      "XMAS2025"
+      "Short-term holders are taking profits aggressively",
+      "Only whales are quietly accumulating",
+      "New buyers are coming in at higher prices, which could support the price later",
+      "Long-term holders are selling at a loss"
     ],
     "correct": 2
   },
   {
-    "number": 10,
-    "text": "Did Kagewins answer all the Hot Seat questions on the previous game?",
-    "answers": [
-      "Yes, he answered all 3",
-      "Yes, but he answered only 2",
-      "No, he missed one question",
-      "No, he missed all the questions"
-    ],
-    "correct": 0
-  },
-  {
     "number": 11,
-    "text": "Why does Mandalo state that he values volume more than trendlines or TPO profiles?",
+    "text": "Why do traders use a limit order instead of a market order in crypto?",
     "answers": [
-      "Because trendlines are too difficult to draw on a log chart",
-      "Because volume is a reflection of actual participation and transacted trades",
-      "Because volume is the only indicator that works during the London session",
-      "Because institutional bots do not use volume indicators"
+      "To buy or sell instantly at any price",
+      "To automatically follow the price movement",
+      "To choose the exact price they're happy to buy or sell at",
+      "To hide how big their order is"
     ],
-    "correct": 1
+    "correct": 2
   },
   {
     "number": 12,
-    "text": "What holiday beverage did Housty suggest the \"Lions\" bring to the Christmas special talent show?",
+    "text": "In crypto, \"FOMO\" (Fear Of Missing Out) usually causes traders to:",
     "answers": [
-      "Hot chocolate or eggnog",
-      "Energy drinks",
-      "Coffee and protein shakes",
-      "Sparkling water"
+      "Buy near local tops or all-time highs",
+      "Slowly reduce their position size",
+      "Move coins to cold storage",
+      "Sell at market bottoms"
     ],
     "correct": 0
   },
   {
     "number": 13,
-    "text": "What specific prize can users win by participating in the Coinwise engagement giveaway on X (Twitter)?",
+    "text": "What is a key risk of holding fiat-pegged stablecoins?",
     "answers": [
-      "A physical gold-plated Lion trophy",
-      "$250 in Bitcoin",
-      "30 days of Coinwise Pro Plus education",
-      "A private trading session with Kima"
+      "Only smart contract bugs",
+      "The stablecoin losing its 1:1 peg to the fiat currency",
+      "Mining difficulty changes",
+      "A 51% attack on the blockchain"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 14,
+    "text": "Long squeezes and short squeezes in crypto futures are mainly caused by:",
+    "answers": [
+      "Only regulatory news",
+      "Sudden high transaction fees",
+      "A chain of liquidations pushing price sharply in one direction",
+      "Exchange downtime for maintenance"
     ],
     "correct": 2
   },
   {
-    "number": 14,
-    "text": "Which talent show participant's journey began after a Bookmap Live YouTube channel they followed was banned?",
-    "answers": [
-      "My Name Mango",
-      "Kagami",
-      "Crypto Bro",
-      "Day Day"
-    ],
-    "correct": 1
-  },
-  {
     "number": 15,
-    "text": "Which two participants won the top-tier Pro Plus Education from Coinwise for placing in the top two of the talent show?",
+    "text": "When you have a leveraged long position in a very volatile altcoin, what should you watch most closely in real time to avoid getting liquidated in a flash crash?",
     "answers": [
-      "Crypto Bro and Day Day",
-      "My Name Mango and Kagami",
-      "Day Day and My Name Mango",
-      "Kagami and Crypto Bro"
+      "Total open interest on the exchange",
+      "24-hour trading volume compared to market cap",
+      "Just your unrealized profit/loss percentage",
+      "Maintenance margin level and how close your margin ratio is to the liquidation price"
     ],
-    "correct": 1
+    "correct": 3
   }
 ]
