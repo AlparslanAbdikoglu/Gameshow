@@ -155,7 +155,7 @@
   },
   {
     "number": 15,
-    "text": "When you have a leveraged long position in a very volatile altcoin, what should you watch most closely in real time to avoid getting liquidated in a flash crash?",
+    "text": "When you have a leveraged long position in a very volatile altcoin, what should you watch most closely in real time to avoid getting liquidated ?",
     "answers": [
       "Total open interest on the exchange",
       "24-hour trading volume compared to market cap",
