@@ -1,6 +1,54 @@
 {
   "winners": [
     {
+      "game_id": "game_2025-12-31T17-50-18_xlrdtv",
+      "date": "2025-12-31T17:50:18.000Z",
+      "username": "xlrdtv",
+      "final_points": 191,
+      "correct_answers": 13,
+      "total_answers": 15,
+      "accuracy": 87,
+      "best_streak": 7,
+      "fastest_correct_time": 8933,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 191,
+      "contestant_name": "Last show of 2025"
+    },
+    {
+      "game_id": "game_2025-12-31T17-50-18_happy4200000",
+      "date": "2025-12-31T17:50:18.000Z",
+      "username": "happy4200000",
+      "final_points": 165,
+      "correct_answers": 13,
+      "total_answers": 15,
+      "accuracy": 87,
+      "best_streak": 7,
+      "fastest_correct_time": 9802,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 165,
+      "contestant_name": "Last show of 2025"
+    },
+    {
+      "game_id": "game_2025-12-31T17-50-18_cucadeliciosa",
+      "date": "2025-12-31T17:50:18.000Z",
+      "username": "cucadeliciosa",
+      "final_points": 110,
+      "correct_answers": 9,
+      "total_answers": 13,
+      "accuracy": 69,
+      "best_streak": 6,
+      "fastest_correct_time": 15160,
+      "hot_seat_appearances": 0,
+      "hot_seat_correct": 0,
+      "questions_completed": 15,
+      "total_points_all_games": 110,
+      "contestant_name": "Last show of 2025"
+    },
+    {
       "game_id": "game_2025-12-29T17-54-40_el_boris",
       "date": "2025-12-29T17:54:40.000Z",
       "username": "el_boris",
@@ -1048,10 +1096,10 @@
     }
   ],
   "metadata": {
-    "total_games": 22,
-    "last_updated": "2025-12-29T17:54:40.814Z",
+    "total_games": 23,
+    "last_updated": "2025-12-31T17:50:18.210Z",
     "note": "Automated merge from Oct 20 through Nov 12 archives. Winners include milestone games even for ignored accounts.",
-    "total_players": 39,
+    "total_players": 41,
     "total_source_entries": 25,
     "source_range": "2025-10-20 to 2025-11-12"
   }
