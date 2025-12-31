@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "What is the biggest risk when you hold a large leveraged position on a crypto exchange?",
+    "text": "How does Bitcoin usually correlate with the S&P 500 during strong stock market bull runs?",
     "answers": [
-      "Someone stealing your wallet private key",
-      "Government taking your funds",
-      "Getting liquidated if the price moves against you",
-      "High network fees"
+      "Correlation stays near zero",
+      "Bitcoin always leads stocks",
+      "Correlation increases as both act as risk assets",
+      "Bitcoin moves with negative correlation"
     ],
     "correct": 2
   },
   {
     "number": 2,
-    "text": "In crypto trading, a \"whale\" usually means:",
+    "text": "When the U.S. Federal Reserve raises interest rates sharply, crypto markets usually:",
     "answers": [
-      "Someone or a group that owns a huge amount of a cryptocurrency",
-      "A market maker on big exchanges",
-      "A trader who only uses charts",
-      "A developer who can change the project's code"
+      "Show no reaction",
+      "Face downward pressure as investors prefer safer assets",
+      "Perform better due to a stronger dollar",
+      "Rally due to increased liquidity"
     ],
-    "correct": 0
+    "correct": 1
   },
   {
     "number": 3,
-    "text": "What does \"slippage\" mean when trading crypto?",
+    "text": "Spot Bitcoin ETFs in the U.S. mainly impacted price by:",
     "answers": [
-      "Price slowly dropping in a bear market",
-      "The difference between the price you expected and the price you actually got",
-      "Fees paid to liquidity providers",
-      "Delay in confirming your order on the blockchain"
+      "Forcing retail selling",
+      "Allowing traditional investors regulated access",
+      "Reducing crypto exchange volume",
+      "Making Bitcoin correlate with gold"
     ],
     "correct": 1
   },
   {
     "number": 4,
-    "text": "Which on-chain metric is commonly used to check Bitcoin's network health and possible price direction?",
+    "text": "Bitcoin halving events mainly affect the market by:",
     "answers": [
-      "How much Bitcoin flows in or out of exchanges",
-      "Google search trends",
-      "Daily mentions on Twitter",
-      "Only the trading volume on centralized exchanges"
+      "Cutting new Bitcoin supply in half",
+      "Increasing block size",
+      "Raising transaction fees",
+      "Forcing exchange delistings"
     ],
     "correct": 0
   },
   {
     "number": 5,
-    "text": "When Bitcoin perpetual futures show a negative funding rate for many weeks in a row, plus very high open interest, means?",
+    "text": "When the U.S. Dollar Index (DXY) rises strongly, Bitcoin often:",
     "answers": [
-      "The market sentiment is neutral with no clear direction",
-      "It's just temporary distortion before the next contract rollover",
-      "Longs are dominant and confident enough to pay shorts",
-      "A short squeeze is about to happen because too many shorts are leveraged"
+      "Falls as risk assets weaken",
+      "Rises with the dollar",
+      "Shows no pattern",
+      "Becomes less volatile"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 6,
+    "text": "What is the theme for Week 4 lyric submissions in Liquania’s Got Talent?",
+    "answers": [
+      "New Year’s Resolution",
+      "Winter Vibes",
+      "The History of Bitcoin",
+      "Christmas Memories"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 7,
+    "text": "Until what date is the Coinwise 30% \"Wisier\" discount valid?",
+    "answers": [
+      "January 6th",
+      "January 1st",
+      "December 31st",
+      "January 4th"
+    ],
+    "correct": 3
+  },
+  {
+    "number": 8,
+    "text": "What is the total prize pool for the Blofin space trading competition?",
+    "answers": [
+      "$5,000",
+      "$100,000",
+      "$10,000",
+      "$1,000"
     ],
     "correct": 2
   },
   {
-    "number": 6,
-    "text": "What is a stop-loss order mainly used for in crypto trading?",
-    "answers": [
-      "Entering a trade only when price breaks a resistance level",
-      "Buying more during price dips",
-      "Automatically taking profits at a higher price",
-      "Limiting your losses by closing the trade at a set price"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 7,
-    "text": "Which strategy means buying crypto cheaper on one exchange and selling it higher on another at the same time?",
-    "answers": [
-      "Dollar-cost averaging",
-      "Arbitrage",
-      "Scalping",
-      "HODLing"
-    ],
-    "correct": 1
-  },
-  {
-    "number": 8,
-    "text": "A positive funding rate in perpetual futures usually shows that:",
-    "answers": [
-      "The market is perfectly balanced",
-      "A contract expiration is coming soon",
-      "Shorts are paying longs",
-      "Longs are paying shorts"
-    ],
-    "correct": 3
-  },
-  {
     "number": 9,
-    "text": "On crypto lending platforms, some platforms lend out the same user-deposited coins multiple times to make extra profit. What is this risky practice called?",
+    "text": "What price level must Bitcoin reclaim to continue the trend, according to Mandalo?",
     "answers": [
-      "Proving reserves publicly on-chain",
-      "Re-lending the same deposits over and over",
-      "Withdrawing user funds",
-      "Converting everything to stablecoins automatically"
+      "95,000",
+      "85,000",
+      "100,000",
+      "91,000"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 10,
-    "text": "An experienced trader sees Bitcoin's Realized Price going up quickly while the spot price stays flat. This usually means:",
+    "text": "How old is Mandalo’s youngest child?",
     "answers": [
-      "Short-term holders are taking profits aggressively",
-      "Only whales are quietly accumulating",
-      "New buyers are coming in at higher prices, which could support the price later",
-      "Long-term holders are selling at a loss"
+      "3 months",
+      "8 months",
+      "5 months",
+      "12 months"
     ],
     "correct": 2
   },
   {
     "number": 11,
-    "text": "Why do traders use a limit order instead of a market order in crypto?",
+    "text": "What does the phrase \"dip the tip\" mean in trading slang?",
     "answers": [
-      "To buy or sell instantly at any price",
-      "To automatically follow the price movement",
-      "To choose the exact price they're happy to buy or sell at",
-      "To hide how big their order is"
+      "Max leverage on one trade",
+      "A wick into a level followed by reversal",
+      "Closing at daily open",
+      "Holding trades over the weekend"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 12,
-    "text": "In crypto, \"FOMO\" (Fear Of Missing Out) usually causes traders to:",
+    "text": "What is the top hardware prize in the New Year’s Draw?",
     "answers": [
-      "Buy near local tops or all-time highs",
-      "Slowly reduce their position size",
-      "Move coins to cold storage",
-      "Sell at market bottoms"
+      "MacBook Pro",
+      "Ledger wallet",
+      "iPad Air",
+      "iPhone"
     ],
-    "correct": 0
+    "correct": 3
   },
   {
     "number": 13,
-    "text": "What is a key risk of holding fiat-pegged stablecoins?",
+    "text": "How many total winners were there in Season 1 of Liquania’s Got Talent?",
     "answers": [
-      "Only smart contract bugs",
-      "The stablecoin losing its 1:1 peg to the fiat currency",
-      "Mining difficulty changes",
-      "A 51% attack on the blockchain"
+      "10",
+      "16",
+      "6",
+      "20"
     ],
     "correct": 1
   },
   {
     "number": 14,
-    "text": "Long squeezes and short squeezes in crypto futures are mainly caused by:",
+    "text": "Which sport did Mandalo compete in professionally before trading?",
     "answers": [
-      "Only regulatory news",
-      "Sudden high transaction fees",
-      "A chain of liquidations pushing price sharply in one direction",
-      "Exchange downtime for maintenance"
+      "Tennis",
+      "Basketball",
+      "Surfing",
+      "Soccer"
     ],
     "correct": 2
   },
   {
     "number": 15,
-    "text": "When you have a leveraged long position in a very volatile altcoin, what should you watch most closely in real time to avoid getting liquidated ?",
+    "text": "Which promo code activates the 30% Coinwise holiday discount?",
     "answers": [
-      "Total open interest on the exchange",
-      "24-hour trading volume compared to market cap",
-      "Just your unrealized profit/loss percentage",
-      "Maintenance margin level and how close your margin ratio is to the liquidation price"
+      "LION2025",
+      "JUICE30",
+      "KIMBERXMAS",
+      "WISE YEAR"
     ],
     "correct": 3
   }
