@@ -1,166 +1,166 @@
 [
   {
     "number": 1,
-    "text": "How does Bitcoin usually correlate with the S&P 500 during strong stock market bull runs?",
+    "text": "The Year of the Horse is all about speed and energy. In crypto trading, moving too fast often leads to:",
     "answers": [
-      "Correlation stays near zero",
-      "Bitcoin always leads stocks",
-      "Correlation increases as both act as risk assets",
-      "Bitcoin moves with negative correlation"
+      "Guaranteed profits",
+      "Revenge trading and bigger losses after a bad trade",
+      "Lower transaction fees",
+      "Better understanding of market trends"
     ],
-    "correct": 2
+    "correct": 1
   },
   {
     "number": 2,
-    "text": "When the U.S. Federal Reserve raises interest rates sharply, crypto markets usually:",
+    "text": "What is front-running in cryptocurrency markets?",
     "answers": [
-      "Show no reaction",
-      "Face downward pressure as investors prefer safer assets",
-      "Perform better due to a stronger dollar",
-      "Rally due to increased liquidity"
+      "Always being the first to sell in a dip",
+      "Using high-speed internet only",
+      "Buying a token before a big announcement goes public",
+      "Traders or bots placing orders ahead of large visible trades to profit from price movement"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 3,
-    "text": "Spot Bitcoin ETFs in the U.S. mainly impacted price by:",
+    "text": "Horses run freely. In crypto, the closest thing to freedom for your assets is:",
     "answers": [
-      "Forcing retail selling",
-      "Allowing traditional investors regulated access",
-      "Reducing crypto exchange volume",
-      "Making Bitcoin correlate with gold"
+      "Holding your own private keys (self-custody)",
+      "Trading only memecoins",
+      "Keeping everything on an exchange",
+      "Lending everything on DeFi platforms"
     ],
-    "correct": 1
+    "correct": 0
   },
   {
     "number": 4,
-    "text": "Bitcoin halving events mainly affect the market by:",
+    "text": "What does KYC stand for on crypto exchanges?",
     "answers": [
-      "Cutting new Bitcoin supply in half",
-      "Increasing block size",
-      "Raising transaction fees",
-      "Forcing exchange delistings"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 5,
-    "text": "When the U.S. Dollar Index (DXY) rises strongly, Bitcoin often:",
-    "answers": [
-      "Falls as risk assets weaken",
-      "Rises with the dollar",
-      "Shows no pattern",
-      "Becomes less volatile"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 6,
-    "text": "What is the theme for Week 4 lyric submissions in Liquania’s Got Talent?",
-    "answers": [
-      "New Year’s Resolution",
-      "Winter Vibes",
-      "The History of Bitcoin",
-      "Christmas Memories"
-    ],
-    "correct": 0
-  },
-  {
-    "number": 7,
-    "text": "Until what date is the Coinwise 30% \"Wisier\" discount valid?",
-    "answers": [
-      "January 6th",
-      "January 1st",
-      "December 31st",
-      "January 4th"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 8,
-    "text": "What is the total prize pool for the Blofin space trading competition?",
-    "answers": [
-      "$5,000",
-      "$100,000",
-      "$10,000",
-      "$1,000"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 9,
-    "text": "What price level must Bitcoin reclaim to continue the trend, according to Mandalo?",
-    "answers": [
-      "95,000",
-      "85,000",
-      "100,000",
-      "91,000"
-    ],
-    "correct": 3
-  },
-  {
-    "number": 10,
-    "text": "How old is Mandalo’s youngest child?",
-    "answers": [
-      "3 months",
-      "8 months",
-      "5 months",
-      "12 months"
-    ],
-    "correct": 2
-  },
-  {
-    "number": 11,
-    "text": "What does the phrase \"dip the tip\" mean in trading slang?",
-    "answers": [
-      "Max leverage on one trade",
-      "A wick into a level followed by reversal",
-      "Closing at daily open",
-      "Holding trades over the weekend"
+      "Know Your Coin",
+      "Know Your Customer",
+      "Keep Your Crypto",
+      "Key Yield Calculation"
     ],
     "correct": 1
   },
   {
-    "number": 12,
-    "text": "What is the top hardware prize in the New Year’s Draw?",
+    "number": 5,
+    "text": "The Horse zodiac loves strength and endurance. In trading, this matches best with:",
     "answers": [
-      "MacBook Pro",
-      "Ledger wallet",
-      "iPad Air",
-      "iPhone"
+      "Chasing quick pumps and dumps",
+      "Using 100x leverage every time",
+      "Building a strong portfolio and sticking to your plan through ups and downs",
+      "Trading only during Asian session hours"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 6,
+    "text": "What is a honeypot scam in crypto?",
+    "answers": [
+      "Free airdrops that are actually valuable",
+      "An exchange bonus program",
+      "A token that looks attractive but you can buy it but never sell it",
+      "A liquidity pool with very high rewards"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 7,
+    "text": "Horses are fast and powerful. In crypto charts, a sudden strong upward move is often called:",
+    "answers": [
+      "Distribution phase",
+      "A dead cat bounce",
+      "A pump or breakout",
+      "Consolidation"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 8,
+    "text": "What is the main risk of using very high leverage (like 100x) in crypto futures?",
+    "answers": [
+      "Automatic conversion to stablecoins",
+      "Getting liquidated quickly on small price moves against you",
+      "Higher rewards from the exchange",
+      "Slower trade execution"
+    ],
+    "correct": 1
+  },
+  {
+    "number": 9,
+    "text": "The Year of the Horse encourages bold moves. But in trading, the boldest smart move is often:",
+    "answers": [
+      "Ignoring stop-losses to show strength",
+      "Going all-in on one token",
+      "Taking profits gradually as price rises",
+      "Borrowing money to trade more"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 10,
+    "text": "What does staking mean in proof-of-stake cryptocurrencies?",
+    "answers": [
+      "Locking up your coins to help secure the network and earn rewards",
+      "Selling tokens at regular intervals",
+      "Trading them on centralized exchanges only",
+      "Burning them to reduce supply"
+    ],
+    "correct": 0
+  },
+  {
+    "number": 11,
+    "text": "Horses hate being trapped. In crypto, feeling trapped most often happens when:",
+    "answers": [
+      "You use a hardware wallet",
+      "You sell too early and price moons",
+      "You buy at the top and price keeps falling",
+      "You earn staking rewards"
+    ],
+    "correct": 2
+  },
+  {
+    "number": 12,
+    "text": "What is wash trading?",
+    "answers": [
+      "Cleaning your wallet address for privacy",
+      "Moving coins between your own wallets",
+      "Withdrawing profits regularly",
+      "Fake trading volume created by buying and selling to yourself to mislead the market"
     ],
     "correct": 3
   },
   {
     "number": 13,
-    "text": "How many total winners were there in Season 1 of Liquania’s Got Talent?",
+    "text": "The Horse year brings energy and action. Which trading habit action used most wisely?",
     "answers": [
-      "10",
-      "16",
-      "6",
-      "20"
+      "Checking charts every 5 minutes all day",
+      "Arguing with strangers online about price predictions",
+      "Copy trading random successful accounts",
+      "Having a clear plan before entering any trade"
     ],
-    "correct": 1
+    "correct": 3
   },
   {
     "number": 14,
-    "text": "Which sport did Mandalo compete in professionally before trading?",
+    "text": "What happens during a capitulation phase in a crypto bear market?",
     "answers": [
-      "Tennis",
-      "Basketball",
-      "Surfing",
-      "Soccer"
+      "Exchanges stop trading temporarily",
+      "Everyone buys aggressively",
+      "New all-time highs are made",
+      "Weak hands sell in panic, often marking the bottom"
     ],
-    "correct": 2
+    "correct": 3
   },
   {
     "number": 15,
-    "text": "Which promo code activates the 30% Coinwise holiday discount?",
+    "text": "Horses are known for strength and speed together. In crypto success, the best combination is:",
     "answers": [
-      "LION2025",
-      "JUICE30",
-      "KIMBERXMAS",
-      "WISE YEAR"
+      "Speed only – trade as fast as possible",
+      "Strength only – never sell anything",
+      "Luck and high leverage",
+      "Discipline and patience – wait for good setups and manage risk well"
     ],
     "correct": 3
   }
